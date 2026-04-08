@@ -31,6 +31,7 @@ $maxWidthClass = [
         nextFocusableIndex() { return (this.focusables().indexOf(document.activeElement) + 1) % (this.focusables().length + 1) },
         prevFocusableIndex() { return Math.max(0, this.focusables().indexOf(document.activeElement)) -1 },
     }"
+    x-effect="show = @js($show)"
     x-init="$watch('show', value => {
         if (value) {
             document.body.classList.add('overflow-y-hidden');

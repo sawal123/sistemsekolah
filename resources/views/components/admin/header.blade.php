@@ -20,8 +20,8 @@
     </div>
 
     {{-- Center: Tahun Ajaran --}}
-    <div
-        style="display:flex;align-items:center;gap:8px;background:rgba(99,102,241,0.10);border:1px solid rgba(99,102,241,0.20);border-radius:999px;padding:6px 16px;">
+    <div class="hidden md:flex"
+        style="align-items:center;gap:8px;background:rgba(99,102,241,0.10);border:1px solid rgba(99,102,241,0.20);border-radius:999px;padding:6px 16px;">
         <span class="pulse-dot"
             style="width:7px;height:7px;border-radius:50%;background:#6366f1;flex-shrink:0;"></span>
         <span style="font-size:12px;font-weight:600;color:#6366f1;white-space:nowrap;">Tahun Ajaran:

@@ -18,6 +18,7 @@
 <body x-init="$store.theme.init()">
     <div id="layout">
 
+
         {{-- ════════════════════════ SIDEBAR ════════════════════════ --}}
         @persist('sidebar')
         @include('components.admin.sidebar')
@@ -36,6 +37,8 @@
 
         </div>
     </div>
+
+
 
     @livewireScripts
 
@@ -79,7 +82,7 @@
 
                 if (!Alpine.store('sidebar')) {
                     Alpine.store('sidebar', {
-                        open: false,
+                        open: window.innerWidth >= 1024,
 
                         toggle() {
                             this.open = !this.open;

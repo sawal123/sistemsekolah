@@ -30,13 +30,8 @@ class DummyDataSeeder extends Seeder
     {
         $faker = Factory::create('id_ID');
 
-        // Admin User
-        $admin = User::create([
-            'name' => 'Admin Sekolah',
-            'email' => 'admin@sekolah.com',
-            'password' => bcrypt('password'),
-            'role' => 'admin',
-        ]);
+        // Admin User (already created by RoleAndUserSeeder)
+        $admin = User::where('email', 'admin@sekolah.com')->first();
 
         // Gurus
         $gurus = [];
@@ -45,8 +40,8 @@ class DummyDataSeeder extends Seeder
                 'name' => $faker->name,
                 'email' => "guru{$i}@sekolah.com",
                 'password' => bcrypt('password'),
-                'role' => 'guru',
             ]);
+            $user->assignRole('guru');
             $gurus[] = Guru::create([
                 'user_id' => $user->id,
                 'nip' => $faker->unique()->numerify('19##########'),
@@ -77,8 +72,8 @@ class DummyDataSeeder extends Seeder
                 'name' => $faker->name,
                 'email' => "siswa{$i}@sekolah.com",
                 'password' => bcrypt('password'),
-                'role' => 'siswa',
             ]);
+            $user->assignRole('siswa');
             $siswas[] = Siswa::create([
                 'user_id' => $user->id,
                 'kelas_id' => $faker->randomElement($kelasIds),
