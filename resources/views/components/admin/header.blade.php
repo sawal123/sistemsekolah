@@ -1,5 +1,4 @@
-<header class="glass-header sticky top-0 z-40 flex items-center justify-between px-6"
-    style="height:64px;gap:16px;">
+<header class="glass-header sticky top-0 z-40 flex items-center justify-between px-6" style="height:64px;gap:16px;">
 
     {{-- Left: Toggle + Page Title --}}
     <div style="display:flex;align-items:center;gap:14px;">
@@ -8,22 +7,21 @@
             onmouseover="this.style.background='rgba(99,102,241,0.16)'"
             onmouseout="this.style.background='rgba(99,102,241,0.08)'">
             <svg class="w-5 h-5" style="color:#6366f1;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M4 6h16M4 12h16M4 18h16" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
         </button>
         <div>
             <p class="txt-muted" style="font-size:11px;">SMA Nusantara</p>
             <p class="txt-primary" style="font-size:14px;font-weight:700;line-height:1.2;">
-                {{ $title ?? 'Dashboard' }}</p>
+                {{ $title ?? 'Dashboard' }}
+            </p>
         </div>
     </div>
 
     {{-- Center: Tahun Ajaran --}}
     <div class="hidden md:flex"
         style="align-items:center;gap:8px;background:rgba(99,102,241,0.10);border:1px solid rgba(99,102,241,0.20);border-radius:999px;padding:6px 16px;">
-        <span class="pulse-dot"
-            style="width:7px;height:7px;border-radius:50%;background:#6366f1;flex-shrink:0;"></span>
+        <span class="pulse-dot" style="width:7px;height:7px;border-radius:50%;background:#6366f1;flex-shrink:0;"></span>
         <span style="font-size:12px;font-weight:600;color:#6366f1;white-space:nowrap;">Tahun Ajaran:
             2025/2026 — Ganjil</span>
     </div>
@@ -70,11 +68,12 @@
                 onmouseout="this.style.background='rgba(99,102,241,0.08)'">
                 <div
                     style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:11px;">
-                    {{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 2)) }}</div>
+                    {{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 2)) }}
+                </div>
                 <div style="text-align:left;display:none;" class="sm:block">
-                    <p class="txt-primary"
-                        style="font-size:12px;font-weight:700;line-height:1.2;white-space:nowrap;">
-                        {{ auth()->user()->name ?? 'Admin' }}</p>
+                    <p class="txt-primary" style="font-size:12px;font-weight:700;line-height:1.2;white-space:nowrap;">
+                        {{ auth()->user()->name ?? 'Admin' }}
+                    </p>
                     <p class="txt-muted" style="font-size:10px;white-space:nowrap;">Administrator</p>
                 </div>
                 <svg class="w-3 h-3 txt-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,16 +81,11 @@
                 </svg>
             </button>
 
-            <div x-show="profileOpen" x-cloak
-                @click.away="profileOpen = false"
-                x-transition:enter="transition ease-out duration-150"
-                x-transition:enter-start="opacity-0 scale-95"
-                x-transition:enter-end="opacity-100 scale-100"
-                x-transition:leave="transition ease-in duration-100"
-                x-transition:leave-start="opacity-100 scale-100"
-                x-transition:leave-end="opacity-0 scale-95"
-                class="glass profile-dd"
-                style="box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+            <div x-show="profileOpen" x-cloak @click.away="profileOpen = false"
+                x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 scale-95"
+                x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-100"
+                x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+                class=" glass profile-dd" style="box-shadow:0 20px 60px rgba(0,0,0,0.15);">
                 <a href="#" class="dd-item txt-secondary" style="font-weight:500;">
                     <svg class="w-4 h-4 txt-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

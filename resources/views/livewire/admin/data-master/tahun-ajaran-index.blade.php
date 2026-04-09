@@ -1,7 +1,7 @@
 <div style="display:flex;flex-direction:column;gap:24px;height:100%;">
     <x-ui.toast />
     {{-- Header Section --}}
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div class="fu d1">
             <h1 class="txt-primary" style="font-size:24px;font-weight:800;letter-spacing:-0.02em;">Data Tahun Ajaran & Semester</h1>
             <p class="txt-muted" style="font-size:13px;margin-top:4px;">Kelola periode akademik aktif dan riwayat semester sekolah.</p>
@@ -93,11 +93,7 @@
             </table>
         </div>
         
-        @if($tahunAjarans->hasPages())
-            <div class="px-6 py-4 border-t border-indigo-500/10 dark:border-white/10 bg-indigo-500/[0.01]">
-                {{ $tahunAjarans->links() }}
-            </div>
-        @endif
+        <x-ui.pagination :links="$tahunAjarans" />
     </x-ui.card>
 
     {{-- Form Modal --}}
@@ -114,57 +110,14 @@
                     <x-ui.input wire:model="tahun" id="tahun" type="text" placeholder="Contoh: 2025/2026" class="w-full" />
                 </div>
 
-                    <div x-data="{
-                        open: false,
-                        selected: @entangle('semester')
-                    }" class="mb-6">
-                        <x-ui.label for="semester" value="Semester" class="mb-2 txt-secondary font-medium" />
-                    
-                        <div class="relative">
-                            <!-- Trigger -->
-                            <button type="button" @click="open = !open" @click.away="open = false" class="
-                                    w-full flex items-center justify-between
-                                    rounded-xl
-                                    border border-slate-300/70 dark:border-white/10
-                                    bg-white/80 dark:bg-slate-900/60
-                                    backdrop-blur-md
-                                    px-4 py-3
-                                    text-sm font-medium
-                                    text-slate-800 dark:text-white
-                                    shadow-sm
-                                    hover:border-indigo-400/50
-                                    focus:outline-none
-                                    focus:ring-4 focus:ring-indigo-500/15
-                                    transition-all
-                                ">
-                                <span x-text="selected"></span>
-                    
-                                <svg class="w-4 h-4 transition-transform duration-300" :class="{ 'rotate-180': open }" fill="none"
-                                    stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </button>
-                    
-                            <!-- Dropdown -->
-                            <div x-show="open" x-transition class="
-                                    absolute z-50 mt-2 w-full
-                                    rounded-2xl
-                                    border border-slate-200 dark:border-white/10
-                                    bg-white dark:bg-slate-900
-                                    shadow-xl
-                                    overflow-hidden
-                                ">
-                                <template x-for="option in ['Ganjil', 'Genap']" :key="option">
-                                    <button type="button" @click="selected = option; open = false;"
-                                        class="w-full text-left px-4 py-3
-                                        text-sm font-medium
-                                        text-slate-700 dark:text-white/80
-                                        hover:bg-indigo-50 dark:hover:bg-white/5
-                                        transition-colors" x-text="option"></button> 
-                                    </template>
-                            </div>
-                        </div>
-                    </div>
+                <div class="mb-6">
+                    <x-ui.select 
+                        label="Semester" 
+                        wire:model="semester" 
+                        :options="['Ganjil', 'Genap']" 
+                        placeholder="Pilih Semester"
+                    />
+                </div>
 
                 <div class="flex items-center gap-3 bg-indigo-500/[0.03] dark:bg-indigo-500/5 p-4 rounded-xl border border-indigo-500/10 mb-8">
                     <input wire:model="is_active" type="checkbox" id="is_active" class="w-5 h-5 rounded border-indigo-500/30 text-indigo-600 focus:ring-indigo-500 bg-white/50 dark:bg-white/10 cursor-pointer" />
