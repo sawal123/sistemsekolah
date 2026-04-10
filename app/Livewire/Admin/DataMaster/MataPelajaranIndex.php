@@ -21,6 +21,7 @@ class MataPelajaranIndex extends Component
 
     // Search & Filter
     public $search = '';
+    public $perPage = 10;
 
     public $filterJenjang = '';
 
@@ -86,7 +87,7 @@ class MataPelajaranIndex extends Component
         }
 
         return view('livewire.admin.data-master.mata-pelajaran-index', [
-            'mapels' => $query->latest()->paginate(5),
+            'mapels' => $query->latest()->paginate($this->perPage),
         ]);
     }
 

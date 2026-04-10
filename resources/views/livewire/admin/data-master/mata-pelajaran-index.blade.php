@@ -118,134 +118,138 @@
     </div>
 
     {{-- Filter & Search Bar --}}
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 my-4">
-        {{-- Search Box --}}
-        <div class="lg:col-span-5 relative group">
-            <div
-                class="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-500 transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-            </div>
-            <x-ui.input wire:model.live.debounce.300ms="search" id="tahun" type="text"
-                placeholder="Cari Kode atau Nama Mapel..." class="w-full" />
+    <div class="flex flex-wrap items-center gap-3 my-4">
+
+        {{-- Per Page --}}
+        <div class="w-20 flex-shrink-0">
+            <x-ui.select wire:model.live="perPage" :options="['10' => '10', '20' => '20', '50' => '50']" />
         </div>
 
-        {{-- Filters --}}
-        <div class="lg:col-span-7 flex flex-wrap items-center gap-3">
-            {{-- Jenjang Filter --}}
-            <div class="flex-1 min-w-[140px]">
-                <x-ui.select wire:model.live="filterJenjang" :options="['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA', 'Umum' => 'Umum']" />
-            </div>
+        {{-- Divider --}}
+        <div class="h-7 w-px bg-indigo-500/20 flex-shrink-0 hidden sm:block"></div>
 
-            {{-- Kelompok Filter --}}
-            <div class="flex-1 min-w-[160px]">
-                <x-ui.select wire:model.live="filterKelompok" :options="['' => 'Semua Kelompok', 'Nasional' => 'Nasional', 'Kewilayahan' => 'Kewilayahan', 'Peminatan' => 'Peminatan', 'Mulok' => 'Mulok']" />
-            </div>
-
-
+        {{-- Search --}}
+        <div class="flex-1 min-w-[180px]">
+            <x-ui.search model="search" placeholder="Cari Kode atau Nama Mapel..." />
         </div>
+
+        {{-- Filter Jenjang --}}
+        <div class="w-40 flex-shrink-0">
+            <x-ui.select wire:model.live="filterJenjang" :options="['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA', 'Umum' => 'Umum']" />
+        </div>
+
+        {{-- Filter Kelompok --}}
+        <div class="w-50 flex-shrink-0">
+            <x-ui.select wire:model.live="filterKelompok" :options="['' => 'Semua Kelompok', 'Nasional' => 'Nasional', 'Kewilayahan' => 'Kewilayahan', 'Peminatan' => 'Peminatan', 'Mulok' => 'Mulok']" />
+        </div>
+
     </div>
 
     {{-- Table Section --}}
     <div class="print-area">
         <div class="hidden print:block mb-4 text-center">
             <h2>Laporan Mata Pelajaran</h2>
-            {{-- <p>Tanggal Cetak: {{ now()->format('d/m/Y') }}</p> --}}
+            <p>Tanggal Cetak: {{ now()->format('d/m/Y') }}</p>
         </div>
-        <x-ui.card padding="0" class="overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left" style="border-collapse: separate; border-spacing: 0;">
-                    <thead>
-                        <tr class="bg-indigo-500/5 dark:bg-white/5 border-b border-indigo-500/10 dark:border-white/10">
-                            <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted w-[80px]">No
-                            </th>
-                            <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Kode Mapel
-                            </th>
-                            <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Nama Mata
-                                Pelajaran</th>
-                            <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Kelompok</th>
-                            <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Jenjang</th>
-                            <th
-                                class="print-hide px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted text-right w-[150px]">
-                                Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-indigo-500/10 dark:divide-white/10">
-                        @forelse($mapels as $index => $item)
-                            <tr class="hover:bg-indigo-500/[0.02] dark:hover:bg-white/[0.02] transition-colors group">
-                                <td class="px-6 py-4 text-sm txt-primary font-medium">
-                                    {{ ($mapels->currentPage() - 1) * $mapels->perPage() + $loop->iteration }}
-                                </td>
-                                <td class="px-6 py-4 text-sm">
-                                    <span
-                                        class="px-2 py-1 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg font-bold text-[12px] border border-indigo-500/20">
-                                        {{ $item->kode_mapel }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-sm txt-primary font-semibold">
-                                    {{ $item->nama_mapel }}
-                                </td>
-                                <td class="px-6 py-4 text-sm">
-                                    @php
-                                        $kelompokColor = match ($item->kelompok) {
-                                            'Nasional' => 'success',
-                                            'Peminatan' => 'indigo',
-                                            'Kewilayahan' => 'warning',
-                                            'Mulok' => 'secondary',
-                                            default => 'secondary'
-                                        };
-                                    @endphp
-                                    <x-ui.badge :variant="$kelompokColor">{{ $item->kelompok }}</x-ui.badge>
-                                </td>
-                                <td class="px-6 py-4 text-sm">
-                                    <span class="flex items-center gap-2 txt-primary">
+        <x-ui.card padding="0">
+            <div class="rounded-xl overflow-hidden border border-indigo-500/10 dark:border-white/10 m-3 shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left" style="border-collapse: separate; border-spacing: 0;">
+                        <thead>
+                            <tr
+                                class="bg-indigo-500/5 dark:bg-white/5 border-b border-indigo-500/10 dark:border-white/10">
+                                <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted w-[80px]">
+                                    No
+                                </th>
+                                <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Kode
+                                    Mapel
+                                </th>
+                                <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Nama Mata
+                                    Pelajaran</th>
+                                <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Kelompok
+                                </th>
+                                <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Jenjang
+                                </th>
+                                <th
+                                    class="print-hide px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted text-right w-[150px]">
+                                    Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-indigo-500/10 dark:divide-white/10">
+                            @forelse($mapels as $index => $item)
+                                <tr class="hover:bg-indigo-500/[0.02] dark:hover:bg-white/[0.02] transition-colors group">
+                                    <td class="px-6 py-4 text-sm txt-primary font-medium">
+                                        {{ ($mapels->currentPage() - 1) * $mapels->perPage() + $loop->iteration }}
+                                    </td>
+                                    <td class="px-6 py-4 text-sm">
                                         <span
-                                            class="w-1.5 h-1.5 rounded-full {{ $item->jenjang === 'SMA' ? 'bg-blue-500' : ($item->jenjang === 'SMP' ? 'bg-emerald-500' : 'bg-slate-500') }}"></span>
-                                        {{ $item->jenjang }}
-                                    </span>
-                                </td>
-                                <td class="print-hide px-6 py-4 text-right">
-                                    <div class="flex items-center justify-end gap-2">
-                                        <button wire:click="edit({{ $item->id }})"
-                                            class="p-2 rounded-lg hover:bg-indigo-500/10 text-indigo-500 transition-all cursor-pointer"
-                                            title="Edit">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                            </svg>
-                                        </button>
+                                            class="px-2 py-1 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg font-bold text-[12px] border border-indigo-500/20">
+                                            {{ $item->kode_mapel }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm txt-primary font-semibold">
+                                        {{ $item->nama_mapel }}
+                                    </td>
+                                    <td class="px-6 py-4 text-sm">
+                                        @php
+                                            $kelompokColor = match ($item->kelompok) {
+                                                'Nasional' => 'success',
+                                                'Peminatan' => 'indigo',
+                                                'Kewilayahan' => 'warning',
+                                                'Mulok' => 'secondary',
+                                                default => 'secondary'
+                                            };
+                                        @endphp
+                                        <x-ui.badge :variant="$kelompokColor">{{ $item->kelompok }}</x-ui.badge>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <span class="flex items-center gap-2 txt-primary">
+                                            <span
+                                                class="w-1.5 h-1.5 rounded-full {{ $item->jenjang === 'SMA' ? 'bg-blue-500' : ($item->jenjang === 'SMP' ? 'bg-emerald-500' : 'bg-slate-500') }}"></span>
+                                            {{ $item->jenjang }}
+                                        </span>
+                                    </td>
+                                    <td class="print-hide px-6 py-4 text-right">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <button wire:click="edit({{ $item->id }})"
+                                                class="p-2 rounded-lg hover:bg-indigo-500/10 text-indigo-500 transition-all cursor-pointer"
+                                                title="Edit">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                </svg>
+                                            </button>
 
-                                        <button wire:click="confirmDelete({{ $item->id }})"
-                                            class="p-2 rounded-lg hover:bg-red-500/10 text-red-500 transition-all cursor-pointer"
-                                            title="Hapus">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            <button wire:click="confirmDelete({{ $item->id }})"
+                                                class="p-2 rounded-lg hover:bg-red-500/10 text-red-500 transition-all cursor-pointer"
+                                                title="Hapus">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="px-6 py-20 text-center">
+                                        <div class="flex flex-col items-center justify-center opacity-40">
+                                            <svg class="w-12 h-12 mb-4" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                                             </svg>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="px-6 py-20 text-center">
-                                    <div class="flex flex-col items-center justify-center opacity-40">
-                                        <svg class="w-12 h-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                        </svg>
-                                        <p class="text-sm">Tidak ada mata pelajaran yang ditemukan.</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+                                            <p class="text-sm">Tidak ada mata pelajaran yang ditemukan.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
 
-            <x-ui.pagination :links="$mapels" />
+                <x-ui.pagination :links="$mapels" />
         </x-ui.card>
     </div>
 
@@ -277,10 +281,11 @@
                 {{-- Kelompok & Jenjang Grid --}}
                 <div class="grid grid-cols-2 gap-4">
                     {{-- Kelompok --}}
-                    <x-ui.select label="Kelompok" wire:model="kelompok" :options="['Nasional', 'Kewilayahan', 'Peminatan', 'Mulok']" />
+                    <x-ui.select label="Kelompok" wire:model="kelompok" :options="['Nasional', 'Kewilayahan', 'Peminatan', 'Mulok']" placeholder="Pilih Kelompok" />
 
                     {{-- Jenjang --}}
-                    <x-ui.select label="Jenjang" wire:model="jenjang" :options="['SMP', 'SMA', 'Umum']" />
+                    <x-ui.select label="Jenjang" wire:model="jenjang" :options="['SMP', 'SMA', 'Umum']"
+                        placeholder="Pilih Jenjang" />
                 </div>
 
                 {{-- Action Buttons --}}
