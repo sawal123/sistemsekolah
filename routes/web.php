@@ -55,7 +55,13 @@ Route::middleware(['auth', 'role:admin|guru'])->group(function () {
 
 // ─── Admin Exclusive Routes ────────────────────────────────────
 Route::middleware(['auth', 'role:admin'])->group(function () {
-    // ─── Data Master ───
+    // ─── Civitas Akademik ───
+    Route::prefix('civitas')->name('admin.civitas.')->group(function () {
+        Route::get('/data-guru', App\Livewire\Admin\Civitas\DataGuruIndex::class)->name('data-guru');
+        Route::get('/data-guru/create', App\Livewire\Admin\Civitas\DataGuruForm::class)->name('data-guru.create');
+        Route::get('/data-guru/{guru}/edit', App\Livewire\Admin\Civitas\DataGuruForm::class)->name('data-guru.edit');
+        Route::get('/data-guru/{guru}', App\Livewire\Admin\Civitas\DataGuruDetail::class)->name('data-guru.detail');
+    });
     Route::prefix('data-master')->name('admin.data-master.')->group(function () {
         Route::get('/tahun-ajaran', TahunAjaranIndex::class)->name('tahun-ajaran');
         Route::get('/mata-pelajaran', MataPelajaranIndex::class)->name('mata-pelajaran');

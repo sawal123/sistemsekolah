@@ -129,16 +129,36 @@ class DummyDataSeeder extends Seeder
             ]);
         }
 
+        // 6.5 Ruangan
+        $ruanganNames = ['Lab Komputer 1', 'Lab IPA', 'Aula', 'Ruang Kelas 10-A', 'Ruang Kelas 10-B', 'Perpustakaan'];
+        $ruangans = [];
+        foreach ($ruanganNames as $r) {
+            $ruangans[] = \App\Models\Ruangan::create(['nama_ruangan' => $r, 'kapasitas' => 36]);
+        }
+
         // 7. Jadwal
+        // 7. Jadwal Pelajaran Cerdas (Tanpa Bentrok)
         $jadwals = [];
-        for ($i = 0; $i < 10; $i++) {
-            $jadwals[] = Jadwal::create([
-                'kelas_id' => $faker->randomElement($kelasIds),
-                'mapel_id' => $faker->randomElement($mapelIds),
-                'guru_id' => $faker->randomElement(collect($gurus)->pluck('id')->toArray()),
-                'hari' => $faker->randomElement(['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat']),
-                'jam_mulai' => $faker->time('H:i'),
-            ]);
+        $slotMulai = ['07:15', '08:00', '08:45', '10:00', '10:45'];
+        $slotSelesai = ['08:00', '08:45', '09:30', '10:45', '11:30'];
+        
+        $hariMinggu = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        $counter = 0;
+
+        foreach ($kelasIds as $idxKelas => $k_id) {
+            // Beri 2 jadwal per kelas (total 8 jadwal)
+            for ($j = 0; $j < 2; $j++) {
+                $jadwals[] = Jadwal::create([
+                    'kelas_id' => $k_id,
+                    'mapel_id' => $faker->randomElement($mapelIds),
+                    // Pastikan beda guru untuk setiap kelas biar gampang tidak bentrok guru
+                    'guru_id' => $gurus[($idxKelas + $j) % count($gurus)]->id, 
+                    'ruangan_id' => $ruangans[$idxKelas % count($ruangans)]->id, // Beda kelas beda ruangan (fixed)
+                    'hari' => $hariMinggu[$j],
+                    'jam_mulai' => $slotMulai[$j], // Jam ke-1 dan Jam ke-2
+                    'jam_selesai' => $slotSelesai[$j],
+                ]);
+            }
         }
 
         // 8. Transaksi & Laporan (Hanya untuk beberapa siswa)
@@ -186,6 +206,8 @@ class DummyDataSeeder extends Seeder
         ]);
 
         // 10. Blog & CMS
+
+
         $kat = Kategori::create(['nama_kategori' => 'Kegiatan Sekolah', 'slug' => 'kegiatan-sekolah']);
         $tag = Tag::create(['nama_tag' => 'Edukasi', 'slug' => 'edukasi']);
 
@@ -201,6 +223,8 @@ class DummyDataSeeder extends Seeder
         $post->tags()->attach([$tag->id]);
 
         Setting::create(['key' => 'site_name', 'value' => 'SmartSchool Management']);
+        Setting::create(['key' => 'durasi_jam_pelajaran', 'value' => '45']);
+        Setting::create(['key' => 'jam_mulai_pelajaran', 'value' => '07:15']);
         Slider::create(['judul' => 'Selamat Datang', 'foto' => 'welcome.jpg', 'is_active' => true]);
         Gallery::create(['judul' => 'Kegiatan Pramuka', 'foto' => 'pramuka.jpg']);
     }

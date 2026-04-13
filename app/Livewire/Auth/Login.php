@@ -29,6 +29,12 @@ class Login extends Component
 
         $user = Auth::user();
 
+        if (!$user->is_active) {
+            Auth::logout();
+            $this->addError('email', 'Akun Anda sedang ditangguhkan. Silakan hubungi Administrator.');
+            return;
+        }
+
         session()->regenerate();
 
         match ($user->role) {

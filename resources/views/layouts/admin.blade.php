@@ -20,9 +20,7 @@
 
 
         {{-- ════════════════════════ SIDEBAR ════════════════════════ --}}
-        @persist('sidebar')
         @include('components.admin.sidebar')
-        @endpersist
 
         {{-- ════════════════════════ MAIN AREA ════════════════════════ --}}
         <div id="mainArea" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;">
@@ -41,6 +39,7 @@
 
 
     @livewireScripts
+    <x-ui.toast />
 
     <script>
         function setupAdminStores() {
@@ -49,6 +48,9 @@
                 if (!Alpine.store('theme')) {
                     Alpine.store('theme', {
                         dark: localStorage.getItem('theme') === 'dark',
+                        // dark: localStorage.getItem('theme')
+                        //     ? localStorage.getItem('theme') === 'dark'
+                        //     : false,
 
                         toggle() {
                             this.dark = !this.dark;
@@ -108,6 +110,19 @@
             }
         });
     </script>
+
+    @if(session()->has('notify'))
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const notify = @json(session('notify'));
+                setTimeout(() => window.dispatchEvent(new CustomEvent('notify', { detail: notify })), 200);
+            });
+            document.addEventListener('livewire:navigated', () => {
+                const notify = @json(session('notify'));
+                setTimeout(() => window.dispatchEvent(new CustomEvent('notify', { detail: notify })), 200);
+            }, { once: true });
+        </script>
+    @endif
 </body>
 
 </html>

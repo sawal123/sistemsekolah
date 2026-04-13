@@ -89,7 +89,14 @@
 
     {{-- Advanced Filter Bar --}}
     {{-- <x-ui.card class="dark:bg-white/[0.02]"> --}}
-        <div class="flex flex-wrap items-center gap-3">
+        
+        
+        {{--
+    </x-ui.card> --}}
+
+    {{-- Table Section --}}
+    <x-ui.card padding="0">
+        <div class="flex flex-wrap items-center gap-3 p-3">
         
             {{-- Per Page --}}
             <div class="w-20 flex-shrink-0">
@@ -117,13 +124,9 @@
             {{-- Filter Status --}}
             <div class="w-40 flex-shrink-0">
                 <x-ui.select wire:model.live="filterStatus" :options="['' => 'Semua Status', 'Aktif' => 'Aktif', 'Lulus' => 'Lulus', 'Pindah' => 'Pindah', 'Dikeluarkan' => 'Dikeluarkan']" />
-            </div>  </div>
-        {{--
-    </x-ui.card> --}}
-
-    {{-- Table Section --}}
-    <x-ui.card padding="0">
-        <div class="rounded-xl overflow-hidden border border-indigo-500/10 dark:border-white/10 m-3 shadow-sm">
+            </div>
+        </div>
+        <div class=" rounded-xl overflow-hidden border border-indigo-500/10 dark:border-white/10 m-3 shadow-sm">
             <div class="overflow-x-auto">
                 <table class="w-full text-left" style="border-collapse: separate; border-spacing: 0;">
                 <thead>

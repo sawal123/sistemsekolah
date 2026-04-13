@@ -41,7 +41,7 @@
     </style>
     {{-- Custom Style for Print --}}
 
-    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 
         <div class="fu d1">
             <h1 class="txt-primary" style="font-size:24px;font-weight:800;letter-spacing:-0.02em;">Mata Pelajaran</h1>
@@ -118,47 +118,47 @@
     </div>
 
     {{-- Filter & Search Bar --}}
-    <div class="flex flex-wrap items-center gap-3 my-4">
 
-        {{-- Per Page --}}
-        <div class="w-20 flex-shrink-0">
-            <x-ui.select wire:model.live="perPage" :options="['10' => '10', '20' => '20', '50' => '50']" />
-        </div>
-
-        {{-- Divider --}}
-        <div class="h-7 w-px bg-indigo-500/20 flex-shrink-0 hidden sm:block"></div>
-
-        {{-- Search --}}
-        <div class="flex-1 min-w-[180px]">
-            <x-ui.search model="search" placeholder="Cari Kode atau Nama Mapel..." />
-        </div>
-
-        {{-- Filter Jenjang --}}
-        <div class="w-40 flex-shrink-0">
-            <x-ui.select wire:model.live="filterJenjang" :options="['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA', 'Umum' => 'Umum']" />
-        </div>
-
-        {{-- Filter Kelompok --}}
-        <div class="w-50 flex-shrink-0">
-            <x-ui.select wire:model.live="filterKelompok" :options="['' => 'Semua Kelompok', 'Nasional' => 'Nasional', 'Kewilayahan' => 'Kewilayahan', 'Peminatan' => 'Peminatan', 'Mulok' => 'Mulok']" />
-        </div>
-
-    </div>
 
     {{-- Table Section --}}
-    <div class="print-area">
+    <div class="print-area ">
         <div class="hidden print:block mb-4 text-center">
             <h2>Laporan Mata Pelajaran</h2>
             <p>Tanggal Cetak: {{ now()->format('d/m/Y') }}</p>
         </div>
         <x-ui.card padding="0">
+            <div class="flex flex-wrap items-center gap-3 my-4 p-3">
+
+                {{-- Per Page --}}
+                <div class="w-20 flex-shrink-0">
+                    <x-ui.select wire:model.live="perPage" :options="['10' => '10', '20' => '20', '50' => '50']" />
+                </div>
+
+                {{-- Divider --}}
+                <div class="h-7 w-px bg-indigo-500/20 flex-shrink-0 hidden sm:block"></div>
+
+                {{-- Search --}}
+                <div class="flex-1 min-w-[180px]">
+                    <x-ui.search model="search" placeholder="Cari Kode atau Nama Mapel..." />
+                </div>
+
+                {{-- Filter Jenjang --}}
+                <div class="w-40 flex-shrink-0">
+                    <x-ui.select wire:model.live="filterJenjang" :options="['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA', 'Umum' => 'Umum']" />
+                </div>
+
+                {{-- Filter Kelompok --}}
+                <div class="w-50 flex-shrink-0">
+                    <x-ui.select wire:model.live="filterKelompok" :options="['' => 'Semua Kelompok', 'Nasional' => 'Nasional', 'Kewilayahan' => 'Kewilayahan', 'Peminatan' => 'Peminatan', 'Mulok' => 'Mulok']" />
+                </div>
+            </div>
             <div class="rounded-xl overflow-hidden border border-indigo-500/10 dark:border-white/10 m-3 shadow-sm">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left" style="border-collapse: separate; border-spacing: 0;">
                         <thead>
                             <tr
                                 class="bg-indigo-500/5 dark:bg-white/5 border-b border-indigo-500/10 dark:border-white/10">
-                                <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted w-[80px]">
+                                <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted ">
                                     No
                                 </th>
                                 <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Kode
@@ -248,7 +248,6 @@
                         </tbody>
                     </table>
                 </div>
-
                 <x-ui.pagination :links="$mapels" />
         </x-ui.card>
     </div>

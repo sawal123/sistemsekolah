@@ -75,24 +75,25 @@
     </div>
 
     {{-- Filter & Search Bar --}}
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <div class="flex items-center gap-2 border-r border-indigo-500/10 pr-3">
-            <x-ui.select wire:model.live="perPage" :options="['10' => '10', '20' => '20', '50' => '50']" />
-        </div>
-        <div class="lg:col-span-6 flex items-center gap-2">
-            <x-ui.search model="search" placeholder="Cari Nama Kelas..." />
-        </div>
-
-        <div class="lg:col-span-4 flex items-center gap-2">
-
-            <x-ui.select wire:model.live="filterJenjang" :options="['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA']"
-                placeholder="Filter Jenjang" />
-
-        </div>
-    </div>
+    
 
     {{-- Table Section --}}
     <x-ui.card padding="0">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 p-3">
+            <div class="flex items-center gap-2 border-r border-indigo-500/10 pr-3">
+                <x-ui.select wire:model.live="perPage" :options="['10' => '10', '20' => '20', '50' => '50']" />
+            </div>
+            <div class="lg:col-span-6 flex items-center gap-2">
+                <x-ui.search model="search" placeholder="Cari Nama Kelas..." />
+            </div>
+        
+            <div class="lg:col-span-4 flex items-center gap-2">
+        
+                <x-ui.select wire:model.live="filterJenjang" :options="['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA']"
+                    placeholder="Filter Jenjang" />
+        
+            </div>
+            </div>
         <div class="rounded-xl overflow-hidden border border-indigo-500/10 dark:border-white/10 m-3 shadow-sm">
             <div class="overflow-x-auto">
                 <table class="w-full text-left" style="border-collapse: separate; border-spacing: 0;">
