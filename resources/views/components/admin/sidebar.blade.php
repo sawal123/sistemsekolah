@@ -158,6 +158,8 @@
                     Nilai</a>
                 <a href="{{ route('admin.kbm.e-rapor') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.kbm.e-rapor*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>e-Rapor</a>
+                <a href="{{ route('admin.kbm.kalender-akademik') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.kbm.kalender-akademik*') ? 'active' : '' }}"><span
+                        style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Kalender Akademik</a>
             </div>
         </div>
         @endhasrole

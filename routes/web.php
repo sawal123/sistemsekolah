@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Admin\Akademik\KalenderAkademikIndex;
 use App\Livewire\Admin\Alumni\JejakAlumniIndex;
 use App\Livewire\Admin\Civitas\DataGuruIndex;
 use App\Livewire\Admin\Civitas\DataPenggunaIndex;
@@ -47,6 +48,7 @@ Route::middleware(['auth', 'role:admin|guru'])->group(function () {
         Route::get('/rekap-absensi', RekapAbsensiIndex::class)->name('rekap-absensi');
         Route::get('/manajemen-nilai', ManajemenNilaiIndex::class)->name('manajemen-nilai');
         Route::get('/e-rapor', ERaporIndex::class)->name('e-rapor');
+        Route::get('/kalender-akademik', KalenderAkademikIndex::class)->name('kalender-akademik');
         Route::get('/e-rapor/{siswa_id}/cetak', [App\Http\Controllers\PdfCetakController::class, 'cetak'])->name('e-rapor.cetak');
         Route::get('/rekap-absensi/cetak-template/{kelas}/{bulan}/{tahun}', [App\Http\Controllers\PdfCetakController::class, 'cetakTemplateAbsen'])->name('rekap-absensi.cetak-template');
     });

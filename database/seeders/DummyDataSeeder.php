@@ -20,6 +20,7 @@ use App\Models\Spp;
 use App\Models\Tag;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use App\Models\KalenderAkademik;
 use Faker\Factory;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -45,6 +46,20 @@ class DummyDataSeeder extends Seeder
             'semester' => 'Genap',
             'is_active' => true,
         ]);
+
+        // 2.5 Hari Libur (Kalender Akademik)
+        $holidays = [
+            ['tanggal' => '2026-01-01', 'jenis_libur' => 'nasional', 'keterangan' => 'Tahun Baru Masehi 2026', 'is_libur' => true],
+            ['tanggal' => '2026-03-31', 'jenis_libur' => 'nasional', 'keterangan' => 'Hari Raya Idul Fitri 1447H', 'is_libur' => true],
+            ['tanggal' => '2026-04-01', 'jenis_libur' => 'nasional', 'keterangan' => 'Cuti Bersama Idul Fitri', 'is_libur' => true],
+            ['tanggal' => '2026-06-06', 'jenis_libur' => 'nasional', 'keterangan' => 'Hari Raya Idul Adha 1447H', 'is_libur' => true],
+            ['tanggal' => '2026-08-17', 'jenis_libur' => 'nasional', 'keterangan' => 'Hari Kemerdekaan RI ke-81', 'is_libur' => true],
+            ['tanggal' => '2026-12-25', 'jenis_libur' => 'nasional', 'keterangan' => 'Hari Raya Natal', 'is_libur' => true],
+        ];
+
+        foreach ($holidays as $h) {
+            KalenderAkademik::create($h);
+        }
 
         // 3. Guru
         $gurus = [];
