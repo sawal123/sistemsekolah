@@ -141,6 +141,17 @@ class ManajemenNilaiIndex extends Component
     {
         if (!$this->filterKelas || !$this->filterMapel || !$this->filterTahunAjaran) return;
         
+        // Cek gembok Rapor
+        $rapor = \App\Models\Rapor::where([
+            'siswa_id' => $siswaId,
+            'tahun_ajaran_id' => $this->filterTahunAjaran
+        ])->first();
+
+        if ($rapor && $rapor->is_locked) {
+            $this->dispatch('notify', title: 'Terkunci', message: 'Wali Kelas telah mengunci rapor siswa ini. Nilai tidak dapat diubah.', type: 'danger');
+            return;
+        }
+
         $nilai = Nilai::firstOrCreate(
             [
                 'siswa_id' => $siswaId,

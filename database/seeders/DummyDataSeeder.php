@@ -34,9 +34,15 @@ class DummyDataSeeder extends Seeder
         $admin = User::where('email', 'admin@sekolah.com')->first();
 
         // 2. Tahun Ajaran
-        $ta = TahunAjaran::create([
+        TahunAjaran::create([
             'tahun' => '2025/2026',
             'semester' => 'Ganjil',
+            'is_active' => false,
+        ]);
+
+        $ta = TahunAjaran::create([
+            'tahun' => '2025/2026',
+            'semester' => 'Genap',
             'is_active' => true,
         ]);
 
@@ -100,33 +106,40 @@ class DummyDataSeeder extends Seeder
             $kelasIds[] = $k->id;
         }
 
-        // 6. Siswa
+        // 6. Siswa — 32 siswa per kelas
         $siswas = [];
-        for ($i = 1; $i <= 20; $i++) {
-            $user = User::create([
-                'name' => $faker->name,
-                'email' => "siswa{$i}@sekolah.com",
-                'password' => bcrypt('password'),
-            ]);
-            $user->assignRole('siswa');
+        $siswaCounter = 1; // untuk email unik
 
-            $kelasAcak = Kelas::find($faker->randomElement($kelasIds));
+        foreach ($kelasIds as $kelasId) {
+            $kelasObj = Kelas::find($kelasId);
 
-            $siswas[] = Siswa::create([
-                'user_id' => $user->id,
-                'kelas_id' => $kelasAcak->id,
-                'nisn' => $faker->unique()->numerify('00########'),
-                'nis' => $faker->unique()->numerify('1####'),
-                'jenjang' => $kelasAcak->jenjang,
-                'tempat_lahir' => $faker->city,
-                'tanggal_lahir' => $faker->date('Y-m-d', '2010-01-01'),
-                'agama' => 'Islam',
-                'alamat' => $faker->address,
-                'nama_ayah' => $faker->name('male'),
-                'nama_ibu' => $faker->name('female'),
-                'no_telp_ortu' => $faker->phoneNumber,
-                'status' => 'Aktif',
-            ]);
+            for ($i = 1; $i <= 32; $i++) {
+                $user = User::create([
+                    'name'     => $faker->name,
+                    'email'    => "siswa{$siswaCounter}@sekolah.com",
+                    'password' => bcrypt('password'),
+                ]);
+                $user->assignRole('siswa');
+
+                $siswas[] = Siswa::create([
+                    'user_id'       => $user->id,
+                    'kelas_id'      => $kelasId,
+                    'nisn'          => $faker->unique()->numerify('00########'),
+                    'nis'           => $faker->unique()->numerify('1####'),
+                    'jenjang'       => $kelasObj->jenjang,
+                    'tempat_lahir'  => $faker->city,
+                    'tanggal_lahir' => $faker->date('Y-m-d', '2010-01-01'),
+                    'agama'         => $faker->randomElement(['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha']),
+                    'jenis_kelamin' => $faker->randomElement(['Laki-Laki', 'Perempuan']),
+                    'alamat'        => $faker->address,
+                    'nama_ayah'     => $faker->name('male'),
+                    'nama_ibu'      => $faker->name('female'),
+                    'no_telp_ortu'  => $faker->phoneNumber,
+                    'status'        => 'Aktif',
+                ]);
+
+                $siswaCounter++;
+            }
         }
 
         // 6.5 Ruangan
@@ -173,11 +186,11 @@ class DummyDataSeeder extends Seeder
 
             // Nilai
             Nilai::create([
-                'siswa_id' => $siswa->id,
-                'mapel_id' => $faker->randomElement($mapelIds),
+                'siswa_id'        => $siswa->id,
+                'mapel_id'        => $faker->randomElement($mapelIds),
                 'tahun_ajaran_id' => $ta->id,
-                'jenis_nilai' => 'UTS',
-                'skor' => $faker->numberBetween(75, 95),
+                'pts'             => $faker->numberBetween(70, 90),
+                'pas'             => $faker->numberBetween(70, 90),
             ]);
 
             // Rapor
