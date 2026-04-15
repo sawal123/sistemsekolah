@@ -1,6 +1,6 @@
 @props(['title' => null, 'padding' => '24px'])
 
-<div {{ $attributes->merge(['class' => 'glass-card flex flex-col fu d2']) }} style="padding: {{ $padding }};">
+<div {{ $attributes->except('style')->merge(['class' => 'glass-card flex flex-col fu d2']) }} style="padding: {{ $padding }}; {{ $attributes->get('style', '') }}">
     @if($title || isset($header))
         <div class="flex items-center justify-between mb-[18px]">
             @if($title)

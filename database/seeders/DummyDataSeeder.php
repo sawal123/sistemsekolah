@@ -218,20 +218,71 @@ class DummyDataSeeder extends Seeder
             ]);
         }
 
-        // 9. Keuangan
-        $spp = Spp::create([
+        // 9. Keuangan — Tarif SPP per jenjang
+        $sppSmp = Spp::create([
             'tahun_ajaran_id' => $ta->id,
-            'nominal' => 300000,
+            'jenjang'        => 'SMP',
+            'kategori'       => 'SPP Bulanan',
+            'nominal'        => 300000,
+            'keterangan'     => 'Tarif SPP Bulanan SMP TA 2025/2026',
         ]);
 
-        PembayaranSpp::create([
-            'siswa_id' => $siswas[0]->id,
-            'spp_id' => $spp->id,
-            'bulan' => 'Januari',
-            'tanggal_bayar' => date('Y-m-d'),
-            'jumlah_bayar' => 300000,
-            'status' => 'Lunas',
+        $sppSma = Spp::create([
+            'tahun_ajaran_id' => $ta->id,
+            'jenjang'        => 'SMA',
+            'kategori'       => 'SPP Bulanan',
+            'nominal'        => 450000,
+            'keterangan'     => 'Tarif SPP Bulanan SMA TA 2025/2026',
         ]);
+
+        Spp::create([
+            'tahun_ajaran_id' => $ta->id,
+            'jenjang'        => 'Semua',
+            'kategori'       => 'Uang Bangunan',
+            'nominal'        => 1500000,
+            'keterangan'     => 'Uang Bangunan Tahunan — Satu kali bayar per tahun ajaran',
+        ]);
+
+        // Demo pembayaran: beberapa siswa SMP sudah bayar Jan-Mar 2026
+        $tahunTagihan = 2026;
+        foreach (array_slice($siswas, 0, 10) as $idx => $siswa) {
+            // Siswa SMP bayar 3 bulan pertama
+            if ($siswa->jenjang === 'SMP') {
+                $bulanBayar = [1, 2, 3];
+                foreach ($bulanBayar as $bln) {
+                    PembayaranSpp::create([
+                        'siswa_id'     => $siswa->id,
+                        'spp_id'       => $sppSmp->id,
+                        'user_id'      => $admin->id,
+                        'tahun'        => $tahunTagihan,
+                        'bulan'        => $bln,
+                        'tanggal_bayar' => date('Y-m-d', strtotime("2026-0{$bln}-10")),
+                        'jumlah_bayar' => 300000,
+                        'potongan'     => 0,
+                        'status'       => 'Lunas',
+                    ]);
+                }
+            }
+        }
+
+        // Demo pembayaran: beberapa siswa SMA bayar Jan-Feb 2026
+        foreach (array_slice($siswas, 64, 8) as $siswa) {
+            if ($siswa->jenjang === 'SMA') {
+                foreach ([1, 2] as $bln) {
+                    PembayaranSpp::create([
+                        'siswa_id'     => $siswa->id,
+                        'spp_id'       => $sppSma->id,
+                        'user_id'      => $admin->id,
+                        'tahun'        => $tahunTagihan,
+                        'bulan'        => $bln,
+                        'tanggal_bayar' => date('Y-m-d', strtotime("2026-0{$bln}-12")),
+                        'jumlah_bayar' => 450000,
+                        'potongan'     => 0,
+                        'status'       => 'Lunas',
+                    ]);
+                }
+            }
+        }
 
         // 10. Blog & CMS
 

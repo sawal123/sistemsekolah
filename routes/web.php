@@ -12,6 +12,8 @@ use App\Livewire\Admin\Kbm\ERaporIndex;
 use App\Livewire\Admin\Kbm\JadwalPelajaranIndex;
 use App\Livewire\Admin\Kbm\ManajemenNilaiIndex;
 use App\Livewire\Admin\Kbm\RekapAbsensiIndex;
+use App\Http\Controllers\KeuanganPdfController;
+use App\Livewire\Admin\Keuangan\LaporanKeuanganIndex;
 use App\Livewire\Admin\Keuangan\MasterSppIndex;
 use App\Livewire\Admin\Keuangan\TransaksiPembayaranIndex;
 use App\Livewire\Admin\Website\BlogArtikelIndex;
@@ -83,6 +85,8 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::prefix('keuangan')->name('admin.keuangan.')->group(function () {
         Route::get('/master-spp', MasterSppIndex::class)->name('master-spp');
         Route::get('/transaksi-pembayaran', TransaksiPembayaranIndex::class)->name('transaksi-pembayaran');
+        Route::get('/laporan-keuangan', LaporanKeuanganIndex::class)->name('laporan-keuangan');
+        Route::get('/kuitansi/cetak', [KeuanganPdfController::class, 'cetakKuitansi'])->name('kuitansi.cetak');
     });
 
     // ─── Kelulusan & Alumni ───

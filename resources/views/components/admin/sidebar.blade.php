@@ -1,4 +1,4 @@
-<aside id="sidebar" class="glass-sidebar h-full flex flex-col z-50 absolute lg:relative overflow-y-auto"
+<aside id="sidebar" class="glass-sidebar h-full flex flex-col z-[1100] absolute lg:relative overflow-y-auto"
     x-bind:class="{ 'collapsed': !$store.sidebar.open }" style="flex-shrink:0;">
 
     {{-- Logo --}}

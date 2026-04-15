@@ -14,7 +14,10 @@ return new class extends Migration
         Schema::create('spps', function (Blueprint $table) {
             $table->id();
             $table->foreignId('tahun_ajaran_id')->constrained()->cascadeOnDelete();
+            $table->enum('jenjang', ['SMP', 'SMA', 'Semua'])->default('Semua');
+            $table->string('kategori')->default('SPP Bulanan'); // SPP Bulanan | Uang Bangunan | Uang Seragam | Lainnya
             $table->decimal('nominal', 12, 2);
+            $table->text('keterangan')->nullable();
             $table->timestamps();
         });
     }
