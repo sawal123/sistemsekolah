@@ -8,6 +8,12 @@
             <p class="txt-muted text-[13px] mt-1">Kelola hari libur nasional, libur sekolah, dan acara operasional lainnya.</p>
         </div>
         <div class="flex items-center gap-3">
+            <x-ui.button wire:click="openBulkModal" variant="secondary">
+                <svg class="w-4 h-4 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                </svg>
+                Atur Jadwal Masuk
+            </x-ui.button>
             <x-ui.button wire:click="syncNationalHolidays" variant="secondary" wire:loading.attr="disabled">
                 <div wire:loading wire:target="syncNationalHolidays" class="mr-2">
                     <svg class="animate-spin h-4 w-4 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -160,6 +166,7 @@
                                     <td class="py-3 px-4 text-right">
                                         <div class="flex items-center justify-end gap-1">
                                             <button wire:click="openEditModal({{ $event->id }})" class="p-1 px-2 text-indigo-500 bg-indigo-500/10 rounded-lg hover:bg-indigo-500/20 transition">Edit</button>
+                                            <button wire:click="confirmDelete({{ $event->id }})" class="p-1 px-2 text-red-500 bg-red-500/10 rounded-lg hover:bg-red-500/20 transition">Hapus</button>
                                         </div>
                                     </td>
                                 </tr>
@@ -216,10 +223,127 @@
                 </div>
             </div>
 
-            <div class="flex justify-end gap-3 pt-6 mt-6 border-t border-gray-200 dark:border-white/10">
-                <x-ui.button type="button" variant="secondary" x-on:click="$dispatch('close-modal', 'calendar-modal')">Batal</x-ui.button>
-                <x-ui.button type="submit" variant="primary">Simpan Data</x-ui.button>
+            <div class="flex justify-between items-center gap-3 pt-6 mt-6 border-t border-gray-200 dark:border-white/10">
+                <div>
+                    @if($editId)
+                        <x-ui.button type="button" variant="secondary" class="!bg-red-500/10 !text-red-500 !border-red-500/20 hover:!bg-red-500/20" 
+                            wire:click="confirmDelete({{ $editId }})">
+                            Hapus Data
+                        </x-ui.button>
+                    @endif
+                </div>
+                <div class="flex gap-3">
+                    <x-ui.button type="button" variant="secondary" x-on:click="$dispatch('close-modal', 'calendar-modal')">Batal</x-ui.button>
+                    <x-ui.button type="submit" variant="primary">Simpan Data</x-ui.button>
+                </div>
             </div>
         </form>
+    </x-ui.modal>
+
+    {{-- Modal Konfirmasi Hapus --}}
+    <x-ui.modal name="delete-confirm-modal" maxWidth="sm">
+        <div class="p-6 text-center">
+            <div class="mx-auto w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
+                <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold txt-primary mb-2">Hapus Data Kalender?</h3>
+            <p class="txt-muted text-sm mb-6">Tindakan ini tidak dapat dibatalkan. Data hari libur yang telah dihapus tidak akan mempengaruhi absensi yang sudah tercatat.</p>
+            <div class="flex justify-center gap-3">
+                <x-ui.button type="button" variant="secondary" x-on:click="$dispatch('close-modal', 'delete-confirm-modal')">
+                    Batal
+                </x-ui.button>
+                <x-ui.button type="button" variant="primary" class="!bg-red-500 !border-red-500 hover:!bg-red-600" wire:click="delete()" wire:loading.attr="disabled">
+                    <svg wire:loading wire:target="delete" class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                    Ya, Hapus!
+                </x-ui.button>
+            </div>
+        </div>
+    </x-ui.modal>
+
+    {{-- Modal Generator Libur Jadwal Masuk --}}
+    <x-ui.modal name="bulk-generator-modal" maxWidth="lg">
+        <div class="p-6">
+            <div class="flex items-center gap-3 mb-5 pb-4 border-b border-gray-200 dark:border-white/10">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold txt-primary">Generator Libur Mingguan</h3>
+                    <p class="text-[11px] txt-muted">Isi otomatis hari libur berdasarkan aturan jadwal masuk sekolah.</p>
+                </div>
+            </div>
+
+            <div class="space-y-5">
+                {{-- Pilih Hari Aktif --}}
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-widest txt-secondary mb-3">Hari Masuk Sekolah (Klik untuk aktif/nonaktif)</label>
+                    <div class="grid grid-cols-7 gap-1.5">
+                        @foreach([[1,'Sen'],[2,'Sel'],[3,'Rab'],[4,'Kam'],[5,'Jum'],[6,'Sab'],[7,'Min']] as [$iso, $label])
+                            @php
+                                if (in_array($iso, $hariAktif)) {
+                                    $dayBtnClass = 'bg-indigo-500 border-indigo-500 text-white shadow-md';
+                                } elseif ($iso == 7) {
+                                    $dayBtnClass = 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-500';
+                                } else {
+                                    $dayBtnClass = 'bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/10 txt-muted';
+                                }
+                            @endphp
+                            <button type="button" wire:click="toggleHariAktif({{ $iso }})"
+                                class="py-2.5 rounded-xl text-xs font-bold border-2 transition-all {{ $dayBtnClass }}">
+                                {{ $label }}
+                            </button>
+                        @endforeach
+                    </div>
+                    <p class="text-[11px] txt-muted mt-2">
+                        ✅ Aktif: {{ count($hariAktif) }} hari masuk &nbsp;|&nbsp; 
+                        🔴 Akan di-generate: {{ 7 - count($hariAktif) }} hari libur per minggu
+                    </p>
+                </div>
+
+                {{-- Rentang Tanggal --}}
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-widest txt-secondary mb-2">Dari Tanggal</label>
+                        <input type="date" wire:model="bulkStartDate" class="w-full rounded-xl border border-gray-300 dark:border-white/10 bg-white dark:bg-[#0c0e1a]/50 p-2.5 txt-primary text-sm shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                        <x-ui.input-error for="bulkStartDate" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-widest txt-secondary mb-2">Sampai Tanggal</label>
+                        <input type="date" wire:model="bulkEndDate" class="w-full rounded-xl border border-gray-300 dark:border-white/10 bg-white dark:bg-[#0c0e1a]/50 p-2.5 txt-primary text-sm shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                        <x-ui.input-error for="bulkEndDate" />
+                    </div>
+                </div>
+
+                {{-- Keterangan & Jenis --}}
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-widest txt-secondary mb-2">Keterangan Libur</label>
+                        <input type="text" wire:model="bulkKeterangan" class="w-full rounded-xl border border-gray-300 dark:border-white/10 bg-white dark:bg-[#0c0e1a]/50 p-2.5 txt-primary text-sm shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" placeholder="Contoh: Libur Akhir Pekan">
+                        <x-ui.input-error for="bulkKeterangan" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-widest txt-secondary mb-2">Jenis Libur</label>
+                        <x-ui.select wire:model="bulkJenis" :options="['sekolah' => 'Libur Sekolah', 'nasional' => 'Nasional', 'darurat' => 'Darurat']" />
+                    </div>
+                </div>
+
+                {{-- Info Box --}}
+                <div class="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-3 flex gap-2">
+                    <svg class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <p class="text-[11px] text-amber-700 dark:text-amber-400">Tanggal yang sudah memiliki data di kalender (misalnya libur nasional) <strong>tidak akan tertimpa</strong>. Sistem hanya mengisi tanggal yang masih kosong.</p>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-5 mt-5 border-t border-gray-200 dark:border-white/10">
+                <x-ui.button type="button" variant="secondary" x-on:click="$dispatch('close-modal', 'bulk-generator-modal')">Batal</x-ui.button>
+                <x-ui.button type="button" variant="primary" class="!bg-emerald-500 !border-emerald-500 hover:!bg-emerald-600" wire:click="generateBulkHolidays" wire:loading.attr="disabled">
+                    <svg wire:loading wire:target="generateBulkHolidays" class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                    <svg wire:loading.remove wire:target="generateBulkHolidays" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    Generate Libur
+                </x-ui.button>
+            </div>
+        </div>
     </x-ui.modal>
 </div>
