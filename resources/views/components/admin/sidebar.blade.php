@@ -194,6 +194,9 @@
                 <a href="{{ route('admin.keuangan.transaksi-pembayaran') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.keuangan.transaksi-pembayaran*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Transaksi
                     Pembayaran</a>
+                <a href="{{ route('admin.keuangan.laporan-keuangan') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.keuangan.laporan-keuangan*') ? 'active' : '' }}"><span
+                        style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Laporan
+                    Keuangan</a>
             </div>
         </div>
         @endhasrole

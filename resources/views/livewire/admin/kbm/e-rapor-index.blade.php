@@ -163,9 +163,12 @@
                                     <div class="flex-1 space-y-1">
                                         <input type="text" wire:model="formEkskul.{{ $index }}.nama" placeholder="Pramuka..." class="w-full text-xs p-1.5 rounded border border-gray-300 dark:border-white/10 bg-white dark:bg-black/40 txt-primary">
                                         <div class="flex gap-1">
-                                            <select wire:model="formEkskul.{{ $index }}.predikat" class="w-20 text-xs p-1.5 rounded border border-gray-300 dark:border-white/10 bg-white dark:bg-black/40 txt-primary">
-                                                <option value="">Pred.</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
-                                            </select>
+                                            <div class="w-24">
+                                                @php
+                                                    $predOptions = ['' => 'Pred.', 'A' => 'A', 'B' => 'B', 'C' => 'C', 'D' => 'D'];
+                                                @endphp
+                                                <x-ui.select wire:model="formEkskul.{{ $index }}.predikat" :options="$predOptions" />
+                                            </div>
                                             <input type="text" wire:model="formEkskul.{{ $index }}.keterangan" placeholder="Keterangan..." class="flex-1 text-xs p-1.5 rounded border border-gray-300 dark:border-white/10 bg-white dark:bg-black/40 txt-primary">
                                         </div>
                                     </div>

@@ -9,13 +9,19 @@ use App\Models\TahunAjaran;
 use Carbon\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 #[Layout('layouts.admin')]
 #[Title('Transaksi Pembayaran SPP')]
 class TransaksiPembayaranIndex extends Component
 {
+    use WithPagination; // In case we need it later
+
+    #[Url(as: 'siswa_id')]
+    public ?int $urlSiswaId = null;
+
     // ── Search State ──────────────────────────────────────────
     public string $searchQuery   = '';
     public bool   $showDropdown  = false;
@@ -37,6 +43,10 @@ class TransaksiPembayaranIndex extends Component
     public function mount(): void
     {
         $this->selectedTahun = (int) now()->year;
+
+        if ($this->urlSiswaId) {
+            $this->selectSiswa($this->urlSiswaId);
+        }
     }
 
     // ── Computed: Live Search Results ──────────────────────────

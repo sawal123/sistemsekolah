@@ -210,7 +210,7 @@ class DataSiswaIndex extends Component
         }
 
         // 3. Process Siswa Data
-        Siswa::updateOrCreate(['id' => $this->editId], [
+        $siswaData = [
             'user_id' => $user->id,
             'kelas_id' => $this->kelas_id,
             'nisn' => $this->nisn,
@@ -227,7 +227,18 @@ class DataSiswaIndex extends Component
             'pekerjaan_ibu' => $this->pekerjaan_ibu,
             'no_telp_ortu' => $this->no_telp_ortu,
             'status' => $this->status,
-        ]);
+        ];
+
+        // Automation for Graduation
+        if ($this->status === 'Lulus') {
+            $siswaData['tahun_lulus'] = now()->year;
+            // Also assign alumni role to user
+            if (!$user->hasRole('alumni')) {
+                $user->assignRole('alumni');
+            }
+        }
+
+        Siswa::updateOrCreate(['id' => $this->editId], $siswaData);
 
         $this->dispatch('notify', [
             'type' => 'success',

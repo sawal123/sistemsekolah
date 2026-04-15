@@ -8,6 +8,8 @@ use App\Models\Siswa;
 use App\Models\Spp;
 use App\Models\TahunAjaran;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -27,6 +29,7 @@ class LaporanKeuanganIndex extends Component
     public string $filterKelas       = '';
     public string $filterJenjang     = '';
     public int    $filterTahun;
+    public int    $perPage = 15;
 
     public function mount(): void
     {
@@ -39,6 +42,7 @@ class LaporanKeuanganIndex extends Component
     public function updatedFilterJenjang(): void { $this->resetPage(); }
     public function updatedFilterDateMulai(): void  { $this->resetPage(); }
     public function updatedFilterDateSelesai(): void { $this->resetPage(); }
+    public function updatedPerPage(): void { $this->resetPage(); }
 
     public function setTab(string $tab): void
     {
@@ -86,14 +90,28 @@ class LaporanKeuanganIndex extends Component
             $laporanQuery->whereHas('siswa', fn ($q) => $q->where('kelas_id', $this->filterKelas));
         }
 
-        $laporan = $laporanQuery->latest('tanggal_bayar')->paginate(15);
+        $laporan = $laporanQuery->latest('tanggal_bayar')->paginate($this->perPage);
 
         // ── Daftar Tunggakan ──────────────────────────────────
         $siswasBelumBayar = collect();
         $totalNominalTunggakan = 0;
+        $totalTunggakanCount = 0;
 
         if ($this->activeTab === 'tunggakan' && $tahunAjaran) {
-            [$siswasBelumBayar, $totalNominalTunggakan] = $this->hitungTunggakan($tahunAjaran);
+            [$fullList, $totalNominalTunggakan] = $this->hitungTunggakan($tahunAjaran);
+            $totalTunggakanCount = $fullList->count();
+
+            // Manual Pagination for the collection
+            $currentPage = Paginator::resolveCurrentPage();
+            $currentItems = $fullList->slice(($currentPage - 1) * $this->perPage, $this->perPage)->all();
+            
+            $siswasBelumBayar = new LengthAwarePaginator(
+                $currentItems, 
+                $totalTunggakanCount, 
+                $this->perPage, 
+                $currentPage, 
+                ['path' => Paginator::resolveCurrentPath()]
+            );
         }
 
         $kelass = Kelas::orderBy('nama_kelas')->get();
@@ -106,6 +124,7 @@ class LaporanKeuanganIndex extends Component
             'efektivitas'          => $efektivitas,
             'laporan'              => $laporan,
             'siswasBelumBayar'     => $siswasBelumBayar,
+            'totalTunggakanCount'  => $totalTunggakanCount,
             'totalNominalTunggakan'=> $totalNominalTunggakan,
             'kelass'               => $kelass,
         ]);
