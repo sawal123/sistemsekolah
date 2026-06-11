@@ -216,6 +216,22 @@
         @endhasrole
 
         @hasrole('admin|guru')
+        {{-- Blog --}}
+        <p class="txt-muted px-3 pt-4 pb-1"
+            style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
+            Blog</p>
+        <a href="{{ route('admin.website.blog-artikel') }}" wire:navigate class="nav-item {{ request()->routeIs('admin.website.blog-artikel*') ? 'active' : '' }}">
+            <span class="nav-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h9l5 5v9a2 2 0 01-2 2z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M14 4v5h5M8 13h8M8 17h5" />
+                </svg></span>
+            Artikel, Tag & Komentar
+        </a>
+        @endhasrole
+
+        @hasrole('admin|guru')
         {{-- ── Website ── --}}
         <p class="txt-muted px-3 pt-4 pb-1"
             style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
@@ -239,9 +255,6 @@
                 </svg>
             </button>
             <div class="submenu" :class="{ 'open': open }">
-                <a href="{{ route('admin.website.blog-artikel') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.blog-artikel*') ? 'active' : '' }}"><span
-                        style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Blog
-                    / Artikel</a>
                 @hasrole('admin')
                 <a href="{{ route('admin.website.galeri-slider') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.galeri-slider*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Galeri

@@ -16,6 +16,7 @@ use App\Http\Controllers\KeuanganPdfController;
 use App\Livewire\Admin\Keuangan\LaporanKeuanganIndex;
 use App\Livewire\Admin\Keuangan\MasterSppIndex;
 use App\Livewire\Admin\Keuangan\TransaksiPembayaranIndex;
+use App\Livewire\Admin\Website\BlogArtikelForm;
 use App\Livewire\Admin\Website\BlogArtikelIndex;
 use App\Livewire\Admin\Website\GaleriSliderIndex;
 use App\Livewire\Admin\Website\PengaturanUmumIndex;
@@ -57,6 +58,8 @@ Route::middleware(['auth', 'role:admin|guru'])->group(function () {
 
     // ─── Website (Blog) ───
     Route::get('/website/blog-artikel', BlogArtikelIndex::class)->name('admin.website.blog-artikel');
+    Route::get('/website/blog-artikel/create', BlogArtikelForm::class)->name('admin.website.blog-artikel.create');
+    Route::get('/website/blog-artikel/{post}/edit', BlogArtikelForm::class)->name('admin.website.blog-artikel.edit');
 });
 
 // ─── Admin Exclusive Routes ────────────────────────────────────
