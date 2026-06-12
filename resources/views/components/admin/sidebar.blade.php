@@ -45,6 +45,22 @@
         @endhasrole
 
         @hasrole('admin')
+        <p class="txt-muted px-3 pt-4 pb-1"
+            style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
+            PPDB</p>
+        <a href="{{ route('admin.ppdb.pendaftaran-murid-baru') }}" wire:navigate
+            class="nav-item {{ request()->routeIs('admin.ppdb.pendaftaran-murid-baru*') ? 'active' : '' }}">
+            <span class="nav-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.5L19 8.5V19a2 2 0 01-2 2z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 3v6h6" />
+                </svg></span>
+            Pendaftaran Murid Baru
+        </a>
+        @endhasrole
+
+        @hasrole('admin')
         {{-- ── Data Master ── --}}
         <p class="txt-muted px-3 pt-4 pb-1"
             style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
@@ -199,6 +215,20 @@
                     Keuangan</a>
             </div>
         </div>
+        @endhasrole
+
+        @hasrole('admin')
+        {{-- ── Sarana & Prasarana ── --}}
+        <p class="txt-muted px-3 pt-4 pb-1"
+            style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
+            Sarana & Prasarana</p>
+        <a href="{{ route('admin.fasilitas') }}" wire:navigate class="nav-item {{ request()->routeIs('admin.fasilitas*') ? 'active' : '' }}">
+            <span class="nav-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg></span>
+            Fasilitas Sekolah
+        </a>
         @endhasrole
 
         @hasrole('admin')

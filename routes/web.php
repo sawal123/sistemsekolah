@@ -16,12 +16,14 @@ use App\Http\Controllers\KeuanganPdfController;
 use App\Livewire\Admin\Keuangan\LaporanKeuanganIndex;
 use App\Livewire\Admin\Keuangan\MasterSppIndex;
 use App\Livewire\Admin\Keuangan\TransaksiPembayaranIndex;
+use App\Livewire\Admin\Ppdb\PendaftaranMuridBaruIndex;
 use App\Livewire\Admin\Website\BlogArtikelForm;
 use App\Livewire\Admin\Website\BlogArtikelIndex;
 use App\Livewire\Admin\Website\GaleriSliderIndex;
 use App\Livewire\Admin\Website\PengaturanUmumIndex;
 use App\Livewire\Auth\Login;
 use App\Livewire\Dashboard;
+use App\Livewire\Admin\Fasilitas\FasilitasIndex;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -64,6 +66,13 @@ Route::middleware(['auth', 'role:admin|guru'])->group(function () {
 
 // ─── Admin Exclusive Routes ────────────────────────────────────
 Route::middleware(['auth', 'role:admin'])->group(function () {
+    // ─── Fasilitas Sekolah ───
+    Route::get('/fasilitas', FasilitasIndex::class)->name('admin.fasilitas');
+
+    Route::prefix('ppdb')->name('admin.ppdb.')->group(function () {
+        Route::get('/pendaftaran-murid-baru', PendaftaranMuridBaruIndex::class)->name('pendaftaran-murid-baru');
+    });
+
     // ─── Civitas Akademik ───
     Route::prefix('civitas')->name('admin.civitas.')->group(function () {
         Route::get('/data-guru', App\Livewire\Admin\Civitas\DataGuruIndex::class)->name('data-guru');

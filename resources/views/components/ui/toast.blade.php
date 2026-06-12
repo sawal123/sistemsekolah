@@ -39,7 +39,7 @@
         }
     }
 }" @notify.window="add($event)"
-    class="fixed top-6 right-6 z-[999] flex flex-col gap-3 w-full max-w-sm pointer-events-none">
+    class="fixed top-6 right-6 z-[3000] flex flex-col gap-3 w-full max-w-sm pointer-events-none">
 
     <template x-for="notification in notifications" :key="notification.id">
         <div x-show="notification.show" x-transition:enter="transition ease-out duration-300 transform"
