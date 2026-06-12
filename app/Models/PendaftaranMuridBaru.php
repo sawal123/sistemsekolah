@@ -13,6 +13,11 @@ class PendaftaranMuridBaru extends Model
         'nilai_rapor' => 'array',
     ];
 
+    public function gelombang()
+    {
+        return $this->belongsTo(PpdbGelombang::class, 'ppdb_gelombang_id');
+    }
+
     public function getDokumenLengkapAttribute(): int
     {
         if ($this->document_upload_mode === 'gabungan') {

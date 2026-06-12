@@ -65,7 +65,27 @@
                 </div>
             </x-ui.card>
 
-            <x-ui.card title="SEO Default" class="fu d4">
+            <x-ui.card class="fu d4">
+                <x-slot name="header">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between w-full">
+                        <div>
+                            <h3 class="txt-primary font-bold text-[15px]">SEO Default</h3>
+                            <p class="txt-muted text-xs mt-1">Generate SEO untuk website sekolah menengah atas.</p>
+                        </div>
+                        <button type="button" wire:click="generateSeo" wire:loading.attr="disabled" wire:target="generateSeo"
+                            class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-600 text-xs font-bold border border-emerald-500/20 hover:bg-emerald-500/20 disabled:opacity-50">
+                            <svg wire:loading.remove wire:target="generateSeo" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                            </svg>
+                            <svg wire:loading wire:target="generateSeo" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                            </svg>
+                            <span wire:loading.remove wire:target="generateSeo">Generate SEO AI</span>
+                            <span wire:loading wire:target="generateSeo">Generate...</span>
+                        </button>
+                    </div>
+                </x-slot>
                 <div class="grid grid-cols-1 gap-5">
                     <div>
                         <x-ui.label for="seo_title" value="SEO Title" class="mb-2 txt-secondary" />

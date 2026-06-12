@@ -103,6 +103,21 @@ class BlogArtikelForm extends Component
         }
     }
 
+    public function polishContent(OpenAISeoService $seoService): void
+    {
+        try {
+            $this->konten = $seoService->polishArticleContent($this->konten, $this->judul);
+
+            $this->dispatch('blog-content-polished', content: $this->konten);
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => 'Konten artikel berhasil dirapikan AI. Silakan baca ulang sebelum disimpan.',
+            ]);
+        } catch (\Throwable $e) {
+            $this->dispatch('notify', ['type' => 'error', 'message' => $e->getMessage()]);
+        }
+    }
+
     public function save()
     {
         $this->slug = Str::slug($this->slug ?: $this->judul);

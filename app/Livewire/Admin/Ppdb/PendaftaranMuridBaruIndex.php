@@ -3,6 +3,8 @@
 namespace App\Livewire\Admin\Ppdb;
 
 use App\Models\PendaftaranMuridBaru;
+use App\Models\PpdbGelombang;
+use App\Models\PpdbGelombangRiwayat;
 use App\Services\AddressGeocodingService;
 use App\Services\PpdbDocumentExtractionService;
 use Illuminate\Support\Arr;
@@ -22,11 +24,24 @@ class PendaftaranMuridBaruIndex extends Component
 
     public string $search = '';
     public string $filterStatus = '';
+    public string $filterTahunPendaftaran = '';
+    public string $filterGelombangId = '';
     public int $perPage = 10;
 
     public bool $isModalOpen = false;
+    public bool $isGelombangModalOpen = false;
     public ?int $editId = null;
+    public ?int $gelombangEditId = null;
     public ?int $idBeingDeleted = null;
+
+    public string $ppdb_gelombang_id = '';
+
+    public string $gelombang_tahun_pendaftaran = '';
+    public string $gelombang_nama = '';
+    public string $gelombang_tanggal_mulai = '';
+    public string $gelombang_tanggal_selesai = '';
+    public string $gelombang_status = 'Draft';
+    public string $gelombang_deskripsi = '';
 
     public string $nama_lengkap = '';
     public string $nisn = '';
@@ -108,6 +123,17 @@ class PendaftaranMuridBaruIndex extends Component
         $this->resetPage();
     }
 
+    public function updatingFilterTahunPendaftaran(): void
+    {
+        $this->filterGelombangId = '';
+        $this->resetPage();
+    }
+
+    public function updatingFilterGelombangId(): void
+    {
+        $this->resetPage();
+    }
+
     public function updatingPerPage(): void
     {
         $this->resetPage();
@@ -115,7 +141,7 @@ class PendaftaranMuridBaruIndex extends Component
 
     public function render()
     {
-        $query = PendaftaranMuridBaru::query()
+        $query = PendaftaranMuridBaru::with('gelombang')
             ->when($this->search !== '', function ($q) {
                 $q->where(function ($sub) {
                     $sub->where('nama_lengkap', 'like', '%' . $this->search . '%')
@@ -126,16 +152,50 @@ class PendaftaranMuridBaruIndex extends Component
             })
             ->when($this->filterStatus !== '', function ($q) {
                 $q->where('status', $this->filterStatus);
+            })
+            ->when($this->filterTahunPendaftaran !== '', function ($q) {
+                $q->whereHas('gelombang', fn ($gelombang) => $gelombang->where('tahun_pendaftaran', $this->filterTahunPendaftaran));
+            })
+            ->when($this->filterGelombangId !== '', function ($q) {
+                $q->where('ppdb_gelombang_id', $this->filterGelombangId);
             });
+
+        $tahunOptions = PpdbGelombang::query()
+            ->select('tahun_pendaftaran')
+            ->distinct()
+            ->orderByDesc('tahun_pendaftaran')
+            ->pluck('tahun_pendaftaran', 'tahun_pendaftaran')
+            ->mapWithKeys(fn ($value, $key) => [(string) $key => (string) $value])
+            ->toArray();
+
+        $gelombangs = PpdbGelombang::withCount('pendaftarans')
+            ->orderByDesc('tahun_pendaftaran')
+            ->orderBy('tanggal_mulai')
+            ->orderBy('nama_gelombang')
+            ->get();
+
+        $filteredGelombangOptions = $gelombangs
+            ->when($this->filterTahunPendaftaran !== '', fn ($items) => $items->where('tahun_pendaftaran', (int) $this->filterTahunPendaftaran))
+            ->mapWithKeys(fn ($item) => [(string) $item->id => $item->tahun_pendaftaran . ' - ' . $item->nama_gelombang])
+            ->toArray();
+
+        $gelombangOptions = $gelombangs
+            ->mapWithKeys(fn ($item) => [(string) $item->id => $item->tahun_pendaftaran . ' - ' . $item->nama_gelombang . ' (' . $item->status . ')'])
+            ->toArray();
 
         return view('livewire.admin.ppdb.pendaftaran-murid-baru-index', [
             'pendaftarans' => $query->latest()->paginate($this->perPage),
             'statusOptions' => $this->statusOptions(),
+            'tahunOptions' => $tahunOptions,
+            'gelombangs' => $gelombangs,
+            'gelombangOptions' => $gelombangOptions,
+            'filteredGelombangOptions' => $filteredGelombangOptions,
+            'riwayatGelombangs' => PpdbGelombangRiwayat::with(['gelombang', 'user'])->latest('terjadi_pada')->limit(8)->get(),
             'stats' => [
-                'total' => PendaftaranMuridBaru::count(),
-                'baru' => PendaftaranMuridBaru::where('status', 'Baru')->count(),
-                'lengkap' => PendaftaranMuridBaru::where('status', 'Lengkap')->count(),
-                'diterima' => PendaftaranMuridBaru::where('status', 'Diterima')->count(),
+                'total' => (clone $query)->count(),
+                'baru' => (clone $query)->where('status', 'Baru')->count(),
+                'lengkap' => (clone $query)->where('status', 'Lengkap')->count(),
+                'diterima' => (clone $query)->where('status', 'Diterima')->count(),
             ],
         ]);
     }
@@ -143,8 +203,19 @@ class PendaftaranMuridBaruIndex extends Component
     public function openModal(): void
     {
         $this->resetForm();
+        $this->ppdb_gelombang_id = (string) (PpdbGelombang::where('status', 'Dibuka')
+            ->orderByDesc('tahun_pendaftaran')
+            ->orderBy('tanggal_mulai')
+            ->value('id') ?? '');
         $this->isModalOpen = true;
         $this->dispatch('open-modal', 'pendaftaran-murid-baru-form');
+    }
+
+    public function openGelombangModal(): void
+    {
+        $this->resetGelombangForm();
+        $this->isGelombangModalOpen = true;
+        $this->dispatch('open-modal', 'gelombang-ppdb-form');
     }
 
     public function closeModal(): void
@@ -152,13 +223,14 @@ class PendaftaranMuridBaruIndex extends Component
         $this->isModalOpen = false;
         $this->idBeingDeleted = null;
         $this->dispatch('close-modal', 'pendaftaran-murid-baru-form');
+        $this->dispatch('close-modal', 'gelombang-ppdb-form');
         $this->dispatch('close-modal', 'confirm-delete-pendaftaran-modal');
     }
 
     public function resetForm(): void
     {
         $this->reset([
-            'editId', 'nama_lengkap', 'nisn', 'nik', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin',
+            'editId', 'ppdb_gelombang_id', 'nama_lengkap', 'nisn', 'nik', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin',
             'agama', 'no_hp', 'email', 'alamat', 'rt', 'rw', 'dusun', 'kelurahan', 'kecamatan',
             'kota_kabupaten', 'provinsi', 'no_kk', 'tanggal_terbit_kk', 'koordinat_rumah',
             'sekolah_asal', 'npsn_sekolah_asal', 'tahun_lulus', 'nilai_semester_1', 'nilai_semester_2',
@@ -177,12 +249,25 @@ class PendaftaranMuridBaruIndex extends Component
         $this->resetValidation();
     }
 
+    public function resetGelombangForm(): void
+    {
+        $this->gelombangEditId = null;
+        $this->gelombang_tahun_pendaftaran = (string) now()->year;
+        $this->gelombang_nama = '';
+        $this->gelombang_tanggal_mulai = '';
+        $this->gelombang_tanggal_selesai = '';
+        $this->gelombang_status = 'Draft';
+        $this->gelombang_deskripsi = '';
+        $this->resetValidation();
+    }
+
     public function edit(int $id): void
     {
         $this->resetForm();
 
         $item = PendaftaranMuridBaru::findOrFail($id);
         $this->editId = $item->id;
+        $this->ppdb_gelombang_id = (string) ($item->ppdb_gelombang_id ?? '');
 
         foreach ($this->formFields() as $field) {
             if (property_exists($this, $field)) {
@@ -214,6 +299,91 @@ class PendaftaranMuridBaruIndex extends Component
 
         $this->isModalOpen = true;
         $this->dispatch('open-modal', 'pendaftaran-murid-baru-form');
+    }
+
+    public function editGelombang(int $id): void
+    {
+        $this->resetGelombangForm();
+
+        $item = PpdbGelombang::findOrFail($id);
+        $this->gelombangEditId = $item->id;
+        $this->gelombang_tahun_pendaftaran = (string) $item->tahun_pendaftaran;
+        $this->gelombang_nama = $item->nama_gelombang;
+        $this->gelombang_tanggal_mulai = optional($item->tanggal_mulai)->format('Y-m-d') ?? '';
+        $this->gelombang_tanggal_selesai = optional($item->tanggal_selesai)->format('Y-m-d') ?? '';
+        $this->gelombang_status = $item->status;
+        $this->gelombang_deskripsi = $item->deskripsi ?? '';
+
+        $this->isGelombangModalOpen = true;
+        $this->dispatch('open-modal', 'gelombang-ppdb-form');
+    }
+
+    public function saveGelombang(): void
+    {
+        $this->validate([
+            'gelombang_tahun_pendaftaran' => 'required|integer|min:2000|max:' . (now()->year + 5),
+            'gelombang_nama' => 'required|string|max:100',
+            'gelombang_tanggal_mulai' => 'nullable|date',
+            'gelombang_tanggal_selesai' => 'nullable|date|after_or_equal:gelombang_tanggal_mulai',
+            'gelombang_status' => 'required|in:Draft,Dibuka,Ditutup',
+            'gelombang_deskripsi' => 'nullable|string|max:1000',
+        ]);
+
+        $duplicateExists = PpdbGelombang::where('tahun_pendaftaran', $this->gelombang_tahun_pendaftaran)
+            ->where('nama_gelombang', $this->gelombang_nama)
+            ->when($this->gelombangEditId, fn ($query) => $query->where('id', '!=', $this->gelombangEditId))
+            ->exists();
+
+        if ($duplicateExists) {
+            $this->addError('gelombang_nama', 'Nama gelombang sudah digunakan pada tahun pendaftaran ini.');
+            return;
+        }
+
+        $existingStatus = null;
+        $existingGelombang = null;
+        if ($this->gelombangEditId) {
+            $existingGelombang = PpdbGelombang::findOrFail($this->gelombangEditId);
+            $existingStatus = $existingGelombang->status;
+        }
+
+        $gelombang = PpdbGelombang::updateOrCreate(
+            ['id' => $this->gelombangEditId],
+            [
+                'tahun_pendaftaran' => $this->gelombang_tahun_pendaftaran,
+                'nama_gelombang' => $this->gelombang_nama,
+                'tanggal_mulai' => $this->gelombang_tanggal_mulai ?: null,
+                'tanggal_selesai' => $this->gelombang_tanggal_selesai ?: null,
+                'status' => $this->gelombang_status,
+                'deskripsi' => $this->gelombang_deskripsi ?: null,
+                'dibuka_pada' => $this->gelombang_status === 'Dibuka'
+                    ? ($existingGelombang?->dibuka_pada ?? now())
+                    : $existingGelombang?->dibuka_pada,
+                'ditutup_pada' => $this->gelombang_status === 'Ditutup'
+                    ? ($existingGelombang?->ditutup_pada ?? now())
+                    : ($this->gelombang_status === 'Dibuka' ? null : $existingGelombang?->ditutup_pada),
+            ]
+        );
+
+        $this->recordGelombangHistory(
+            $gelombang,
+            $existingStatus ? 'Diperbarui' : 'Dibuat',
+            $existingStatus,
+            $this->gelombang_status,
+            $existingStatus === $this->gelombang_status ? 'Data gelombang diperbarui.' : 'Status gelombang berubah saat disimpan.'
+        );
+
+        $this->closeModal();
+        $this->dispatch('notify', ['type' => 'success', 'message' => 'Gelombang PPDB berhasil disimpan.']);
+    }
+
+    public function openGelombang(int $id): void
+    {
+        $this->updateGelombangStatus($id, 'Dibuka');
+    }
+
+    public function closeGelombang(int $id): void
+    {
+        $this->updateGelombangStatus($id, 'Ditutup');
     }
 
     public function extractFromDocument(string $field, PpdbDocumentExtractionService $extractor, AddressGeocodingService $geocoder): void
@@ -266,6 +436,7 @@ class PendaftaranMuridBaruIndex extends Component
         }
 
         $data['tanggal_lahir'] = $this->tanggal_lahir ?: null;
+        $data['ppdb_gelombang_id'] = $this->ppdb_gelombang_id ?: null;
         $data['tanggal_terbit_kk'] = $this->tanggal_terbit_kk ?: null;
         $data['tahun_lulus'] = $this->tahun_lulus ?: null;
         $data['tahun_prestasi'] = $this->tahun_prestasi ?: null;
@@ -333,6 +504,7 @@ class PendaftaranMuridBaruIndex extends Component
 
         return [
             'nama_lengkap' => 'required|string|max:255',
+            'ppdb_gelombang_id' => 'nullable|exists:ppdb_gelombangs,id',
             'nisn' => 'nullable|string|max:20|unique:pendaftaran_murid_barus,nisn' . $id,
             'nik' => 'nullable|string|max:20|unique:pendaftaran_murid_barus,nik' . $id,
             'tempat_lahir' => 'nullable|string|max:100',
@@ -594,6 +766,51 @@ class PendaftaranMuridBaruIndex extends Component
 
             $data[$field] = null;
         }
+    }
+
+    private function updateGelombangStatus(int $id, string $status): void
+    {
+        $gelombang = PpdbGelombang::findOrFail($id);
+        $oldStatus = $gelombang->status;
+
+        $updates = ['status' => $status];
+
+        if ($status === 'Dibuka') {
+            $updates['dibuka_pada'] = now();
+            $updates['ditutup_pada'] = null;
+        }
+
+        if ($status === 'Ditutup') {
+            $updates['ditutup_pada'] = now();
+        }
+
+        $gelombang->update($updates);
+
+        $this->recordGelombangHistory(
+            $gelombang,
+            $status === 'Dibuka' ? 'Dibuka' : 'Ditutup',
+            $oldStatus,
+            $status,
+            $status === 'Dibuka' ? 'Gelombang dibuka untuk pendaftaran.' : 'Gelombang ditutup dari pendaftaran.'
+        );
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => $status === 'Dibuka' ? 'Gelombang PPDB dibuka.' : 'Gelombang PPDB ditutup.',
+        ]);
+    }
+
+    private function recordGelombangHistory(PpdbGelombang $gelombang, string $aksi, ?string $before, ?string $after, ?string $catatan = null): void
+    {
+        PpdbGelombangRiwayat::create([
+            'ppdb_gelombang_id' => $gelombang->id,
+            'user_id' => auth()->id(),
+            'aksi' => $aksi,
+            'status_sebelum' => $before,
+            'status_sesudah' => $after,
+            'catatan' => $catatan,
+            'terjadi_pada' => now(),
+        ]);
     }
 
     private function statusOptions(): array

@@ -7,13 +7,121 @@
             <p class="txt-muted" style="font-size:13px;margin-top:4px;">Kelola daftar calon siswa, pilihan sekolah, dan kelengkapan berkas PPDB.</p>
         </div>
 
-        <x-ui.button wire:click="openModal" variant="primary" class="shadow-lg w-full md:w-auto justify-center">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-            </svg>
-            Tambah Pendaftaran
-        </x-ui.button>
+        <div class="flex flex-col sm:flex-row gap-3">
+            <x-ui.button wire:click="openGelombangModal" variant="secondary" class="w-full md:w-auto justify-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M5 11h14M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Kelola Gelombang
+            </x-ui.button>
+            <x-ui.button wire:click="openModal" variant="primary" class="shadow-lg w-full md:w-auto justify-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                </svg>
+                Tambah Pendaftaran
+            </x-ui.button>
+        </div>
     </div>
+
+    <x-ui.card padding="0">
+        <div class="p-4 border-b border-indigo-500/10 dark:border-white/10 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+                <h2 class="txt-primary text-sm font-bold">Gelombang Pendaftaran</h2>
+                <p class="txt-muted text-xs mt-1">Atur periode buka/tutup PPDB dan lihat histori perubahan status.</p>
+            </div>
+            <button type="button" wire:click="openGelombangModal" class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-indigo-500/10 text-indigo-500 text-xs font-bold border border-indigo-500/20 hover:bg-indigo-500/20">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                </svg>
+                Tambah Gelombang
+            </button>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-4 p-4">
+            <div class="rounded-xl overflow-hidden border border-indigo-500/10 dark:border-white/10">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-indigo-500/5 dark:bg-white/5">
+                            <tr>
+                                <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-wider txt-muted">Tahun</th>
+                                <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-wider txt-muted">Gelombang</th>
+                                <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-wider txt-muted">Periode</th>
+                                <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-wider txt-muted">Pendaftar</th>
+                                <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-wider txt-muted">Status</th>
+                                <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-wider txt-muted text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-indigo-500/10 dark:divide-white/10">
+                            @forelse($gelombangs as $gelombang)
+                                <tr>
+                                    <td class="px-4 py-3 text-sm font-semibold txt-primary">{{ $gelombang->tahun_pendaftaran }}</td>
+                                    <td class="px-4 py-3">
+                                        <div class="text-sm font-bold txt-primary">{{ $gelombang->nama_gelombang }}</div>
+                                        @if($gelombang->deskripsi)
+                                            <div class="text-[11px] txt-muted line-clamp-1">{{ $gelombang->deskripsi }}</div>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 text-xs txt-muted">
+                                        {{ $gelombang->tanggal_mulai?->format('d/m/Y') ?? '-' }} - {{ $gelombang->tanggal_selesai?->format('d/m/Y') ?? '-' }}
+                                    </td>
+                                    <td class="px-4 py-3 text-sm font-bold txt-primary">{{ $gelombang->pendaftarans_count }}</td>
+                                    <td class="px-4 py-3">
+                                        @php
+                                            $gelombangStatusClass = [
+                                                'Draft' => 'bg-slate-500/10 text-slate-500',
+                                                'Dibuka' => 'bg-emerald-500/10 text-emerald-500',
+                                                'Ditutup' => 'bg-red-500/10 text-red-500',
+                                            ][$gelombang->status] ?? 'bg-slate-500/10 text-slate-500';
+                                        @endphp
+                                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $gelombangStatusClass }}">{{ $gelombang->status }}</span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <button type="button" wire:click="editGelombang({{ $gelombang->id }})" class="p-2 rounded-lg hover:bg-indigo-500/10 text-indigo-500" title="Edit Gelombang">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M4 20h4l10.5-10.5a2.5 2.5 0 10-3.536-3.536L4 16.928V20z" />
+                                                </svg>
+                                            </button>
+                                            @if($gelombang->status !== 'Dibuka')
+                                                <button type="button" wire:click="openGelombang({{ $gelombang->id }})" class="p-2 rounded-lg hover:bg-emerald-500/10 text-emerald-500" title="Buka Pendaftaran">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-9 4h10a2 2 0 012 2v6a2 2 0 01-2 2H7a2 2 0 01-2-2v-6a2 2 0 012-2z" />
+                                                    </svg>
+                                                </button>
+                                            @else
+                                                <button type="button" wire:click="closeGelombang({{ $gelombang->id }})" class="p-2 rounded-lg hover:bg-red-500/10 text-red-500" title="Tutup Pendaftaran">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                    </svg>
+                                                </button>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="px-4 py-10 text-center txt-muted text-sm">Belum ada gelombang PPDB.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="rounded-xl border border-indigo-500/10 dark:border-white/10 p-4">
+                <h3 class="txt-primary text-sm font-bold">Riwayat Pembukaan</h3>
+                <div class="mt-3 space-y-3">
+                    @forelse($riwayatGelombangs as $riwayat)
+                        <div class="border-l-2 border-indigo-500/30 pl-3">
+                            <p class="text-xs font-bold txt-primary">{{ $riwayat->aksi }} - {{ $riwayat->gelombang?->nama_gelombang ?? '-' }}</p>
+                            <p class="text-[11px] txt-muted">{{ $riwayat->gelombang?->tahun_pendaftaran ?? '-' }} | {{ $riwayat->status_sebelum ?: '-' }} -> {{ $riwayat->status_sesudah ?: '-' }}</p>
+                            <p class="text-[11px] txt-muted">{{ $riwayat->terjadi_pada?->format('d/m/Y H:i') }} oleh {{ $riwayat->user?->name ?? 'Sistem' }}</p>
+                        </div>
+                    @empty
+                        <p class="text-xs txt-muted">Belum ada riwayat pembukaan pendaftaran.</p>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    </x-ui.card>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <x-ui.card class="bg-indigo-500/5 border-indigo-500/10">
@@ -73,6 +181,14 @@
             <div class="w-44 flex-shrink-0">
                 <x-ui.select wire:model.live="filterStatus" :options="['' => 'Semua Status'] + $statusOptions" />
             </div>
+
+            <div class="w-44 flex-shrink-0">
+                <x-ui.select wire:model.live="filterTahunPendaftaran" :options="['' => 'Semua Tahun'] + $tahunOptions" />
+            </div>
+
+            <div class="w-56 flex-shrink-0">
+                <x-ui.select wire:model.live="filterGelombangId" :options="['' => 'Semua Gelombang'] + $filteredGelombangOptions" />
+            </div>
         </div>
 
         <div class="rounded-xl overflow-hidden border border-indigo-500/10 dark:border-white/10 m-3 shadow-sm">
@@ -83,6 +199,7 @@
                             <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted w-[70px]">No</th>
                             <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Calon Siswa</th>
                             <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Asal Sekolah</th>
+                            <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Gelombang</th>
                             <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Pilihan</th>
                             <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Dokumen</th>
                             <th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Status</th>
@@ -112,6 +229,12 @@
                             <tr class="hover:bg-indigo-500/[0.02] dark:hover:bg-white/[0.02] transition-colors group">
                                 <td class="px-6 py-4 text-sm txt-primary font-medium">
                                     {{ ($pendaftarans->currentPage() - 1) * $pendaftarans->perPage() + $loop->iteration }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-col">
+                                        <span class="text-sm font-semibold txt-primary">{{ $item->gelombang?->nama_gelombang ?? '-' }}</span>
+                                        <span class="text-[11px] txt-muted">{{ $item->gelombang?->tahun_pendaftaran ?? 'Tanpa tahun' }}</span>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col">
@@ -171,7 +294,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-20 text-center">
+                                <td colspan="8" class="px-6 py-20 text-center">
                                     <div class="flex flex-col items-center justify-center opacity-40">
                                         <svg class="w-12 h-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.5L19 8.5V19a2 2 0 01-2 2z" />
@@ -210,6 +333,12 @@
             </div>
 
             <form wire:submit.prevent="save">
+                <div class="mb-6 rounded-xl border border-indigo-500/10 bg-indigo-500/5 p-4">
+                    <x-ui.select label="Tahun & Gelombang Pendaftaran" wire:model="ppdb_gelombang_id" :options="['' => 'Pilih Gelombang'] + $gelombangOptions" />
+                    <p class="text-[11px] txt-muted mt-2">Pilih gelombang agar pendaftar bisa difilter berdasarkan periode. Landing page nanti hanya menampilkan gelombang berstatus Dibuka.</p>
+                    @error('ppdb_gelombang_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                </div>
+
                 <div x-show="tab === 'biodata'" x-transition class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div class="md:col-span-2">
                         <x-ui.label for="nama_lengkap" value="Nama Lengkap *" class="mb-2" />
@@ -375,6 +504,54 @@
                             {{ $editId ? 'Simpan Perubahan' : 'Simpan Pendaftaran' }}
                         </x-ui.button>
                     </div>
+                </div>
+            </form>
+        </div>
+    </x-ui.modal>
+
+    <x-ui.modal name="gelombang-ppdb-form" :show="$isGelombangModalOpen" maxWidth="2xl">
+        <div class="py-2">
+            <h2 class="text-xl font-bold txt-primary mb-1">{{ $gelombangEditId ? 'Edit Gelombang PPDB' : 'Tambah Gelombang PPDB' }}</h2>
+            <p class="text-sm txt-muted mb-6">Gelombang berstatus Dibuka nantinya bisa ditampilkan di landing page pendaftaran.</p>
+
+            <form wire:submit.prevent="saveGelombang">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <x-ui.label for="gelombang_tahun_pendaftaran" value="Tahun Pendaftaran *" class="mb-2" />
+                        <x-ui.input wire:model="gelombang_tahun_pendaftaran" id="gelombang_tahun_pendaftaran" type="number" min="2000" max="{{ now()->year + 5 }}" />
+                        @error('gelombang_tahun_pendaftaran') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+                    <div>
+                        <x-ui.label for="gelombang_nama" value="Nama Gelombang *" class="mb-2" />
+                        <x-ui.input wire:model="gelombang_nama" id="gelombang_nama" placeholder="Gelombang 1" />
+                        @error('gelombang_nama') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+                    <div>
+                        <x-ui.label for="gelombang_tanggal_mulai" value="Tanggal Mulai" class="mb-2" />
+                        <x-ui.input wire:model="gelombang_tanggal_mulai" id="gelombang_tanggal_mulai" type="date" />
+                        @error('gelombang_tanggal_mulai') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+                    <div>
+                        <x-ui.label for="gelombang_tanggal_selesai" value="Tanggal Selesai" class="mb-2" />
+                        <x-ui.input wire:model="gelombang_tanggal_selesai" id="gelombang_tanggal_selesai" type="date" />
+                        @error('gelombang_tanggal_selesai') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="md:col-span-2">
+                        <x-ui.select label="Status" wire:model="gelombang_status" :options="['Draft' => 'Draft', 'Dibuka' => 'Dibuka', 'Ditutup' => 'Ditutup']" />
+                        @error('gelombang_status') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="md:col-span-2">
+                        <x-ui.label for="gelombang_deskripsi" value="Deskripsi / Catatan" class="mb-2" />
+                        <textarea wire:model="gelombang_deskripsi" id="gelombang_deskripsi" rows="3" placeholder="Contoh: Pendaftaran jalur reguler tahap pertama" class="w-full px-4 py-3 glass border-2 border-transparent rounded-xl text-sm txt-primary outline-none focus:border-indigo-500/50 transition-all"></textarea>
+                        @error('gelombang_deskripsi') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+
+                <div class="mt-8 flex justify-end gap-3 pt-5 border-t border-indigo-500/10">
+                    <x-ui.button wire:click="closeModal" variant="secondary" type="button">Batal</x-ui.button>
+                    <x-ui.button variant="primary" type="submit">
+                        {{ $gelombangEditId ? 'Simpan Perubahan' : 'Simpan Gelombang' }}
+                    </x-ui.button>
                 </div>
             </form>
         </div>

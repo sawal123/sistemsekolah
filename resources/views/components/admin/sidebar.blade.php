@@ -289,6 +289,8 @@
                 <a href="{{ route('admin.website.galeri-slider') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.galeri-slider*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Galeri
                     & Slider</a>
+                <a href="{{ route('admin.website.visi-misi') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.visi-misi*') ? 'active' : '' }}"><span
+                        style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Visi, Misi & Sambutan</a>
                 <a href="{{ route('admin.website.pengaturan-umum') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.pengaturan-umum*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Pengaturan
                     Umum</a>

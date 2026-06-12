@@ -36,7 +36,21 @@
                     x-data="blogPostEditor(@entangle('konten'))"
                     x-on:livewire:navigated.window="init()"
                 >
-                    <x-ui.label value="Konten Artikel" class="mb-2 txt-secondary" />
+                    <div class="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <x-ui.label value="Konten Artikel" class="txt-secondary" />
+                        <button type="button" wire:click="polishContent" wire:loading.attr="disabled" wire:target="polishContent"
+                            class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-600 text-xs font-bold border border-emerald-500/20 hover:bg-emerald-500/20 disabled:opacity-50">
+                            <svg wire:loading.remove wire:target="polishContent" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                            </svg>
+                            <svg wire:loading wire:target="polishContent" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                            </svg>
+                            <span wire:loading.remove wire:target="polishContent">Rapikan Kalimat AI</span>
+                            <span wire:loading wire:target="polishContent">Merapikan...</span>
+                        </button>
+                    </div>
                     <div class="rounded-2xl border border-indigo-500/10 bg-white/45 overflow-hidden dark:bg-white/5 dark:border-white/10">
                         <div class="flex flex-wrap gap-1 border-b border-indigo-500/10 p-2 dark:border-white/10">
                             <button type="button" @click="format('bold')" title="Bold" class="editor-btn"><strong>B</strong></button>
@@ -252,5 +266,14 @@
                 }
             }
         }
+
+        window.addEventListener('blog-content-polished', (event) => {
+            const editor = document.querySelector('.blog-editor[contenteditable="true"]');
+            const content = event.detail?.content || event.detail?.[0]?.content || '';
+
+            if (editor && content) {
+                editor.innerHTML = content;
+            }
+        });
     </script>
 </div>

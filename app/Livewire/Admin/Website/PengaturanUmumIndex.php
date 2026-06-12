@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Website;
 
 use App\Models\Setting;
+use App\Services\OpenAISeoService;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -44,28 +45,28 @@ class PengaturanUmumIndex extends Component
     {
         $settings = Setting::pluck('value', 'key');
 
-        $this->site_name = $settings->get('site_name', $settings->get('app_name', 'SMA Nusantara'));
-        $this->site_title = $settings->get('site_title', 'Website Resmi Sekolah');
-        $this->site_tagline = $settings->get('site_tagline', '');
-        $this->school_name = $settings->get('school_name', $settings->get('nama_sekolah', 'SMA Nusantara'));
-        $this->school_address = $settings->get('school_address', $settings->get('alamat', ''));
-        $this->school_phone = $settings->get('school_phone', $settings->get('telepon', ''));
-        $this->school_email = $settings->get('school_email', '');
-        $this->school_website = $settings->get('school_website', '');
-        $this->whatsapp = $settings->get('whatsapp', '');
+        $this->site_name = (string) ($settings->get('site_name') ?? $settings->get('app_name', 'SMA Nusantara'));
+        $this->site_title = (string) ($settings->get('site_title') ?? 'Website Resmi Sekolah');
+        $this->site_tagline = (string) ($settings->get('site_tagline') ?? '');
+        $this->school_name = (string) ($settings->get('school_name') ?? $settings->get('nama_sekolah', 'SMA Nusantara'));
+        $this->school_address = (string) ($settings->get('school_address') ?? $settings->get('alamat', ''));
+        $this->school_phone = (string) ($settings->get('school_phone') ?? $settings->get('telepon', ''));
+        $this->school_email = (string) ($settings->get('school_email') ?? '');
+        $this->school_website = (string) ($settings->get('school_website') ?? '');
+        $this->whatsapp = (string) ($settings->get('whatsapp') ?? '');
 
-        $this->seo_title = $settings->get('seo_title', '');
-        $this->seo_description = $settings->get('seo_description', '');
-        $this->seo_keywords = $settings->get('seo_keywords', '');
+        $this->seo_title = (string) ($settings->get('seo_title') ?? '');
+        $this->seo_description = (string) ($settings->get('seo_description') ?? '');
+        $this->seo_keywords = (string) ($settings->get('seo_keywords') ?? '');
 
-        $this->facebook_url = $settings->get('facebook_url', '');
-        $this->instagram_url = $settings->get('instagram_url', '');
-        $this->youtube_url = $settings->get('youtube_url', '');
-        $this->tiktok_url = $settings->get('tiktok_url', '');
-        $this->linkedin_url = $settings->get('linkedin_url', '');
+        $this->facebook_url = (string) ($settings->get('facebook_url') ?? '');
+        $this->instagram_url = (string) ($settings->get('instagram_url') ?? '');
+        $this->youtube_url = (string) ($settings->get('youtube_url') ?? '');
+        $this->tiktok_url = (string) ($settings->get('tiktok_url') ?? '');
+        $this->linkedin_url = (string) ($settings->get('linkedin_url') ?? '');
 
-        $this->existingLogo = $settings->get('app_logo', $settings->get('logo'));
-        $this->existingFavicon = $settings->get('favicon', $settings->get('app_icon'));
+        $this->existingLogo = $settings->get('app_logo') ?? $settings->get('logo');
+        $this->existingFavicon = $settings->get('favicon') ?? $settings->get('app_icon');
     }
 
     public function save(): void
@@ -142,6 +143,47 @@ class PengaturanUmumIndex extends Component
         $this->faviconFile = null;
 
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Pengaturan umum berhasil disimpan.']);
+    }
+
+    public function generateSeo(OpenAISeoService $seoService): void
+    {
+        try {
+            $this->validate([
+                'site_name' => 'nullable|string|max:120',
+                'site_title' => 'nullable|string|max:160',
+                'site_tagline' => 'nullable|string|max:220',
+                'school_name' => 'required|string|max:160',
+                'school_address' => 'nullable|string|max:500',
+                'school_phone' => 'nullable|string|max:40',
+                'school_email' => 'nullable|email|max:120',
+                'school_website' => 'nullable|string|max:160',
+            ]);
+
+            $result = $seoService->generateForSchool([
+                'site_name' => $this->site_name,
+                'site_title' => $this->site_title,
+                'site_tagline' => $this->site_tagline,
+                'school_name' => $this->school_name,
+                'school_address' => $this->school_address,
+                'school_phone' => $this->school_phone,
+                'school_email' => $this->school_email,
+                'school_website' => $this->school_website,
+            ]);
+
+            $this->seo_title = $result['seo_title'] ?: $this->seo_title;
+            $this->seo_description = $result['seo_description'] ?: $this->seo_description;
+            $this->seo_keywords = $result['seo_keywords'] ?: $this->seo_keywords;
+
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => 'SEO berhasil digenerate oleh AI. Silakan cek ulang lalu simpan pengaturan.',
+            ]);
+        } catch (\Throwable $e) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Gagal generate SEO: ' . $e->getMessage(),
+            ]);
+        }
     }
 
     public function render()

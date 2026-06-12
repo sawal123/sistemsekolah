@@ -21,11 +21,21 @@ use App\Livewire\Admin\Website\BlogArtikelForm;
 use App\Livewire\Admin\Website\BlogArtikelIndex;
 use App\Livewire\Admin\Website\GaleriSliderIndex;
 use App\Livewire\Admin\Website\PengaturanUmumIndex;
+use App\Livewire\Admin\Website\VisiMisiIndex;
 use App\Livewire\Auth\Login;
 use App\Livewire\Dashboard;
 use App\Livewire\Admin\Fasilitas\FasilitasIndex;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/', function () {
+    $settings = \App\Models\Setting::pluck('value', 'key');
+    $sliders = \App\Models\Slider::where('is_active', true)->orderBy('urutan')->get();
+    $facilities = \App\Models\Fasilitas::latest()->take(6)->get();
+    $posts = \App\Models\Post::where('status', 'Published')->latest()->take(3)->get();
+    
+    return view('landing', compact('settings', 'sliders', 'facilities', 'posts'));
+})->name('home');
 
 // ─── Auth Routes ──────────────────────────────────────────────
 Route::get('/login', Login::class)->name('login')->middleware('guest');
@@ -110,5 +120,6 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::prefix('website')->name('admin.website.')->group(function () {
         Route::get('/galeri-slider', GaleriSliderIndex::class)->name('galeri-slider');
         Route::get('/pengaturan-umum', PengaturanUmumIndex::class)->name('pengaturan-umum');
+        Route::get('/visi-misi', VisiMisiIndex::class)->name('visi-misi');
     });
 });
