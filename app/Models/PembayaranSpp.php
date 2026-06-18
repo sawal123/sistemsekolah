@@ -10,17 +10,17 @@ class PembayaranSpp extends Model
 
     protected $casts = [
         'tanggal_bayar' => 'date',
-        'jumlah_bayar'  => 'float',
-        'potongan'      => 'float',
-        'bulan'         => 'integer',
-        'tahun'         => 'integer',
+        'jumlah_bayar' => 'float',
+        'potongan' => 'float',
+        'bulan' => 'integer',
+        'tahun' => 'integer',
     ];
 
     // ── Relationships ─────────────────────────────────────────
 
     public function siswa()
     {
-        return $this->belongsTo(Siswa::class);
+        return $this->belongsTo(Siswa::class)->withTrashed();
     }
 
     public function spp()
@@ -51,6 +51,7 @@ class PembayaranSpp extends Model
             7 => 'Juli',    8 => 'Agustus',  9 => 'September',
             10 => 'Oktober', 11 => 'November', 12 => 'Desember',
         ];
+
         return $this->bulan ? ($bulanNames[$this->bulan] ?? '-') : 'Sekali Bayar';
     }
 }

@@ -9,7 +9,8 @@ class Spp extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
-        'nominal'  => 'float',
+        'nominal' => 'float',
+        'is_active' => 'boolean',
     ];
 
     // Kategori yang tersedia
@@ -26,6 +27,11 @@ class Spp extends Model
     public function tahunAjaran()
     {
         return $this->belongsTo(TahunAjaran::class);
+    }
+
+    public function jurusan()
+    {
+        return $this->belongsTo(Jurusan::class);
     }
 
     public function pembayaranSpps()
@@ -45,6 +51,29 @@ class Spp extends Model
     public function scopeBulanan($query)
     {
         return $query->where('kategori', 'SPP Bulanan');
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopePublicFees($query)
+    {
+        return $query->whereIn('kategori', ['SPP Bulanan', 'Uang Bangunan']);
+    }
+
+    public function scopeApplicableTo($query, string $jenjang, ?int $jurusanId = null)
+    {
+        return $query
+            ->where(fn ($q) => $q->where('jenjang', $jenjang)->orWhere('jenjang', 'Semua'))
+            ->where(function ($q) use ($jenjang, $jurusanId) {
+                if ($jenjang === 'SMK' && $jurusanId) {
+                    $q->whereNull('jurusan_id')->orWhere('jurusan_id', $jurusanId);
+                } else {
+                    $q->whereNull('jurusan_id');
+                }
+            });
     }
 
     // ── Helpers ───────────────────────────────────────────────

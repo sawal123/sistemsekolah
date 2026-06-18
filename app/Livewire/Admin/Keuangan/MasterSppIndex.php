@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Admin\Keuangan;
 
+use App\Models\Jurusan;
 use App\Models\Spp;
 use App\Models\TahunAjaran;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -16,30 +18,58 @@ class MasterSppIndex extends Component
     use WithPagination;
 
     // ── Filter ────────────────────────────────────────────────
-    public string $search           = '';
-    public string $filterJenjang    = '';
+    public string $search = '';
+
+    public string $filterJenjang = '';
+
     public string $filterTahunAjaran = '';
 
     // ── Modal state ───────────────────────────────────────────
     public bool $isModalOpen = false;
-    public ?int $editId      = null;
+
+    public ?int $editId = null;
+
     public ?int $idBeingDeleted = null;
 
     // ── Form fields ───────────────────────────────────────────
     public string $tahun_ajaran_id = '';
-    public string $jenjang         = 'Semua';
-    public string $kategori        = 'SPP Bulanan';
-    public string $nominal         = '';
-    public string $keterangan      = '';
+
+    public string $jenjang = 'Semua';
+
+    public string $kategori = 'SPP Bulanan';
+
+    public string $nominal = '';
+
+    public string $keterangan = '';
+
+    public bool $is_active = true;
+
+    public string $jurusan_id = '';
 
     protected function rules(): array
     {
         return [
             'tahun_ajaran_id' => 'required|exists:tahun_ajarans,id',
-            'jenjang'         => 'required|in:SMP,SMA,Semua',
-            'kategori'        => 'required|string|max:100',
-            'nominal'         => 'required|numeric|min:1',
-            'keterangan'      => 'nullable|string|max:500',
+            'jenjang' => 'required|in:SMP,SMA,SMK,Semua',
+            'jurusan_id' => 'nullable|exists:jurusans,id',
+            'kategori' => [
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('spps', 'kategori')
+                    ->where(fn ($query) => $query
+                        ->where('tahun_ajaran_id', $this->tahun_ajaran_id)
+                        ->where('jenjang', $this->jenjang)
+                        ->when(
+                            $this->jurusan_id !== '',
+                            fn ($q) => $q->where('jurusan_id', $this->jurusan_id),
+                            fn ($q) => $q->whereNull('jurusan_id')
+                        ))
+                    ->ignore($this->editId),
+            ],
+            'nominal' => 'required|numeric|min:1',
+            'keterangan' => 'nullable|string|max:500',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -47,9 +77,10 @@ class MasterSppIndex extends Component
     {
         return [
             'tahun_ajaran_id.required' => 'Tahun ajaran wajib dipilih.',
-            'nominal.required'         => 'Nominal wajib diisi.',
-            'nominal.numeric'          => 'Nominal harus berupa angka.',
-            'nominal.min'              => 'Nominal harus lebih dari 0.',
+            'nominal.required' => 'Nominal wajib diisi.',
+            'nominal.numeric' => 'Nominal harus berupa angka.',
+            'nominal.min' => 'Nominal harus lebih dari 0.',
+            'kategori.unique' => 'Tarif untuk kategori, jenjang, dan tahun ajaran tersebut sudah ada.',
         ];
     }
 
@@ -58,20 +89,28 @@ class MasterSppIndex extends Component
         $this->resetPage();
     }
 
+    public function updatedJenjang(string $value): void
+    {
+        if ($value !== 'SMK') {
+            $this->jurusan_id = '';
+        }
+    }
+
     public function render()
     {
-        $spps = Spp::with('tahunAjaran')
-            ->when($this->search, fn ($q) => $q
-                ->where('kategori', 'like', '%' . $this->search . '%')
-                ->orWhere('keterangan', 'like', '%' . $this->search . '%'))
+        $spps = Spp::with(['tahunAjaran', 'jurusan'])
+            ->when($this->search, fn ($q) => $q->where(fn ($searchQuery) => $searchQuery
+                ->where('kategori', 'like', '%'.$this->search.'%')
+                ->orWhere('keterangan', 'like', '%'.$this->search.'%')))
             ->when($this->filterJenjang, fn ($q) => $q->where('jenjang', $this->filterJenjang))
             ->when($this->filterTahunAjaran, fn ($q) => $q->where('tahun_ajaran_id', $this->filterTahunAjaran))
             ->orderByDesc('created_at')
             ->paginate(10);
 
         $tahunAjarans = TahunAjaran::orderByDesc('tahun')->get();
+        $jurusans = Jurusan::where('is_active', true)->orderBy('nama')->get();
 
-        return view('livewire.admin.keuangan.master-spp-index', compact('spps', 'tahunAjarans'));
+        return view('livewire.admin.keuangan.master-spp-index', compact('spps', 'tahunAjarans', 'jurusans'));
     }
 
     // ── CRUD Actions ──────────────────────────────────────────
@@ -92,12 +131,14 @@ class MasterSppIndex extends Component
         $this->resetForm();
         $item = Spp::findOrFail($id);
 
-        $this->editId          = $id;
+        $this->editId = $id;
         $this->tahun_ajaran_id = (string) $item->tahun_ajaran_id;
-        $this->jenjang         = $item->jenjang;
-        $this->kategori        = $item->kategori;
-        $this->nominal         = (string) $item->nominal;
-        $this->keterangan      = $item->keterangan ?? '';
+        $this->jenjang = $item->jenjang;
+        $this->kategori = $item->kategori;
+        $this->nominal = (string) $item->nominal;
+        $this->keterangan = $item->keterangan ?? '';
+        $this->is_active = $item->is_active;
+        $this->jurusan_id = (string) ($item->jurusan_id ?? '');
 
         $this->isModalOpen = true;
         $this->dispatch('open-modal', 'spp-form');
@@ -109,10 +150,12 @@ class MasterSppIndex extends Component
 
         $data = [
             'tahun_ajaran_id' => $this->tahun_ajaran_id,
-            'jenjang'         => $this->jenjang,
-            'kategori'        => $this->kategori,
-            'nominal'         => $this->nominal,
-            'keterangan'      => $this->keterangan ?: null,
+            'jenjang' => $this->jenjang,
+            'jurusan_id' => $this->jenjang === 'SMK' && $this->jurusan_id !== '' ? $this->jurusan_id : null,
+            'kategori' => $this->kategori,
+            'nominal' => $this->nominal,
+            'keterangan' => $this->keterangan ?: null,
+            'is_active' => $this->is_active,
         ];
 
         if ($this->editId) {
@@ -133,16 +176,30 @@ class MasterSppIndex extends Component
         $this->dispatch('open-modal', 'confirm-delete-modal');
     }
 
+    public function toggleActive(int $id): void
+    {
+        $spp = Spp::findOrFail($id);
+        $spp->update(['is_active' => ! $spp->is_active]);
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => $spp->is_active
+                ? 'Biaya berhasil diaktifkan dan tampil di rincian biaya.'
+                : 'Biaya dinonaktifkan dari rincian biaya.',
+        ]);
+    }
+
     public function delete(): void
     {
         if ($this->idBeingDeleted) {
             $spp = Spp::findOrFail($this->idBeingDeleted);
             if ($spp->pembayaranSpps()->exists()) {
                 $this->dispatch('notify', [
-                    'type'    => 'error',
+                    'type' => 'error',
                     'message' => 'Tarif tidak dapat dihapus karena sudah memiliki data pembayaran.',
                 ]);
                 $this->closeModal();
+
                 return;
             }
             $spp->delete();
@@ -153,7 +210,7 @@ class MasterSppIndex extends Component
 
     public function closeModal(): void
     {
-        $this->isModalOpen    = false;
+        $this->isModalOpen = false;
         $this->idBeingDeleted = null;
         $this->dispatch('close-modal', 'spp-form');
         $this->dispatch('close-modal', 'confirm-delete-modal');
@@ -161,13 +218,15 @@ class MasterSppIndex extends Component
 
     public function resetForm(): void
     {
-        $this->editId          = null;
+        $this->editId = null;
         $this->tahun_ajaran_id = '';
-        $this->jenjang         = 'Semua';
-        $this->kategori        = 'SPP Bulanan';
-        $this->nominal         = '';
-        $this->keterangan      = '';
-        $this->idBeingDeleted  = null;
+        $this->jenjang = 'Semua';
+        $this->jurusan_id = '';
+        $this->kategori = 'SPP Bulanan';
+        $this->nominal = '';
+        $this->keterangan = '';
+        $this->is_active = true;
+        $this->idBeingDeleted = null;
         $this->resetValidation();
     }
 }

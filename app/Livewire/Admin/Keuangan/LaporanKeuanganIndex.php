@@ -7,9 +7,9 @@ use App\Models\PembayaranSpp;
 use App\Models\Siswa;
 use App\Models\Spp;
 use App\Models\TahunAjaran;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -24,25 +24,49 @@ class LaporanKeuanganIndex extends Component
     public string $activeTab = 'laporan'; // 'laporan' | 'tunggakan'
 
     // ── Filters ───────────────────────────────────────────────
-    public string $filterDateMulai   = '';
+    public string $filterDateMulai = '';
+
     public string $filterDateSelesai = '';
-    public string $filterKelas       = '';
-    public string $filterJenjang     = '';
-    public int    $filterTahun;
-    public int    $perPage = 15;
+
+    public string $filterKelas = '';
+
+    public string $filterJenjang = '';
+
+    public int $filterTahun;
+
+    public int $perPage = 15;
 
     public function mount(): void
     {
-        $this->filterTahun       = (int) now()->year;
-        $this->filterDateMulai   = now()->startOfMonth()->format('Y-m-d');
+        $this->filterTahun = (int) now()->year;
+        $this->filterDateMulai = now()->startOfMonth()->format('Y-m-d');
         $this->filterDateSelesai = now()->endOfMonth()->format('Y-m-d');
     }
 
-    public function updatedFilterKelas(): void  { $this->resetPage(); }
-    public function updatedFilterJenjang(): void { $this->resetPage(); }
-    public function updatedFilterDateMulai(): void  { $this->resetPage(); }
-    public function updatedFilterDateSelesai(): void { $this->resetPage(); }
-    public function updatedPerPage(): void { $this->resetPage(); }
+    public function updatedFilterKelas(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterJenjang(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterDateMulai(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterDateSelesai(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedPerPage(): void
+    {
+        $this->resetPage();
+    }
 
     public function setTab(string $tab): void
     {
@@ -67,9 +91,9 @@ class LaporanKeuanganIndex extends Component
             ->sum(DB::raw('jumlah_bayar - potongan'));
 
         // ── Target & Efektivitas ──────────────────────────────
-        $tahunAjaran  = TahunAjaran::where('is_active', true)->first();
+        $tahunAjaran = TahunAjaran::where('is_active', true)->first();
         $targetTagihan = $this->hitungTargetTagihan($tahunAjaran);
-        $efektivitas   = $targetTagihan > 0
+        $efektivitas = $targetTagihan > 0
             ? min(round(($totalTahunIni / $targetTagihan) * 100, 1), 100)
             : 0;
 
@@ -104,12 +128,12 @@ class LaporanKeuanganIndex extends Component
             // Manual Pagination for the collection
             $currentPage = Paginator::resolveCurrentPage();
             $currentItems = $fullList->slice(($currentPage - 1) * $this->perPage, $this->perPage)->all();
-            
+
             $siswasBelumBayar = new LengthAwarePaginator(
-                $currentItems, 
-                $totalTunggakanCount, 
-                $this->perPage, 
-                $currentPage, 
+                $currentItems,
+                $totalTunggakanCount,
+                $this->perPage,
+                $currentPage,
                 ['path' => Paginator::resolveCurrentPath()]
             );
         }
@@ -117,16 +141,16 @@ class LaporanKeuanganIndex extends Component
         $kelass = Kelas::orderBy('nama_kelas')->get();
 
         return view('livewire.admin.keuangan.laporan-keuangan-index', [
-            'totalHariIni'         => $totalHariIni,
-            'totalBulanIni'        => $totalBulanIni,
-            'totalTahunIni'        => $totalTahunIni,
-            'targetTagihan'        => $targetTagihan,
-            'efektivitas'          => $efektivitas,
-            'laporan'              => $laporan,
-            'siswasBelumBayar'     => $siswasBelumBayar,
-            'totalTunggakanCount'  => $totalTunggakanCount,
-            'totalNominalTunggakan'=> $totalNominalTunggakan,
-            'kelass'               => $kelass,
+            'totalHariIni' => $totalHariIni,
+            'totalBulanIni' => $totalBulanIni,
+            'totalTahunIni' => $totalTahunIni,
+            'targetTagihan' => $targetTagihan,
+            'efektivitas' => $efektivitas,
+            'laporan' => $laporan,
+            'siswasBelumBayar' => $siswasBelumBayar,
+            'totalTunggakanCount' => $totalTunggakanCount,
+            'totalNominalTunggakan' => $totalNominalTunggakan,
+            'kelass' => $kelass,
         ]);
     }
 
@@ -143,13 +167,20 @@ class LaporanKeuanganIndex extends Component
 
         $spps = Spp::where('tahun_ajaran_id', $tahunAjaran->id)
             ->where('kategori', 'SPP Bulanan')
+            ->active()
             ->get();
 
-        foreach ($spps as $spp) {
-            $jumlahSiswa = Siswa::where('status', 'Aktif')
-                ->when($spp->jenjang !== 'Semua', fn ($q) => $q->where('jenjang', $spp->jenjang))
-                ->count();
-            $target += $spp->nominal * $jumlahSiswa * $bulanBerjalan;
+        $siswaAktif = Siswa::where('status', 'Aktif')->get();
+        foreach ($siswaAktif as $siswa) {
+            $spp = $spps
+                ->filter(fn ($tarif) => in_array($tarif->jenjang, [$siswa->jenjang, 'Semua'], true))
+                ->filter(fn ($tarif) => $tarif->jurusan_id === null || $tarif->jurusan_id === $siswa->jurusan_id)
+                ->sortByDesc(fn ($tarif) => ($tarif->jenjang === $siswa->jenjang ? 2 : 0) + ($tarif->jurusan_id ? 1 : 0))
+                ->first();
+
+            if ($spp) {
+                $target += $spp->nominal * $bulanBerjalan;
+            }
         }
 
         return $target;
@@ -162,7 +193,7 @@ class LaporanKeuanganIndex extends Component
         }
 
         // Load semua siswa aktif dengan filter
-        $siswaAktif = Siswa::with(['user', 'kelas'])
+        $siswaAktif = Siswa::with(['user', 'kelas', 'jurusan'])
             ->where('status', 'Aktif')
             ->when($this->filterJenjang, fn ($q) => $q->where('jenjang', $this->filterJenjang))
             ->when($this->filterKelas, fn ($q) => $q->where('kelas_id', $this->filterKelas))
@@ -172,18 +203,17 @@ class LaporanKeuanganIndex extends Component
             return [collect(), 0];
         }
 
-        // Buat map SPP per jenjang (efisien)
-        $sppMap = Spp::where('tahun_ajaran_id', $tahunAjaran->id)
+        $sppBulanan = Spp::where('tahun_ajaran_id', $tahunAjaran->id)
             ->where('kategori', 'SPP Bulanan')
-            ->get()
-            ->keyBy('jenjang');
+            ->active()
+            ->get();
 
         // Load semua pembayaran SPP Bulanan untuk tahun ini sekaligus
         $allPembayarans = PembayaranSpp::whereIn('siswa_id', $siswaAktif->pluck('id'))
             ->where('tahun', $this->filterTahun)
             ->where('status', 'Lunas')
             ->whereNotNull('bulan')
-            ->whereIn('spp_id', $sppMap->pluck('id'))
+            ->whereIn('spp_id', $sppBulanan->pluck('id'))
             ->get()
             ->groupBy('siswa_id');
 
@@ -192,8 +222,11 @@ class LaporanKeuanganIndex extends Component
         $bulanMax = now()->month;
 
         foreach ($siswaAktif as $siswa) {
-            // Tentukan SPP yang berlaku: prioritas jenjang spesifik, fallback ke 'Semua'
-            $spp = $sppMap->get($siswa->jenjang) ?? $sppMap->get('Semua');
+            $spp = $sppBulanan
+                ->filter(fn ($tarif) => in_array($tarif->jenjang, [$siswa->jenjang, 'Semua'], true))
+                ->filter(fn ($tarif) => $tarif->jurusan_id === null || $tarif->jurusan_id === $siswa->jurusan_id)
+                ->sortByDesc(fn ($tarif) => ($tarif->jenjang === $siswa->jenjang ? 2 : 0) + ($tarif->jurusan_id ? 1 : 0))
+                ->first();
             if (! $spp) {
                 continue;
             }
@@ -213,9 +246,9 @@ class LaporanKeuanganIndex extends Component
             if (! empty($bulanTunggakan)) {
                 $nominal = $spp->nominal * count($bulanTunggakan);
                 $result->push([
-                    'siswa'           => $siswa,
+                    'siswa' => $siswa,
                     'bulan_tunggakan' => $bulanTunggakan,
-                    'jumlah_bulan'    => count($bulanTunggakan),
+                    'jumlah_bulan' => count($bulanTunggakan),
                     'nominal_per_bulan' => $spp->nominal,
                     'total_tunggakan' => $nominal,
                 ]);

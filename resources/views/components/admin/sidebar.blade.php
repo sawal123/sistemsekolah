@@ -98,6 +98,10 @@
                     class="sub-item {{ request()->routeIs('admin.data-master.data-kelas*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Data
                     Kelas</a>
+                <a href="{{ route('admin.data-master.jurusan') }}" wire:navigate
+                    class="sub-item {{ request()->routeIs('admin.data-master.jurusan*') ? 'active' : '' }}"><span
+                        style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Master
+                    Jurusan SMK</a>
             </div>
         </div>
         @endhasrole
@@ -291,6 +295,10 @@
                     & Slider</a>
                 <a href="{{ route('admin.website.visi-misi') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.visi-misi*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Visi, Misi & Sambutan</a>
+                <a href="{{ route('admin.website.struktur-organisasi') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.struktur-organisasi*') ? 'active' : '' }}"><span
+                        style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Struktur Organisasi</a>
+                <a href="{{ route('admin.website.pengunjung') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.pengunjung*') ? 'active' : '' }}"><span
+                        style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Pengunjung Website</a>
                 <a href="{{ route('admin.website.pengaturan-umum') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.pengaturan-umum*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Pengaturan
                     Umum</a>

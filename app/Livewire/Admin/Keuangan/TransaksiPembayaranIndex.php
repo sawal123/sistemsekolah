@@ -23,22 +23,27 @@ class TransaksiPembayaranIndex extends Component
     public ?int $urlSiswaId = null;
 
     // ── Search State ──────────────────────────────────────────
-    public string $searchQuery   = '';
-    public bool   $showDropdown  = false;
+    public string $searchQuery = '';
+
+    public bool $showDropdown = false;
 
     // ── Selected Student ──────────────────────────────────────
-    public ?int   $selectedSiswaId   = null;
-    public array  $selectedSiswaData = [];
-    public int    $selectedTahun;
+    public ?int $selectedSiswaId = null;
+
+    public array $selectedSiswaData = [];
+
+    public int $selectedTahun;
 
     // ── Payment Matrix & Selection ────────────────────────────
-    public array  $sppMatrix     = [];
+    public array $sppMatrix = [];
+
     // key: "{sppId}_{bulan|'sekali'}" → ['spp_id' => int, 'bulan' => int|null]
-    public array  $selectedItems = [];
+    public array $selectedItems = [];
 
     // ── Post-Payment ──────────────────────────────────────────
-    public ?array $lastPembayaranIds  = null;
-    public bool   $showKuitansiModal  = false;
+    public ?array $lastPembayaranIds = null;
+
+    public bool $showKuitansiModal = false;
 
     public function mount(): void
     {
@@ -58,21 +63,22 @@ class TransaksiPembayaranIndex extends Component
             return [];
         }
 
-        return Siswa::with(['kelas', 'user'])
+        return Siswa::with(['kelas', 'user', 'jurusan'])
             ->where('status', 'Aktif')
             ->where(function ($q) {
-                $q->where('nisn', 'like', '%' . $this->searchQuery . '%')
-                    ->orWhere('nis', 'like', '%' . $this->searchQuery . '%')
-                    ->orWhereHas('user', fn ($uq) => $uq->where('name', 'like', '%' . $this->searchQuery . '%'));
+                $q->where('nisn', 'like', '%'.$this->searchQuery.'%')
+                    ->orWhere('nis', 'like', '%'.$this->searchQuery.'%')
+                    ->orWhereHas('user', fn ($uq) => $uq->where('name', 'like', '%'.$this->searchQuery.'%'));
             })
             ->limit(8)
             ->get()
             ->map(fn ($s) => [
-                'id'         => $s->id,
-                'nama'       => $s->user?->name ?? '-',
-                'nisn'       => $s->nisn,
-                'kelas'      => $s->kelas?->nama_kelas ?? 'Belum Ada Kelas',
-                'jenjang'    => $s->jenjang,
+                'id' => $s->id,
+                'nama' => $s->user?->name ?? '-',
+                'nisn' => $s->nisn,
+                'kelas' => $s->kelas?->nama_kelas ?? 'Belum Ada Kelas',
+                'jenjang' => $s->jenjang,
+                'jurusan' => $s->jurusan?->kode,
             ])
             ->toArray();
     }
@@ -87,34 +93,36 @@ class TransaksiPembayaranIndex extends Component
 
     public function selectSiswa(int $id): void
     {
-        $siswa = Siswa::with(['kelas', 'user'])->findOrFail($id);
+        $siswa = Siswa::with(['kelas', 'user', 'jurusan'])->findOrFail($id);
 
         $this->selectedSiswaId = $id;
         $this->selectedSiswaData = [
-            'id'      => $siswa->id,
-            'nama'    => $siswa->user?->name ?? '-',
-            'nisn'    => $siswa->nisn,
-            'nis'     => $siswa->nis,
+            'id' => $siswa->id,
+            'nama' => $siswa->user?->name ?? '-',
+            'nisn' => $siswa->nisn,
+            'nis' => $siswa->nis,
             'jenjang' => $siswa->jenjang,
-            'kelas'   => $siswa->kelas?->nama_kelas ?? 'Belum Ada Kelas',
-            'status'  => $siswa->status,
+            'jurusan_id' => $siswa->jurusan_id,
+            'jurusan' => $siswa->jurusan?->kode,
+            'kelas' => $siswa->kelas?->nama_kelas ?? 'Belum Ada Kelas',
+            'status' => $siswa->status,
         ];
 
-        $this->searchQuery   = '';
-        $this->showDropdown  = false;
+        $this->searchQuery = '';
+        $this->showDropdown = false;
         $this->selectedItems = [];
         $this->loadPaymentMatrix();
     }
 
     public function clearSiswa(): void
     {
-        $this->selectedSiswaId   = null;
+        $this->selectedSiswaId = null;
         $this->selectedSiswaData = [];
-        $this->sppMatrix         = [];
-        $this->selectedItems     = [];
+        $this->sppMatrix = [];
+        $this->selectedItems = [];
         $this->lastPembayaranIds = null;
-        $this->searchQuery       = '';
-        $this->showDropdown      = false;
+        $this->searchQuery = '';
+        $this->showDropdown = false;
     }
 
     public function updatedSelectedTahun(): void
@@ -131,15 +139,18 @@ class TransaksiPembayaranIndex extends Component
             return;
         }
 
-        $jenjang     = $this->selectedSiswaData['jenjang'] ?? null;
+        $jenjang = $this->selectedSiswaData['jenjang'] ?? null;
+        $jurusanId = $this->selectedSiswaData['jurusan_id'] ?? null;
         $tahunAjaran = TahunAjaran::where('is_active', true)->first();
 
         $spps = Spp::when($tahunAjaran, fn ($q) => $q->where('tahun_ajaran_id', $tahunAjaran->id))
-            ->where(function ($q) use ($jenjang) {
-                $q->where('jenjang', $jenjang)->orWhere('jenjang', 'Semua');
-            })
+            ->active()
+            ->applicableTo($jenjang, $jurusanId)
             ->orderBy('kategori')
+            ->orderByRaw('jurusan_id IS NULL')
             ->get();
+
+        $spps = $spps->unique('kategori');
 
         $matrix = [];
 
@@ -158,19 +169,19 @@ class TransaksiPembayaranIndex extends Component
                 for ($b = 1; $b <= 12; $b++) {
                     $p = $pembayarans->get($b);
                     $bulans[$b] = [
-                        'lunas'   => $p !== null,
-                        'id'      => $p?->id,
+                        'lunas' => $p !== null,
+                        'id' => $p?->id,
                         'tanggal' => $p ? Carbon::parse($p->tanggal_bayar)->format('d/m/Y') : null,
                         'petugas' => $p?->user?->name,
                     ];
                 }
 
                 $matrix[$spp->id] = [
-                    'id'         => $spp->id,
-                    'kategori'   => $spp->kategori,
-                    'nominal'    => (float) $spp->nominal,
+                    'id' => $spp->id,
+                    'kategori' => $spp->kategori,
+                    'nominal' => (float) $spp->nominal,
                     'is_bulanan' => true,
-                    'bulans'     => $bulans,
+                    'bulans' => $bulans,
                 ];
             } else {
                 // ── Tipe Sekali Bayar
@@ -181,13 +192,13 @@ class TransaksiPembayaranIndex extends Component
                     ->first();
 
                 $matrix[$spp->id] = [
-                    'id'            => $spp->id,
-                    'kategori'      => $spp->kategori,
-                    'nominal'       => (float) $spp->nominal,
-                    'is_bulanan'    => false,
-                    'lunas'         => $pembayaran !== null,
+                    'id' => $spp->id,
+                    'kategori' => $spp->kategori,
+                    'nominal' => (float) $spp->nominal,
+                    'is_bulanan' => false,
+                    'lunas' => $pembayaran !== null,
                     'pembayaran_id' => $pembayaran?->id,
-                    'tanggal'       => $pembayaran ? Carbon::parse($pembayaran->tanggal_bayar)->format('d/m/Y') : null,
+                    'tanggal' => $pembayaran ? Carbon::parse($pembayaran->tanggal_bayar)->format('d/m/Y') : null,
                 ];
             }
         }
@@ -203,10 +214,11 @@ class TransaksiPembayaranIndex extends Component
      */
     public function toggleItem(int $sppId, $bulan): void
     {
-        $key = $sppId . '_' . $bulan;
+        $key = $sppId.'_'.$bulan;
 
         if (isset($this->selectedItems[$key])) {
             unset($this->selectedItems[$key]);
+
             return;
         }
 
@@ -235,17 +247,17 @@ class TransaksiPembayaranIndex extends Component
             if ($data['is_bulanan']) {
                 for ($b = 1; $b <= $currentMonth; $b++) {
                     if (! $data['bulans'][$b]['lunas']) {
-                        $this->selectedItems[$sppId . '_' . $b] = [
+                        $this->selectedItems[$sppId.'_'.$b] = [
                             'spp_id' => (int) $sppId,
-                            'bulan'  => $b,
+                            'bulan' => $b,
                         ];
                     }
                 }
             } else {
                 if (! $data['lunas']) {
-                    $this->selectedItems[$sppId . '_sekali'] = [
+                    $this->selectedItems[$sppId.'_sekali'] = [
                         'spp_id' => (int) $sppId,
-                        'bulan'  => null,
+                        'bulan' => null,
                     ];
                 }
             }
@@ -255,8 +267,8 @@ class TransaksiPembayaranIndex extends Component
             $this->dispatch('notify', ['type' => 'info', 'message' => '✅ Semua tagihan sudah lunas!']);
         } else {
             $this->dispatch('notify', [
-                'type'    => 'info',
-                'message' => count($this->selectedItems) . ' item tunggakan dipilih.',
+                'type' => 'info',
+                'message' => count($this->selectedItems).' item tunggakan dipilih.',
             ]);
         }
     }
@@ -272,6 +284,7 @@ class TransaksiPembayaranIndex extends Component
                 $total += $this->sppMatrix[$sppId]['nominal'];
             }
         }
+
         return $total;
     }
 
@@ -281,11 +294,13 @@ class TransaksiPembayaranIndex extends Component
     {
         if (! $this->selectedSiswaId) {
             $this->dispatch('notify', ['type' => 'error', 'message' => 'Pilih siswa terlebih dahulu.']);
+
             return;
         }
 
         if (empty($this->selectedItems)) {
             $this->dispatch('notify', ['type' => 'warning', 'message' => 'Pilih minimal 1 tagihan untuk dibayar.']);
+
             return;
         }
 
@@ -298,30 +313,30 @@ class TransaksiPembayaranIndex extends Component
             }
 
             $pembayaran = PembayaranSpp::create([
-                'siswa_id'    => $this->selectedSiswaId,
-                'spp_id'      => $item['spp_id'],
-                'user_id'     => auth()->id(),
-                'tahun'       => $this->selectedTahun,
-                'bulan'       => $item['bulan'],
+                'siswa_id' => $this->selectedSiswaId,
+                'spp_id' => $item['spp_id'],
+                'user_id' => auth()->id(),
+                'tahun' => $this->selectedTahun,
+                'bulan' => $item['bulan'],
                 'tanggal_bayar' => now(),
                 'jumlah_bayar' => $spp->nominal,
-                'potongan'    => 0,
-                'status'      => 'Lunas',
-                'keterangan'  => null,
+                'potongan' => 0,
+                'status' => 'Lunas',
+                'keterangan' => null,
             ]);
 
             $ids[] = $pembayaran->id;
         }
 
         $this->lastPembayaranIds = $ids;
-        $this->selectedItems     = [];
+        $this->selectedItems = [];
         $this->loadPaymentMatrix();
         $this->showKuitansiModal = true;
         $this->dispatch('open-modal', 'kuitansi-modal');
 
         $this->dispatch('notify', [
-            'type'    => 'success',
-            'message' => count($ids) . ' tagihan berhasil dicatat! 🎉',
+            'type' => 'success',
+            'message' => count($ids).' tagihan berhasil dicatat! 🎉',
         ]);
     }
 
@@ -351,7 +366,7 @@ class TransaksiPembayaranIndex extends Component
         // Riwayat pembayaran siswa terpilih (10 terakhir)
         $riwayat = collect();
         if ($this->selectedSiswaId) {
-            $riwayat = \App\Models\PembayaranSpp::with(['spp'])
+            $riwayat = PembayaranSpp::with(['spp'])
                 ->where('siswa_id', $this->selectedSiswaId)
                 ->where('status', 'Lunas')
                 ->latest('tanggal_bayar')
@@ -361,7 +376,7 @@ class TransaksiPembayaranIndex extends Component
 
         return view('livewire.admin.keuangan.transaksi-pembayaran-index', [
             'totalBayar' => $this->getTotalBayar(),
-            'riwayat'    => $riwayat,
+            'riwayat' => $riwayat,
         ]);
     }
 }

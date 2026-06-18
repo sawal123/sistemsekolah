@@ -24,6 +24,7 @@ class DataSiswaIndex extends Component
 
     // Filters
     public $search = '';
+
     public $perPage = 10;
 
     public $filterJenjang = '';
@@ -160,7 +161,7 @@ class DataSiswaIndex extends Component
             'email' => 'nullable|email|unique:users,email,'.($this->editId ? Siswa::find($this->editId)->user_id : ''),
             'nisn' => 'required|string|unique:siswas,nisn,'.$this->editId,
             'nis' => 'required|string|unique:siswas,nis,'.$this->editId,
-            'jenjang' => 'required|in:SMP,SMA',
+            'jenjang' => 'required|in:SMP,SMA,SMK',
             'kelas_id' => 'required|exists:kelas,id',
             'status' => 'required|in:Aktif,Lulus,Pindah,Dikeluarkan',
             'foto' => 'nullable|image|max:1024',
@@ -210,12 +211,20 @@ class DataSiswaIndex extends Component
         }
 
         // 3. Process Siswa Data
+        $kelas = Kelas::findOrFail($this->kelas_id);
+        if ($kelas->jenjang !== $this->jenjang) {
+            $this->addError('kelas_id', 'Kelas tidak sesuai dengan jenjang yang dipilih.');
+
+            return;
+        }
+
         $siswaData = [
             'user_id' => $user->id,
             'kelas_id' => $this->kelas_id,
             'nisn' => $this->nisn,
             'nis' => $this->nis,
             'jenjang' => $this->jenjang,
+            'jurusan_id' => $kelas->jurusan_id,
             'tempat_lahir' => $this->tempat_lahir,
             'tanggal_lahir' => $this->tanggal_lahir,
             'agama' => $this->agama,
@@ -233,7 +242,7 @@ class DataSiswaIndex extends Component
         if ($this->status === 'Lulus') {
             $siswaData['tahun_lulus'] = now()->year;
             // Also assign alumni role to user
-            if (!$user->hasRole('alumni')) {
+            if (! $user->hasRole('alumni')) {
                 $user->assignRole('alumni');
             }
         }
@@ -298,7 +307,7 @@ class DataSiswaIndex extends Component
 
     public function render()
     {
-        $query = Siswa::with(['user', 'kelas'])
+        $query = Siswa::with(['user', 'kelas', 'jurusan'])
             ->when($this->search, function ($q) {
                 $q->where('nis', 'like', '%'.$this->search.'%')
                     ->orWhere('nisn', 'like', '%'.$this->search.'%')
@@ -320,7 +329,7 @@ class DataSiswaIndex extends Component
             $q->where('jenjang', $this->filterJenjang);
         })->get();
 
-        $formClasses = Kelas::where('jenjang', $this->jenjang)->get();
+        $formClasses = Kelas::with('jurusan')->where('jenjang', $this->jenjang)->get();
 
         return view('livewire.admin.civitas.data-siswa-index', [
             'siswas' => $query->latest()->paginate($this->perPage),

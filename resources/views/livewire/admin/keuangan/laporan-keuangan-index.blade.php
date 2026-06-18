@@ -142,7 +142,7 @@ for ($y = now()->year; $y >= now()->year - 4; $y--) {
             </div>
         @endif
         @php
-$jenjangMap = ['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA'];
+$jenjangMap = ['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK'];
         @endphp
         <div class="w-44">
             <x-ui.select wire:model.live="filterJenjang" :options="$jenjangMap" />

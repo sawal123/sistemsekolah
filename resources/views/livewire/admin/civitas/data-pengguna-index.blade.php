@@ -65,6 +65,7 @@
                         <tr class="border-b border-gray-200 dark:border-white/5">
                             <th class="py-3 px-4 txt-muted text-xs font-semibold uppercase tracking-wider">Pengguna</th>
                             <th class="py-3 px-4 txt-muted text-xs font-semibold uppercase tracking-wider">Role</th>
+                            <th class="py-3 px-4 txt-muted text-xs font-semibold uppercase tracking-wider">Jabatan Pegawai</th>
                             <th class="py-3 px-4 txt-muted text-xs font-semibold uppercase tracking-wider">Status &
                                 Login</th>
                             <th class="py-3 px-4 txt-muted text-xs font-semibold uppercase tracking-wider text-right">
@@ -94,6 +95,20 @@
                                             <span class="text-xs txt-muted italic">Tidak ada</span>
                                         @endforelse
                                     </div>
+                                </td>
+                                <td class="py-3 px-4">
+                                    @if($user->guru)
+                                        <span class="text-xs txt-muted">Dikelola pada Data Guru</span>
+                                    @else
+                                        <select
+                                            wire:change="updateStaffPosition({{ $user->id }}, $event.target.value)"
+                                            class="w-full min-w-44 rounded-xl border border-indigo-500/15 bg-white/60 px-3 py-2 text-xs txt-primary outline-none focus:border-indigo-500"
+                                        >
+                                            @foreach($staffPositionOptions as $value => $label)
+                                                <option value="{{ $value }}" @selected($user->staff_position === $value)>{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+                                    @endif
                                 </td>
                                 <td class="py-3 px-4">
                                     <div class="flex flex-col gap-1 items-start">
@@ -144,7 +159,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="py-8 text-center txt-muted text-sm italic">
+                                <td colspan="5" class="py-8 text-center txt-muted text-sm italic">
                                     Tidak ada pengguna staf yang ditemukan.
                                 </td>
                             </tr>

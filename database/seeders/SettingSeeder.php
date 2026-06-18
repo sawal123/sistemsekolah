@@ -20,6 +20,7 @@ class SettingSeeder extends Seeder
             'show_signature_on_print' => '1',
             'admin_signature_name' => 'Admin Sekolah',
             'admin_signature_role' => 'Kepala Tata Usaha',
+            'organization_structure_image' => 'organization/structure-organisasi-dummy.png',
         ];
 
         foreach ($settings as $key => $value) {

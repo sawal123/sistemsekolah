@@ -3,6 +3,7 @@
     'title' => 'Konfirmasi Hapus',
     'message' => 'Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.',
     'onConfirm' => '',
+    'confirmText' => 'Ya, Hapus Data',
 ])
 
 <x-ui.modal :name="$name" maxWidth="sm">
@@ -21,7 +22,7 @@
 
         <div class="flex flex-col gap-2">
             <x-ui.button wire:click="{{ $onConfirm }}" variant="danger" class="w-full py-3 shadow-xl">
-                Ya, Hapus Data
+                {{ $confirmText }}
             </x-ui.button>
             <x-ui.button wire:click="closeModal" variant="secondary" class="w-full py-3 border border-slate-200 dark:border-white/5">
                 Batalkan

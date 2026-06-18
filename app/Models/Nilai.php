@@ -18,7 +18,7 @@ class Nilai extends Model
 
     public function siswa()
     {
-        return $this->belongsTo(Siswa::class);
+        return $this->belongsTo(Siswa::class)->withTrashed();
     }
 
     public function mapel()
@@ -41,15 +41,19 @@ class Nilai extends Model
     public function getRataHarianAttribute()
     {
         $harian = $this->nilai_harian ?? [];
-        if (empty($harian)) return 0;
-        
-        $total = 0; $count = 0;
+        if (empty($harian)) {
+            return 0;
+        }
+
+        $total = 0;
+        $count = 0;
         foreach ($harian as $val) {
             if (is_numeric($val)) {
                 $total += $val;
                 $count++;
             }
         }
+
         return $count > 0 ? round($total / $count, 2) : 0;
     }
 
@@ -59,7 +63,9 @@ class Nilai extends Model
     public function getNilaiAkhirAttribute()
     {
         $mapel = $this->mapel;
-        if (!$mapel) return 0;
+        if (! $mapel) {
+            return 0;
+        }
 
         $bobotHarian = $mapel->bobot_harian ?? 40;
         $bobotPts = $mapel->bobot_pts ?? 30;
@@ -69,8 +75,8 @@ class Nilai extends Model
         $pts = $this->pts ?? 0;
         $pas = $this->pas ?? 0;
 
-        $nilai = ($rataHarian * ($bobotHarian / 100)) + 
-                 ($pts * ($bobotPts / 100)) + 
+        $nilai = ($rataHarian * ($bobotHarian / 100)) +
+                 ($pts * ($bobotPts / 100)) +
                  ($pas * ($bobotPas / 100));
 
         // Logika Remedial Pintar
@@ -91,11 +97,18 @@ class Nilai extends Model
         $na = $this->nilai_akhir;
         $kkm = $this->mapel->kkm ?? 75;
 
-        if ($na < $kkm) return 'D';
-        
+        if ($na < $kkm) {
+            return 'D';
+        }
+
         $interval = (100 - $kkm) / 3;
-        if ($na >= $kkm && $na < $kkm + $interval) return 'C';
-        if ($na >= $kkm + $interval && $na < $kkm + ($interval * 2)) return 'B';
+        if ($na >= $kkm && $na < $kkm + $interval) {
+            return 'C';
+        }
+        if ($na >= $kkm + $interval && $na < $kkm + ($interval * 2)) {
+            return 'B';
+        }
+
         return 'A';
     }
 
@@ -108,12 +121,12 @@ class Nilai extends Model
         $nama = $this->siswa->nama_lengkap ?? 'Siswa';
         $mapel = $this->mapel->nama_mapel ?? 'Mata Pelajaran';
 
-        switch($predikat) {
+        switch ($predikat) {
             case 'A': return "Ananda $nama sangat menonjol dalam memahami dan menguasai seluruh kompetensi dasar pada mata pelajaran $mapel.";
             case 'B': return "Ananda $nama baik dalam menguasai kompetensi dasar $mapel, terus pertahankan dan tingkatkan cara belajarnya.";
             case 'C': return "Ananda $nama cukup menguasai kompetensi dasar $mapel, namun perlu bimbingan lebih lanjut pada beberapa materi.";
             case 'D': return "Ananda $nama belum mencapai batas kriteria ketuntasan $mapel, membutuhkan remedial dan bimbingan intensif.";
-            default: return "-";
+            default: return '-';
         }
     }
 }

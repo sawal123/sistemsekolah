@@ -18,6 +18,11 @@ class PendaftaranMuridBaru extends Model
         return $this->belongsTo(PpdbGelombang::class, 'ppdb_gelombang_id');
     }
 
+    public function jurusan()
+    {
+        return $this->belongsTo(Jurusan::class);
+    }
+
     public function getDokumenLengkapAttribute(): int
     {
         if ($this->document_upload_mode === 'gabungan') {

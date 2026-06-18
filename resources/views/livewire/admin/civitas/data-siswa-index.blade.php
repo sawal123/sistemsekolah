@@ -113,7 +113,7 @@
         
             {{-- Filter Jenjang --}}
             <div class="w-40 flex-shrink-0">
-                <x-ui.select wire:model.live="filterJenjang" :options="['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA']" />
+                <x-ui.select wire:model.live="filterJenjang" :options="['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK']" />
             </div>
         
             {{-- Filter Kelas --}}
@@ -323,12 +323,14 @@
                         </div>
                         <div>
                             <x-ui.label value="Jenjang" class="mb-2" />
-                            <x-ui.select wire:model.live="jenjang" :options="['SMP' => 'SMP', 'SMA' => 'SMA']"
+                            <x-ui.select wire:model.live="jenjang" :options="['SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK']"
                                 placeholder="Pilih Jenjang" />
                         </div>
                         <div>
                             <x-ui.label value="Kelas" class="mb-2" />
-                            <x-ui.select wire:model="kelas_id" :options="['' => 'Pilih Kelas'] + $formClasses->pluck('nama_kelas', 'id')->toArray()" placeholder="Pilih Kelas" />
+                            <x-ui.select wire:model="kelas_id"
+                                :options="['' => 'Pilih Kelas'] + $formClasses->mapWithKeys(fn($kelas) => [$kelas->id => $kelas->nama_kelas . ($kelas->jurusan ? ' - ' . $kelas->jurusan->kode : '')])->toArray()"
+                                placeholder="Pilih Kelas" />
                             @error('kelas_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                         </div>
                     </div>

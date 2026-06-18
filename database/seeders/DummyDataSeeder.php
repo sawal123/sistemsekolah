@@ -6,6 +6,8 @@ use App\Models\Absensi;
 use App\Models\Gallery;
 use App\Models\Guru;
 use App\Models\Jadwal;
+use App\Models\Jurusan;
+use App\Models\KalenderAkademik;
 use App\Models\Kategori;
 use App\Models\Kelas;
 use App\Models\Mapel;
@@ -13,6 +15,7 @@ use App\Models\Nilai;
 use App\Models\PembayaranSpp;
 use App\Models\Post;
 use App\Models\Rapor;
+use App\Models\Ruangan;
 use App\Models\Setting;
 use App\Models\Siswa;
 use App\Models\Slider;
@@ -20,7 +23,6 @@ use App\Models\Spp;
 use App\Models\Tag;
 use App\Models\TahunAjaran;
 use App\Models\User;
-use App\Models\KalenderAkademik;
 use Faker\Factory;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -44,6 +46,31 @@ class DummyDataSeeder extends Seeder
         $ta = TahunAjaran::create([
             'tahun' => '2025/2026',
             'semester' => 'Genap',
+            'is_active' => true,
+        ]);
+
+        $taBerikutnya = TahunAjaran::create([
+            'tahun' => '2026/2027',
+            'semester' => 'Ganjil',
+            'is_active' => false,
+        ]);
+
+        $jurusanRpl = Jurusan::create([
+            'kode' => 'RPL',
+            'nama' => 'Rekayasa Perangkat Lunak',
+            'deskripsi' => 'Pengembangan perangkat lunak, aplikasi web, mobile, dan basis data.',
+            'is_active' => true,
+        ]);
+        $jurusanTkj = Jurusan::create([
+            'kode' => 'TKJ',
+            'nama' => 'Teknik Komputer dan Jaringan',
+            'deskripsi' => 'Instalasi, administrasi, dan keamanan jaringan komputer.',
+            'is_active' => true,
+        ]);
+        $jurusanAkl = Jurusan::create([
+            'kode' => 'AKL',
+            'nama' => 'Akuntansi dan Keuangan Lembaga',
+            'deskripsi' => 'Pembukuan, perpajakan, dan pengelolaan keuangan lembaga.',
             'is_active' => true,
         ]);
 
@@ -90,6 +117,9 @@ class DummyDataSeeder extends Seeder
             ['kode' => 'FIS-SMA', 'nama' => 'Fisika Peminatan', 'kelompok' => 'Peminatan', 'jenjang' => 'SMA'],
             ['kode' => 'IPA-SMP', 'nama' => 'IPA Terpadu', 'kelompok' => 'Nasional', 'jenjang' => 'SMP'],
             ['kode' => 'B-ING', 'nama' => 'Bahasa Inggris', 'kelompok' => 'Nasional', 'jenjang' => 'Umum'],
+            ['kode' => 'PBO-RPL', 'nama' => 'Pemrograman Berorientasi Objek', 'kelompok' => 'Peminatan', 'jenjang' => 'SMK', 'jurusan_id' => $jurusanRpl->id],
+            ['kode' => 'JARKOM-TKJ', 'nama' => 'Administrasi Infrastruktur Jaringan', 'kelompok' => 'Peminatan', 'jenjang' => 'SMK', 'jurusan_id' => $jurusanTkj->id],
+            ['kode' => 'AKD-AKL', 'nama' => 'Akuntansi Dasar', 'kelompok' => 'Peminatan', 'jenjang' => 'SMK', 'jurusan_id' => $jurusanAkl->id],
         ];
 
         $mapelIds = [];
@@ -99,6 +129,7 @@ class DummyDataSeeder extends Seeder
                 'nama_mapel' => $m['nama'],
                 'kelompok' => $m['kelompok'],
                 'jenjang' => $m['jenjang'],
+                'jurusan_id' => $m['jurusan_id'] ?? null,
             ]);
             $mapelIds[] = $mapelObj->id;
         }
@@ -110,6 +141,9 @@ class DummyDataSeeder extends Seeder
             ['nama' => '8A', 'jenjang' => 'SMP'],
             ['nama' => '10 IPA 1', 'jenjang' => 'SMA'],
             ['nama' => '11 IPS 2', 'jenjang' => 'SMA'],
+            ['nama' => 'X RPL 1', 'jenjang' => 'SMK', 'jurusan_id' => $jurusanRpl->id],
+            ['nama' => 'X TKJ 1', 'jenjang' => 'SMK', 'jurusan_id' => $jurusanTkj->id],
+            ['nama' => 'X AKL 1', 'jenjang' => 'SMK', 'jurusan_id' => $jurusanAkl->id],
         ];
 
         foreach ($daftarKelas as $index => $kls) {
@@ -117,6 +151,7 @@ class DummyDataSeeder extends Seeder
                 'wali_kelas_id' => $gurus[$index]->id ?? null,
                 'nama_kelas' => $kls['nama'],
                 'jenjang' => $kls['jenjang'],
+                'jurusan_id' => $kls['jurusan_id'] ?? null,
             ]);
             $kelasIds[] = $k->id;
         }
@@ -130,27 +165,28 @@ class DummyDataSeeder extends Seeder
 
             for ($i = 1; $i <= 32; $i++) {
                 $user = User::create([
-                    'name'     => $faker->name,
-                    'email'    => "siswa{$siswaCounter}@sekolah.com",
+                    'name' => $faker->name,
+                    'email' => "siswa{$siswaCounter}@sekolah.com",
                     'password' => bcrypt('password'),
                 ]);
                 $user->assignRole('siswa');
 
                 $siswas[] = Siswa::create([
-                    'user_id'       => $user->id,
-                    'kelas_id'      => $kelasId,
-                    'nisn'          => $faker->unique()->numerify('00########'),
-                    'nis'           => $faker->unique()->numerify('1####'),
-                    'jenjang'       => $kelasObj->jenjang,
-                    'tempat_lahir'  => $faker->city,
+                    'user_id' => $user->id,
+                    'kelas_id' => $kelasId,
+                    'nisn' => $faker->unique()->numerify('00########'),
+                    'nis' => $faker->unique()->numerify('1####'),
+                    'jenjang' => $kelasObj->jenjang,
+                    'jurusan_id' => $kelasObj->jurusan_id,
+                    'tempat_lahir' => $faker->city,
                     'tanggal_lahir' => $faker->date('Y-m-d', '2010-01-01'),
-                    'agama'         => $faker->randomElement(['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha']),
+                    'agama' => $faker->randomElement(['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha']),
                     'jenis_kelamin' => $faker->randomElement(['Laki-Laki', 'Perempuan']),
-                    'alamat'        => $faker->address,
-                    'nama_ayah'     => $faker->name('male'),
-                    'nama_ibu'      => $faker->name('female'),
-                    'no_telp_ortu'  => $faker->phoneNumber,
-                    'status'        => 'Aktif',
+                    'alamat' => $faker->address,
+                    'nama_ayah' => $faker->name('male'),
+                    'nama_ibu' => $faker->name('female'),
+                    'no_telp_ortu' => $faker->phoneNumber,
+                    'status' => 'Aktif',
                 ]);
 
                 $siswaCounter++;
@@ -161,7 +197,7 @@ class DummyDataSeeder extends Seeder
         $ruanganNames = ['Lab Komputer 1', 'Lab IPA', 'Aula', 'Ruang Kelas 10-A', 'Ruang Kelas 10-B', 'Perpustakaan'];
         $ruangans = [];
         foreach ($ruanganNames as $r) {
-            $ruangans[] = \App\Models\Ruangan::create(['nama_ruangan' => $r, 'kapasitas' => 36]);
+            $ruangans[] = Ruangan::create(['nama_ruangan' => $r, 'kapasitas' => 36]);
         }
 
         // 7. Jadwal
@@ -169,7 +205,7 @@ class DummyDataSeeder extends Seeder
         $jadwals = [];
         $slotMulai = ['07:15', '08:00', '08:45', '10:00', '10:45'];
         $slotSelesai = ['08:00', '08:45', '09:30', '10:45', '11:30'];
-        
+
         $hariMinggu = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
         $counter = 0;
 
@@ -180,7 +216,7 @@ class DummyDataSeeder extends Seeder
                     'kelas_id' => $k_id,
                     'mapel_id' => $faker->randomElement($mapelIds),
                     // Pastikan beda guru untuk setiap kelas biar gampang tidak bentrok guru
-                    'guru_id' => $gurus[($idxKelas + $j) % count($gurus)]->id, 
+                    'guru_id' => $gurus[($idxKelas + $j) % count($gurus)]->id,
                     'ruangan_id' => $ruangans[$idxKelas % count($ruangans)]->id, // Beda kelas beda ruangan (fixed)
                     'hari' => $hariMinggu[$j],
                     'jam_mulai' => $slotMulai[$j], // Jam ke-1 dan Jam ke-2
@@ -201,11 +237,11 @@ class DummyDataSeeder extends Seeder
 
             // Nilai
             Nilai::create([
-                'siswa_id'        => $siswa->id,
-                'mapel_id'        => $faker->randomElement($mapelIds),
+                'siswa_id' => $siswa->id,
+                'mapel_id' => $faker->randomElement($mapelIds),
                 'tahun_ajaran_id' => $ta->id,
-                'pts'             => $faker->numberBetween(70, 90),
-                'pas'             => $faker->numberBetween(70, 90),
+                'pts' => $faker->numberBetween(70, 90),
+                'pas' => $faker->numberBetween(70, 90),
             ]);
 
             // Rapor
@@ -221,27 +257,76 @@ class DummyDataSeeder extends Seeder
         // 9. Keuangan — Tarif SPP per jenjang
         $sppSmp = Spp::create([
             'tahun_ajaran_id' => $ta->id,
-            'jenjang'        => 'SMP',
-            'kategori'       => 'SPP Bulanan',
-            'nominal'        => 300000,
-            'keterangan'     => 'Tarif SPP Bulanan SMP TA 2025/2026',
+            'jenjang' => 'SMP',
+            'kategori' => 'SPP Bulanan',
+            'nominal' => 300000,
+            'keterangan' => 'Tarif SPP Bulanan SMP TA 2025/2026',
+            'is_active' => true,
         ]);
 
         $sppSma = Spp::create([
             'tahun_ajaran_id' => $ta->id,
-            'jenjang'        => 'SMA',
-            'kategori'       => 'SPP Bulanan',
-            'nominal'        => 450000,
-            'keterangan'     => 'Tarif SPP Bulanan SMA TA 2025/2026',
+            'jenjang' => 'SMA',
+            'kategori' => 'SPP Bulanan',
+            'nominal' => 450000,
+            'keterangan' => 'Tarif SPP Bulanan SMA TA 2025/2026',
+            'is_active' => true,
+        ]);
+
+        $sppSmkRpl = Spp::create([
+            'tahun_ajaran_id' => $ta->id,
+            'jenjang' => 'SMK',
+            'jurusan_id' => $jurusanRpl->id,
+            'kategori' => 'SPP Bulanan',
+            'nominal' => 550000,
+            'keterangan' => 'Tarif SPP RPL TA 2025/2026',
+            'is_active' => true,
+        ]);
+
+        $sppSmkTkj = Spp::create([
+            'tahun_ajaran_id' => $ta->id,
+            'jenjang' => 'SMK',
+            'jurusan_id' => $jurusanTkj->id,
+            'kategori' => 'SPP Bulanan',
+            'nominal' => 575000,
+            'keterangan' => 'Tarif SPP TKJ TA 2025/2026',
+            'is_active' => true,
+        ]);
+
+        $sppSmkAkl = Spp::create([
+            'tahun_ajaran_id' => $ta->id,
+            'jenjang' => 'SMK',
+            'jurusan_id' => $jurusanAkl->id,
+            'kategori' => 'SPP Bulanan',
+            'nominal' => 500000,
+            'keterangan' => 'Tarif SPP AKL TA 2025/2026',
+            'is_active' => true,
         ]);
 
         Spp::create([
             'tahun_ajaran_id' => $ta->id,
-            'jenjang'        => 'Semua',
-            'kategori'       => 'Uang Bangunan',
-            'nominal'        => 1500000,
-            'keterangan'     => 'Uang Bangunan Tahunan — Satu kali bayar per tahun ajaran',
+            'jenjang' => 'Semua',
+            'kategori' => 'Uang Bangunan',
+            'nominal' => 1500000,
+            'is_active' => true,
+            'keterangan' => 'Uang Bangunan Tahunan — Satu kali bayar per tahun ajaran',
         ]);
+
+        foreach ([
+            [$jurusanRpl, 600000],
+            [$jurusanTkj, 625000],
+            [$jurusanAkl, 540000],
+        ] as [$jurusan, $nominal]) {
+            Spp::create([
+                'tahun_ajaran_id' => $taBerikutnya->id,
+                'jenjang' => 'SMK',
+                'jurusan_id' => $jurusan->id,
+                'kategori' => 'SPP Bulanan',
+                'nominal' => $nominal,
+                'keterangan' => "Tarif SPP {$jurusan->kode} TA 2026/2027",
+                'is_active' => true,
+            ]);
+        }
 
         // Demo pembayaran: beberapa siswa SMP sudah bayar Jan-Mar 2026
         $tahunTagihan = 2026;
@@ -251,15 +336,15 @@ class DummyDataSeeder extends Seeder
                 $bulanBayar = [1, 2, 3];
                 foreach ($bulanBayar as $bln) {
                     PembayaranSpp::create([
-                        'siswa_id'     => $siswa->id,
-                        'spp_id'       => $sppSmp->id,
-                        'user_id'      => $admin->id,
-                        'tahun'        => $tahunTagihan,
-                        'bulan'        => $bln,
+                        'siswa_id' => $siswa->id,
+                        'spp_id' => $sppSmp->id,
+                        'user_id' => $admin->id,
+                        'tahun' => $tahunTagihan,
+                        'bulan' => $bln,
                         'tanggal_bayar' => date('Y-m-d', strtotime("2026-0{$bln}-10")),
                         'jumlah_bayar' => 300000,
-                        'potongan'     => 0,
-                        'status'       => 'Lunas',
+                        'potongan' => 0,
+                        'status' => 'Lunas',
                     ]);
                 }
             }
@@ -270,22 +355,48 @@ class DummyDataSeeder extends Seeder
             if ($siswa->jenjang === 'SMA') {
                 foreach ([1, 2] as $bln) {
                     PembayaranSpp::create([
-                        'siswa_id'     => $siswa->id,
-                        'spp_id'       => $sppSma->id,
-                        'user_id'      => $admin->id,
-                        'tahun'        => $tahunTagihan,
-                        'bulan'        => $bln,
+                        'siswa_id' => $siswa->id,
+                        'spp_id' => $sppSma->id,
+                        'user_id' => $admin->id,
+                        'tahun' => $tahunTagihan,
+                        'bulan' => $bln,
                         'tanggal_bayar' => date('Y-m-d', strtotime("2026-0{$bln}-12")),
                         'jumlah_bayar' => 450000,
-                        'potongan'     => 0,
-                        'status'       => 'Lunas',
+                        'potongan' => 0,
+                        'status' => 'Lunas',
                     ]);
                 }
             }
         }
 
-        // 10. Blog & CMS
+        $tarifSmk = [
+            $jurusanRpl->id => $sppSmkRpl,
+            $jurusanTkj->id => $sppSmkTkj,
+            $jurusanAkl->id => $sppSmkAkl,
+        ];
 
+        foreach (array_slice($siswas, 128, 12) as $siswa) {
+            $tarif = $tarifSmk[$siswa->jurusan_id] ?? null;
+            if (! $tarif) {
+                continue;
+            }
+
+            foreach ([1, 2] as $bulan) {
+                PembayaranSpp::create([
+                    'siswa_id' => $siswa->id,
+                    'spp_id' => $tarif->id,
+                    'user_id' => $admin->id,
+                    'tahun' => $tahunTagihan,
+                    'bulan' => $bulan,
+                    'tanggal_bayar' => "2026-0{$bulan}-15",
+                    'jumlah_bayar' => $tarif->nominal,
+                    'potongan' => 0,
+                    'status' => 'Lunas',
+                ]);
+            }
+        }
+
+        // 10. Blog & CMS
 
         $kat = Kategori::create(['nama_kategori' => 'Kegiatan Sekolah', 'slug' => 'kegiatan-sekolah']);
         $tag = Tag::create(['nama_tag' => 'Edukasi', 'slug' => 'edukasi']);
@@ -296,7 +407,7 @@ class DummyDataSeeder extends Seeder
             'kategori_id' => $kat->id,
             'judul' => $judulPost,
             'slug' => Str::slug($judulPost),
-            'konten' => 'Pendaftaran telah dibuka untuk jenjang SMP dan SMA.',
+            'konten' => 'Pendaftaran telah dibuka untuk jenjang SMP, SMA, dan SMK dengan pilihan jurusan RPL, TKJ, serta AKL.',
             'status' => 'Published',
         ]);
         $post->tags()->attach([$tag->id]);

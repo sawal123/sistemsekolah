@@ -6,6 +6,7 @@ use App\Livewire\Admin\Civitas\DataGuruIndex;
 use App\Livewire\Admin\Civitas\DataPenggunaIndex;
 use App\Livewire\Admin\Civitas\DataSiswaIndex;
 use App\Livewire\Admin\DataMaster\DataKelasIndex;
+use App\Livewire\Admin\DataMaster\JurusanIndex;
 use App\Livewire\Admin\DataMaster\MataPelajaranIndex;
 use App\Livewire\Admin\DataMaster\TahunAjaranIndex;
 use App\Livewire\Admin\Kbm\ERaporIndex;
@@ -22,20 +23,41 @@ use App\Livewire\Admin\Website\BlogArtikelIndex;
 use App\Livewire\Admin\Website\GaleriSliderIndex;
 use App\Livewire\Admin\Website\PengaturanUmumIndex;
 use App\Livewire\Admin\Website\VisiMisiIndex;
+use App\Livewire\Admin\Website\WebsiteVisitIndex;
+use App\Livewire\Admin\Website\StructureOrganizationIndex;
 use App\Livewire\Auth\Login;
 use App\Livewire\Dashboard;
 use App\Livewire\Admin\Fasilitas\FasilitasIndex;
+use App\Livewire\Landing\HomePage;
+use App\Livewire\Landing\AboutPage;
+use App\Livewire\Landing\AcademicPage;
+use App\Livewire\Landing\BlogDetailPage;
+use App\Livewire\Landing\BlogPage;
+use App\Livewire\Landing\ContactPage;
+use App\Livewire\Landing\FacilitiesPage;
+use App\Livewire\Landing\PpdbPage;
+use App\Livewire\Landing\StaffingPage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    $settings = \App\Models\Setting::pluck('value', 'key');
-    $sliders = \App\Models\Slider::where('is_active', true)->orderBy('urutan')->get();
-    $facilities = \App\Models\Fasilitas::latest()->take(6)->get();
-    $posts = \App\Models\Post::where('status', 'Published')->latest()->take(3)->get();
-    
-    return view('landing', compact('settings', 'sliders', 'facilities', 'posts'));
-})->name('home');
+Route::get('/', HomePage::class)->middleware('track.website')->name('home');
+Route::middleware('track.website')->name('landing.')->group(function () {
+    Route::get('/tentang', AboutPage::class)->name('about');
+    Route::get('/akademik/{program}', AcademicPage::class)
+        ->whereIn('program', ['ipa', 'ips', 'bahasa', 'kurikulum'])
+        ->name('academic');
+    Route::get('/fasilitas-sekolah', FacilitiesPage::class)->name('facilities');
+    Route::get('/kepegawaian/{section}', StaffingPage::class)
+        ->whereIn('section', ['guru', 'tata-usaha', 'struktur-organisasi'])
+        ->name('staffing');
+    Route::get('/blog', BlogPage::class)->name('blog');
+    Route::get('/blog/{slug}', BlogDetailPage::class)->name('blog.show');
+    Route::get('/ppdb', PpdbPage::class)->defaults('section', 'informasi')->name('ppdb');
+    Route::get('/ppdb/{section}', PpdbPage::class)
+        ->whereIn('section', ['syarat', 'jalur', 'biaya', 'daftar'])
+        ->name('ppdb.section');
+    Route::get('/kontak', ContactPage::class)->name('contact');
+});
 
 // ─── Auth Routes ──────────────────────────────────────────────
 Route::get('/login', Login::class)->name('login')->middleware('guest');
@@ -94,6 +116,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
         Route::get('/tahun-ajaran', TahunAjaranIndex::class)->name('tahun-ajaran');
         Route::get('/mata-pelajaran', MataPelajaranIndex::class)->name('mata-pelajaran');
         Route::get('/data-kelas', DataKelasIndex::class)->name('data-kelas');
+        Route::get('/jurusan', JurusanIndex::class)->name('jurusan');
     });
 
     // ─── Civitas Akademik ───
@@ -121,5 +144,11 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
         Route::get('/galeri-slider', GaleriSliderIndex::class)->name('galeri-slider');
         Route::get('/pengaturan-umum', PengaturanUmumIndex::class)->name('pengaturan-umum');
         Route::get('/visi-misi', VisiMisiIndex::class)->name('visi-misi');
+        Route::get('/struktur-organisasi', StructureOrganizationIndex::class)->name('struktur-organisasi');
+        Route::get('/pengunjung', WebsiteVisitIndex::class)->name('pengunjung');
     });
 });
+
+Route::fallback(function () {
+    abort(404);
+})->middleware('track.website');

@@ -144,7 +144,7 @@
 
                 {{-- Filter Jenjang --}}
                 <div class="w-40 flex-shrink-0">
-                    <x-ui.select wire:model.live="filterJenjang" :options="['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA', 'Umum' => 'Umum']" />
+                    <x-ui.select wire:model.live="filterJenjang" :options="['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK', 'Umum' => 'Umum']" />
                 </div>
 
                 {{-- Filter Kelompok --}}
@@ -283,9 +283,14 @@
                     <x-ui.select label="Kelompok" wire:model="kelompok" :options="['Nasional', 'Kewilayahan', 'Peminatan', 'Mulok']" placeholder="Pilih Kelompok" />
 
                     {{-- Jenjang --}}
-                    <x-ui.select label="Jenjang" wire:model="jenjang" :options="['SMP', 'SMA', 'Umum']"
+                    <x-ui.select label="Jenjang" wire:model.live="jenjang" :options="['SMP', 'SMA', 'SMK', 'Umum']"
                         placeholder="Pilih Jenjang" />
                 </div>
+
+                @if($jenjang === 'SMK')
+                    <x-ui.select label="Jurusan SMK" wire:model="jurusan_id"
+                        :options="['' => 'Pilih Jurusan'] + $jurusans->mapWithKeys(fn($j) => [$j->id => $j->kode . ' - ' . $j->nama])->toArray()" />
+                @endif
 
                 {{-- Action Buttons --}}
                 <div class="mt-8 flex justify-end gap-3 pt-4 border-t border-indigo-500/10">

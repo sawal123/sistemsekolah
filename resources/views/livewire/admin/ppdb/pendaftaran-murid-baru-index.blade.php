@@ -403,7 +403,12 @@
                     <div><x-ui.label for="tahun_lulus" value="Tahun Lulus" class="mb-2" /><x-ui.input wire:model="tahun_lulus" id="tahun_lulus" type="number" min="2000" max="{{ now()->year + 1 }}" /></div>
                     <div class="md:col-span-3 pt-3 border-t border-indigo-500/10"></div>
                     <div><x-ui.label for="sekolah_pilihan_1" value="Sekolah Tujuan Pilihan 1" class="mb-2" /><x-ui.input wire:model="sekolah_pilihan_1" id="sekolah_pilihan_1" /></div>
-                    <div><x-ui.label for="jurusan_pilihan_1" value="Jurusan Pilihan 1" class="mb-2" /><x-ui.input wire:model="jurusan_pilihan_1" id="jurusan_pilihan_1" placeholder="IPA/IPS/RPL/TKJ/dll" /></div>
+                    <div><x-ui.select label="Jenjang Tujuan" wire:model.live="jenjang_pilihan" :options="['' => 'Pilih Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK']" /></div>
+                    @if($jenjang_pilihan === 'SMK')
+                        <div><x-ui.select label="Jurusan SMK" wire:model="jurusan_id" :options="['' => 'Pilih Jurusan'] + $jurusans->mapWithKeys(fn($j) => [$j->id => $j->kode . ' - ' . $j->nama])->toArray()" /></div>
+                    @else
+                        <div><x-ui.label for="jurusan_pilihan_1" value="Program/Peminatan" class="mb-2" /><x-ui.input wire:model="jurusan_pilihan_1" id="jurusan_pilihan_1" placeholder="IPA/IPS/Umum" /></div>
+                    @endif
                     <div><x-ui.select label="Status Berkas" wire:model="status" :options="$statusOptions" /></div>
                     <div><x-ui.label for="sekolah_pilihan_2" value="Sekolah Tujuan Pilihan 2" class="mb-2" /><x-ui.input wire:model="sekolah_pilihan_2" id="sekolah_pilihan_2" /></div>
                     <div><x-ui.label for="jurusan_pilihan_2" value="Jurusan Pilihan 2" class="mb-2" /><x-ui.input wire:model="jurusan_pilihan_2" id="jurusan_pilihan_2" /></div>

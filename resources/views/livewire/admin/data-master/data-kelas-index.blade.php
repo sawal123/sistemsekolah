@@ -20,7 +20,7 @@
     </div>
 
     {{-- Stats Grid --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <x-ui.card class="bg-indigo-500/5 border-indigo-500/10">
             <div class="flex items-center gap-4">
                 <div class="p-3 bg-indigo-500/10 rounded-xl text-indigo-500">
@@ -72,6 +72,14 @@
                 </div>
             </x-ui.card>
         @endif
+        @if($stats['smk_count'] > 0)
+            <x-ui.card class="bg-cyan-500/5 border-cyan-500/10">
+                <div class="flex items-center gap-4">
+                    <div class="p-3 bg-cyan-500/10 rounded-xl text-cyan-500 text-xs font-bold">SMK</div>
+                    <div><p class="text-xs txt-muted font-medium">Kelas SMK</p><h3 class="text-xl font-bold txt-primary">{{ $stats['smk_count'] }}</h3></div>
+                </div>
+            </x-ui.card>
+        @endif
     </div>
 
     {{-- Filter & Search Bar --}}
@@ -89,7 +97,7 @@
         
             <div class="lg:col-span-4 flex items-center gap-2">
         
-                <x-ui.select wire:model.live="filterJenjang" :options="['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA']"
+                <x-ui.select wire:model.live="filterJenjang" :options="['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK']"
                     placeholder="Filter Jenjang" />
         
             </div>
@@ -121,6 +129,7 @@
                                 </td>
                                 <td class="px-6 py-4 text-sm txt-primary font-bold">
                                     {{ $item->nama_kelas }}
+                                    @if($item->jurusan)<p class="mt-1 text-[11px] text-cyan-500">{{ $item->jurusan->kode }} · {{ $item->jurusan->nama }}</p>@endif
                                 </td>
                                 <td class="px-6 py-4 text-sm">
                                     <span
@@ -208,10 +217,18 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <x-ui.label value="Jenjang" class="mb-2" />
-                    <x-ui.select wire:model="jenjang" :options="['SMP' => 'SMP', 'SMA' => 'SMA']"
+                    <x-ui.select wire:model.live="jenjang" :options="['SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK']"
                         placeholder="Pilih Jenjang" />
                     @error('jenjang') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                 </div>
+                @if($jenjang === 'SMK')
+                    <div>
+                        <x-ui.label value="Jurusan SMK" class="mb-2" />
+                        <x-ui.select wire:model="jurusan_id"
+                            :options="['' => 'Pilih Jurusan'] + $jurusans->mapWithKeys(fn($j) => [$j->id => $j->kode . ' - ' . $j->nama])->toArray()" />
+                        @error('jurusan_id') <span class="mt-1 text-xs text-red-500">{{ $message }}</span> @enderror
+                    </div>
+                @endif
                 <div>
                     <x-ui.label value="Wali Kelas" class="mb-2" />
                     <x-ui.select wire:model="wali_kelas_id" :options="$gurus" placeholder="Pilih Wali Kelas" />
@@ -307,6 +324,7 @@
 
     {{-- Confirm Delete Modal --}}
     <x-ui.confirm-modal name="confirm-delete-modal" title="Hapus Kelas"
-        message="Apakah Anda yakin ingin menghapus data kelas ini? Wali kelas akan dilepaskan dan siswa akan kehilangan kelasnya."
+        :message="$deleteMessage"
+        confirmText="Ya, Nonaktifkan Kelas"
         onConfirm="delete" />
 </div>

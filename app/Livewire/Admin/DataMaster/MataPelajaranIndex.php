@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\DataMaster;
 
 use App\Exports\MapelExport;
 use App\Imports\MapelImport;
+use App\Models\Jurusan;
 use App\Models\Mapel;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Livewire\Attributes\Layout;
@@ -21,6 +22,7 @@ class MataPelajaranIndex extends Component
 
     // Search & Filter
     public $search = '';
+
     public $perPage = 10;
 
     public $filterJenjang = '';
@@ -42,6 +44,8 @@ class MataPelajaranIndex extends Component
     public $kelompok = 'Nasional';
 
     public $jenjang = 'Umum';
+
+    public $jurusan_id;
 
     // Import
     public $importFile;
@@ -88,6 +92,7 @@ class MataPelajaranIndex extends Component
 
         return view('livewire.admin.data-master.mata-pelajaran-index', [
             'mapels' => $query->latest()->paginate($this->perPage),
+            'jurusans' => Jurusan::where('is_active', true)->orderBy('nama')->get(),
         ]);
     }
 
@@ -112,6 +117,7 @@ class MataPelajaranIndex extends Component
         $this->nama_mapel = '';
         $this->kelompok = 'Nasional';
         $this->jenjang = 'Umum';
+        $this->jurusan_id = null;
         $this->editId = null;
         $this->idBeingDeleted = null;
         $this->resetErrorBag();
@@ -126,6 +132,7 @@ class MataPelajaranIndex extends Component
         $this->nama_mapel = $item->nama_mapel;
         $this->kelompok = $item->kelompok;
         $this->jenjang = $item->jenjang;
+        $this->jurusan_id = $item->jurusan_id;
 
         $this->isModalOpen = true;
         $this->dispatch('open-modal', 'mapel-form');
@@ -137,7 +144,8 @@ class MataPelajaranIndex extends Component
             'kode_mapel' => 'required|string|max:50|unique:mapels,kode_mapel,'.$this->editId,
             'nama_mapel' => 'required|string|max:255',
             'kelompok' => 'required|in:Nasional,Kewilayahan,Peminatan,Mulok',
-            'jenjang' => 'required|in:SMP,SMA,Umum',
+            'jenjang' => 'required|in:SMP,SMA,SMK,Umum',
+            'jurusan_id' => 'nullable|required_if:jenjang,SMK|exists:jurusans,id',
         ]);
 
         if ($this->editId) {
@@ -146,6 +154,7 @@ class MataPelajaranIndex extends Component
                 'nama_mapel' => $this->nama_mapel,
                 'kelompok' => $this->kelompok,
                 'jenjang' => $this->jenjang,
+                'jurusan_id' => $this->jenjang === 'SMK' ? $this->jurusan_id : null,
             ]);
             $msg = 'Mata Pelajaran berhasil diperbarui!';
         } else {
@@ -154,6 +163,7 @@ class MataPelajaranIndex extends Component
                 'nama_mapel' => $this->nama_mapel,
                 'kelompok' => $this->kelompok,
                 'jenjang' => $this->jenjang,
+                'jurusan_id' => $this->jenjang === 'SMK' ? $this->jurusan_id : null,
             ]);
             $msg = 'Mata Pelajaran berhasil ditambahkan!';
         }

@@ -102,6 +102,17 @@ class DataPenggunaIndex extends Component
         }
     }
 
+    public function updateStaffPosition(int $userId, string $position): void
+    {
+        $user = User::whereDoesntHave('siswa')->findOrFail($userId);
+        $user->update(['staff_position' => $position !== '' ? $position : null]);
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => 'Jabatan pegawai berhasil diperbarui.',
+        ]);
+    }
+
     public function createRole()
     {
         $this->validate(['newRoleName' => 'required|min:3|unique:roles,name']);
@@ -137,7 +148,7 @@ class DataPenggunaIndex extends Component
     {
         // Sembunyikan relasi siswa (Fokus pada Staff/Admin/Guru)
         $usersQuery = User::whereDoesntHave('siswa')
-            ->with('roles')
+            ->with(['roles', 'guru'])
             ->where(function ($q) {
                 $q->where('name', 'like', '%'.$this->search.'%')
                     ->orWhere('email', 'like', '%'.$this->search.'%');
@@ -156,6 +167,18 @@ class DataPenggunaIndex extends Component
             'roles' => Role::with('permissions')->get(),
             'systemModules' => $modules,
             'systemActions' => $actions,
+            'staffPositionOptions' => [
+                '' => 'Belum ditentukan',
+                'Kepala Tata Usaha' => 'Kepala Tata Usaha',
+                'Staf Tata Usaha' => 'Staf Tata Usaha',
+                'Operator Sekolah' => 'Operator Sekolah',
+                'Administrasi Siswa' => 'Administrasi Siswa',
+                'Bendahara' => 'Bendahara',
+                'Pustakawan' => 'Pustakawan',
+                'Laboran' => 'Laboran',
+                'Petugas Keamanan' => 'Petugas Keamanan',
+                'Petugas Kebersihan' => 'Petugas Kebersihan',
+            ],
         ]);
     }
 }
