@@ -1,4 +1,4 @@
-<header class="glass-header sticky top-0 z-40 flex items-center justify-between px-6" style="height:64px;gap:16px;">
+<header class="glass-header sticky top-0 z-[500] flex items-center justify-between px-6" style="height:64px;gap:16px;">
 
     {{-- Left: Toggle + Page Title --}}
     <div style="display:flex;align-items:center;gap:14px;">

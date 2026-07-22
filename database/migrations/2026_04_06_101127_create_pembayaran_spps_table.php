@@ -15,10 +15,13 @@ return new class extends Migration
             $table->id();
             $table->foreignId('siswa_id')->constrained('siswas')->cascadeOnDelete();
             $table->foreignId('spp_id')->constrained()->cascadeOnDelete();
-            $table->string('bulan');
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete(); // Log petugas TU
+            $table->smallInteger('tahun');                        // Tahun TAGIHAN (bukan tahun bayar)
+            $table->tinyInteger('bulan')->nullable();              // 1-12 (null = tagihan sekali bayar)
             $table->date('tanggal_bayar');
             $table->decimal('jumlah_bayar', 12, 2);
-            $table->enum('status', ['Lunas', 'Belum_Lunas', 'Menunggu_Konfirmasi'])->default('Belum_Lunas');
+            $table->decimal('potongan', 12, 2)->default(0);       // Diskon / Beasiswa
+            $table->enum('status', ['Lunas', 'Belum_Lunas', 'Menunggu_Konfirmasi'])->default('Lunas');
             $table->text('keterangan')->nullable();
             $table->timestamps();
         });

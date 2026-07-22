@@ -17,7 +17,9 @@ return new class extends Migration
             $table->foreignId('mapel_id')->constrained()->cascadeOnDelete();
             $table->foreignId('guru_id')->constrained()->cascadeOnDelete();
             $table->string('hari');
-            $table->string('jam_mulai');
+            $table->time('jam_mulai');   // Gunakan time untuk logika matematika
+            $table->time('jam_selesai'); // Tambahkan ini
+            $table->softDeletes();
             $table->timestamps();
         });
     }

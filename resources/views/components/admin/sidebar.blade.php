@@ -1,4 +1,4 @@
-<aside id="sidebar" class="glass-sidebar h-full flex flex-col z-50 absolute lg:relative overflow-y-auto"
+<aside id="sidebar" class="glass-sidebar h-full flex flex-col z-[1100] absolute lg:relative overflow-y-auto"
     x-bind:class="{ 'collapsed': !$store.sidebar.open }" style="flex-shrink:0;">
 
     {{-- Logo --}}
@@ -45,14 +45,33 @@
         @endhasrole
 
         @hasrole('admin')
+        <p class="txt-muted px-3 pt-4 pb-1"
+            style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
+            PPDB</p>
+        <a href="{{ route('admin.ppdb.pendaftaran-murid-baru') }}" wire:navigate
+            class="nav-item {{ request()->routeIs('admin.ppdb.pendaftaran-murid-baru*') ? 'active' : '' }}">
+            <span class="nav-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.5L19 8.5V19a2 2 0 01-2 2z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 3v6h6" />
+                </svg></span>
+            Pendaftaran Murid Baru
+        </a>
+        @endhasrole
+
+        @hasrole('admin')
         {{-- ── Data Master ── --}}
         <p class="txt-muted px-3 pt-4 pb-1"
             style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
             Data Master</p>
 
-        <div x-data="{ open: {{ request()->routeIs('admin.data-master.*') ? 'true' : 'false' }} }">
+        <div x-data="{ 
+            open: false, 
+            check() { this.open = this.$el.querySelector('.active') !== null; } 
+        }" x-init="check()" x-on:livewire:navigated.window="setTimeout(() => check(), 50)">
             <button @click="open = !open"
-                class="nav-item w-full {{ request()->routeIs('admin.data-master.*') ? 'active' : '' }}"
+                class="nav-item w-full" :class="{ 'active': open }"
                 style="justify-content:space-between;">
                 <div style="display:flex;align-items:center;gap:10px;">
                     <span class="nav-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,17 +87,21 @@
             </button>
             <div class="submenu" :class="{ 'open': open }">
                 <a href="{{ route('admin.data-master.tahun-ajaran') }}" wire:navigate
-                    class="sub-item {{ request()->routeIs('admin.data-master.tahun-ajaran') ? 'active' : '' }}"><span
+                    class="sub-item {{ request()->routeIs('admin.data-master.tahun-ajaran*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Tahun
                     Ajaran & Semester</a>
                 <a href="{{ route('admin.data-master.mata-pelajaran') }}" wire:navigate
-                    class="sub-item {{ request()->routeIs('admin.data-master.mata-pelajaran') ? 'active' : '' }}"><span
+                    class="sub-item {{ request()->routeIs('admin.data-master.mata-pelajaran*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Mata
                     Pelajaran</a>
                 <a href="{{ route('admin.data-master.data-kelas') }}" wire:navigate
-                    class="sub-item {{ request()->routeIs('admin.data-master.data-kelas') ? 'active' : '' }}"><span
+                    class="sub-item {{ request()->routeIs('admin.data-master.data-kelas*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Data
                     Kelas</a>
+                <a href="{{ route('admin.data-master.jurusan') }}" wire:navigate
+                    class="sub-item {{ request()->routeIs('admin.data-master.jurusan*') ? 'active' : '' }}"><span
+                        style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Master
+                    Jurusan SMK</a>
             </div>
         </div>
         @endhasrole
@@ -89,8 +112,11 @@
             style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
             Civitas Akademik</p>
 
-        <div x-data="{ open: {{ request()->routeIs('admin.civitas.*') ? 'true' : 'false' }} }">
-            <button @click="open = !open" class="nav-item w-full {{ request()->routeIs('admin.civitas.*') ? 'active' : '' }}" style="justify-content:space-between;">
+        <div x-data="{ 
+            open: false, 
+            check() { this.open = this.$el.querySelector('.active') !== null; } 
+        }" x-init="check()" x-on:livewire:navigated.window="setTimeout(() => check(), 50)">
+            <button @click="open = !open" class="nav-item w-full" :class="{ 'active': open }" style="justify-content:space-between;">
                 <div style="display:flex;align-items:center;gap:10px;">
                     <span class="nav-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -104,13 +130,13 @@
                 </svg>
             </button>
             <div class="submenu" :class="{ 'open': open }">
-                <a href="{{ route('admin.civitas.data-siswa') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.civitas.data-siswa') ? 'active' : '' }}"><span
+                <a href="{{ route('admin.civitas.data-siswa') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.civitas.data-siswa*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Data
                     Siswa</a>
-                <a href="{{ route('admin.civitas.data-guru') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.civitas.data-guru') ? 'active' : '' }}"><span
+                <a href="{{ route('admin.civitas.data-guru') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.civitas.data-guru*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Data
                     Guru</a>
-                <a href="{{ route('admin.civitas.data-pengguna') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.civitas.data-pengguna') ? 'active' : '' }}"><span
+                <a href="{{ route('admin.civitas.data-pengguna') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.civitas.data-pengguna*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Data
                     Pengguna</a>
             </div>
@@ -123,8 +149,11 @@
             style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
             KBM & Laporan</p>
 
-        <div x-data="{ open: {{ request()->routeIs('admin.kbm.*') ? 'true' : 'false' }} }">
-            <button @click="open = !open" class="nav-item w-full {{ request()->routeIs('admin.kbm.*') ? 'active' : '' }}" style="justify-content:space-between;">
+        <div x-data="{ 
+            open: false, 
+            check() { this.open = this.$el.querySelector('.active') !== null; } 
+        }" x-init="check()" x-on:livewire:navigated.window="setTimeout(() => check(), 50)">
+            <button @click="open = !open" class="nav-item w-full" :class="{ 'active': open }" style="justify-content:space-between;">
                 <div style="display:flex;align-items:center;gap:10px;">
                     <span class="nav-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -138,17 +167,19 @@
                 </svg>
             </button>
             <div class="submenu" :class="{ 'open': open }">
-                <a href="{{ route('admin.kbm.jadwal-pelajaran') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.kbm.jadwal-pelajaran') ? 'active' : '' }}"><span
+                <a href="{{ route('admin.kbm.jadwal-pelajaran') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.kbm.jadwal-pelajaran*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Jadwal
                     Pelajaran</a>
-                <a href="{{ route('admin.kbm.rekap-absensi') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.kbm.rekap-absensi') ? 'active' : '' }}"><span
+                <a href="{{ route('admin.kbm.rekap-absensi') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.kbm.rekap-absensi*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Rekap
                     Absensi</a>
-                <a href="{{ route('admin.kbm.manajemen-nilai') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.kbm.manajemen-nilai') ? 'active' : '' }}"><span
+                <a href="{{ route('admin.kbm.manajemen-nilai') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.kbm.manajemen-nilai*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Manajemen
                     Nilai</a>
-                <a href="{{ route('admin.kbm.e-rapor') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.kbm.e-rapor') ? 'active' : '' }}"><span
+                <a href="{{ route('admin.kbm.e-rapor') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.kbm.e-rapor*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>e-Rapor</a>
+                <a href="{{ route('admin.kbm.kalender-akademik') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.kbm.kalender-akademik*') ? 'active' : '' }}"><span
+                        style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Kalender Akademik</a>
             </div>
         </div>
         @endhasrole
@@ -159,8 +190,11 @@
             style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
             Keuangan</p>
 
-        <div x-data="{ open: {{ request()->routeIs('admin.keuangan.*') ? 'true' : 'false' }} }">
-            <button @click="open = !open" class="nav-item w-full {{ request()->routeIs('admin.keuangan.*') ? 'active' : '' }}" style="justify-content:space-between;">
+        <div x-data="{ 
+            open: false, 
+            check() { this.open = this.$el.querySelector('.active') !== null; } 
+        }" x-init="check()" x-on:livewire:navigated.window="setTimeout(() => check(), 50)">
+            <button @click="open = !open" class="nav-item w-full" :class="{ 'active': open }" style="justify-content:space-between;">
                 <div style="display:flex;align-items:center;gap:10px;">
                     <span class="nav-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -174,14 +208,31 @@
                 </svg>
             </button>
             <div class="submenu" :class="{ 'open': open }">
-                <a href="{{ route('admin.keuangan.master-spp') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.keuangan.master-spp') ? 'active' : '' }}"><span
+                <a href="{{ route('admin.keuangan.master-spp') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.keuangan.master-spp*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Master
                     Data SPP</a>
-                <a href="{{ route('admin.keuangan.transaksi-pembayaran') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.keuangan.transaksi-pembayaran') ? 'active' : '' }}"><span
+                <a href="{{ route('admin.keuangan.transaksi-pembayaran') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.keuangan.transaksi-pembayaran*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Transaksi
                     Pembayaran</a>
+                <a href="{{ route('admin.keuangan.laporan-keuangan') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.keuangan.laporan-keuangan*') ? 'active' : '' }}"><span
+                        style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Laporan
+                    Keuangan</a>
             </div>
         </div>
+        @endhasrole
+
+        @hasrole('admin')
+        {{-- ── Sarana & Prasarana ── --}}
+        <p class="txt-muted px-3 pt-4 pb-1"
+            style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
+            Sarana & Prasarana</p>
+        <a href="{{ route('admin.fasilitas') }}" wire:navigate class="nav-item {{ request()->routeIs('admin.fasilitas*') ? 'active' : '' }}">
+            <span class="nav-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg></span>
+            Fasilitas Sekolah
+        </a>
         @endhasrole
 
         @hasrole('admin')
@@ -189,7 +240,7 @@
         <p class="txt-muted px-3 pt-4 pb-1"
             style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
             Kelulusan & Alumni</p>
-        <a href="{{ route('admin.alumni.jejak-alumni') }}" wire:navigate class="nav-item {{ request()->routeIs('admin.alumni.jejak-alumni') ? 'active' : '' }}">
+        <a href="{{ route('admin.alumni.jejak-alumni') }}" wire:navigate class="nav-item {{ request()->routeIs('admin.alumni.jejak-alumni*') ? 'active' : '' }}">
             <span class="nav-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
@@ -199,13 +250,32 @@
         @endhasrole
 
         @hasrole('admin|guru')
+        {{-- Blog --}}
+        <p class="txt-muted px-3 pt-4 pb-1"
+            style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
+            Blog</p>
+        <a href="{{ route('admin.website.blog-artikel') }}" wire:navigate class="nav-item {{ request()->routeIs('admin.website.blog-artikel*') ? 'active' : '' }}">
+            <span class="nav-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h9l5 5v9a2 2 0 01-2 2z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M14 4v5h5M8 13h8M8 17h5" />
+                </svg></span>
+            Artikel, Tag & Komentar
+        </a>
+        @endhasrole
+
+        @hasrole('admin|guru')
         {{-- ── Website ── --}}
         <p class="txt-muted px-3 pt-4 pb-1"
             style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
             Pengaturan Website</p>
 
-        <div x-data="{ open: {{ request()->routeIs('admin.website.*') ? 'true' : 'false' }} }">
-            <button @click="open = !open" class="nav-item w-full {{ request()->routeIs('admin.website.*') ? 'active' : '' }}" style="justify-content:space-between;">
+        <div x-data="{ 
+            open: false, 
+            check() { this.open = this.$el.querySelector('.active') !== null; } 
+        }" x-init="check()" x-on:livewire:navigated.window="setTimeout(() => check(), 50)">
+            <button @click="open = !open" class="nav-item w-full" :class="{ 'active': open }" style="justify-content:space-between;">
                 <div style="display:flex;align-items:center;gap:10px;">
                     <span class="nav-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -219,14 +289,17 @@
                 </svg>
             </button>
             <div class="submenu" :class="{ 'open': open }">
-                <a href="{{ route('admin.website.blog-artikel') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.blog-artikel') ? 'active' : '' }}"><span
-                        style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Blog
-                    / Artikel</a>
                 @hasrole('admin')
-                <a href="{{ route('admin.website.galeri-slider') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.galeri-slider') ? 'active' : '' }}"><span
+                <a href="{{ route('admin.website.galeri-slider') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.galeri-slider*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Galeri
                     & Slider</a>
-                <a href="{{ route('admin.website.pengaturan-umum') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.pengaturan-umum') ? 'active' : '' }}"><span
+                <a href="{{ route('admin.website.visi-misi') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.visi-misi*') ? 'active' : '' }}"><span
+                        style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Visi, Misi & Sambutan</a>
+                <a href="{{ route('admin.website.struktur-organisasi') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.struktur-organisasi*') ? 'active' : '' }}"><span
+                        style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Struktur Organisasi</a>
+                <a href="{{ route('admin.website.pengunjung') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.pengunjung*') ? 'active' : '' }}"><span
+                        style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Pengunjung Website</a>
+                <a href="{{ route('admin.website.pengaturan-umum') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.pengaturan-umum*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Pengaturan
                     Umum</a>
                 @endhasrole

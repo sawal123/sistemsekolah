@@ -24,6 +24,7 @@ class RoleAndUserSeeder extends Seeder
             'name' => 'Super Administrator',
             'email' => 'admin@sekolah.com',
             'password' => Hash::make('password'), // Password default: password
+            'staff_position' => 'Kepala Tata Usaha',
         ]);
         $admin->assignRole($roleAdmin); // Jadikan dia Admin
 

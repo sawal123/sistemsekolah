@@ -38,7 +38,7 @@ class MapelImport implements ToModel, WithHeadingRow, WithUpserts, WithValidatio
             'kode_mapel' => 'required|string',
             'nama_mata_pelajaran' => 'required|string',
             'kelompok' => 'nullable|in:Nasional,Kewilayahan,Peminatan,Mulok',
-            'jenjang' => 'nullable|in:SMP,SMA,Umum',
+            'jenjang' => 'nullable|in:SMP,SMA,SMK,Umum',
         ];
     }
 }
