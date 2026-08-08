@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Rapor;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
-use App\Models\Mapel;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -24,10 +23,21 @@ class PdfCetakController extends Controller
         
         $rapor = Rapor::where('siswa_id', $siswa_id)
             ->where('tahun_ajaran_id', $taId)
+            ->with('kelas.wali_kelas.user')
             ->first();
+
+        $kelasRapor = $rapor?->kelas ?? $siswa->kelasPadaTahunAjaran($taId) ?? $siswa->kelas;
+        if ($kelasRapor) {
+            $kelasRapor->loadMissing('wali_kelas.user');
+            $siswa->setRelation('kelas', $kelasRapor);
+        }
 
         // Load Nilai dari Siswa
         $nilais = $siswa->nilais()->with('mapel')->where('tahun_ajaran_id', $taId)->get();
+        $siswa->setRelation('nilais', $nilais);
+        if ($rapor) {
+            $rapor->setRelation('siswa', $siswa);
+        }
 
         // Pengelompokan Data Mapel jika ada kategori, namun default kita lemparkan flat
         $kkmDefault = 75; // Diambil dari rata-rata kkm jika nihil
@@ -40,8 +50,9 @@ class PdfCetakController extends Controller
         // Peringkat Kolektif
         $peringkat = '-';
         if ($rapor && $rapor->rata_rata_nilai > 0) {
-            $semuaRapor = Rapor::where('kelas_id', $siswa->kelas_id)
+            $semuaRapor = Rapor::where('kelas_id', $rapor->kelas_id)
                 ->where('tahun_ajaran_id', $taId)
+                ->with(['siswa.nilais' => fn ($query) => $query->where('tahun_ajaran_id', $taId)])
                 ->get();
             
             $rankings = [];
@@ -74,8 +85,9 @@ class PdfCetakController extends Controller
     public function cetakTemplateAbsen($kelasId, $bulan, $tahun)
     {
         $kelas = \App\Models\Kelas::with('wali_kelas.user')->findOrFail($kelasId);
+        $tahunAjaranId = TahunAjaran::forDate(\Carbon\Carbon::createFromDate($tahun, $bulan, 1))?->id;
         $siswas = \App\Models\Siswa::with('user')
-            ->where('kelas_id', $kelasId)
+            ->inKelasPadaTahunAjaran($kelasId, $tahunAjaranId)
             ->get()
             ->sortBy('user.name')
             ->values();

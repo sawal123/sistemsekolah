@@ -10,6 +10,7 @@ use App\Models\Jurusan;
 use App\Models\KalenderAkademik;
 use App\Models\Kategori;
 use App\Models\Kelas;
+use App\Models\KelasSiswa;
 use App\Models\Mapel;
 use App\Models\Nilai;
 use App\Models\PembayaranSpp;
@@ -171,7 +172,7 @@ class DummyDataSeeder extends Seeder
                 ]);
                 $user->assignRole('siswa');
 
-                $siswas[] = Siswa::create([
+                $siswa = Siswa::create([
                     'user_id' => $user->id,
                     'kelas_id' => $kelasId,
                     'nisn' => $faker->unique()->numerify('00########'),
@@ -186,6 +187,14 @@ class DummyDataSeeder extends Seeder
                     'nama_ayah' => $faker->name('male'),
                     'nama_ibu' => $faker->name('female'),
                     'no_telp_ortu' => $faker->phoneNumber,
+                    'status' => 'Aktif',
+                ]);
+                $siswas[] = $siswa;
+
+                KelasSiswa::create([
+                    'siswa_id' => $siswa->id,
+                    'kelas_id' => $kelasId,
+                    'tahun_ajaran_id' => $ta->id,
                     'status' => 'Aktif',
                 ]);
 
@@ -214,6 +223,7 @@ class DummyDataSeeder extends Seeder
             for ($j = 0; $j < 2; $j++) {
                 $jadwals[] = Jadwal::create([
                     'kelas_id' => $k_id,
+                    'tahun_ajaran_id' => $ta->id,
                     'mapel_id' => $faker->randomElement($mapelIds),
                     // Pastikan beda guru untuk setiap kelas biar gampang tidak bentrok guru
                     'guru_id' => $gurus[($idxKelas + $j) % count($gurus)]->id,

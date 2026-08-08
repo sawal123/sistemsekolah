@@ -13,6 +13,11 @@ class Jadwal extends Model
         return $this->belongsTo(Kelas::class)->withTrashed();
     }
 
+    public function tahunAjaran()
+    {
+        return $this->belongsTo(TahunAjaran::class);
+    }
+
     public function mapel()
     {
         return $this->belongsTo(Mapel::class);

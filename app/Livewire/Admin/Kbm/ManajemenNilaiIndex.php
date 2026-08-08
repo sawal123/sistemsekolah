@@ -58,7 +58,9 @@ class ManajemenNilaiIndex extends Component
 
         // Set default filter if Guru dan URL kosong
         if(auth()->user()->hasRole('guru') && auth()->user()->guru) {
-            $j = Jadwal::where('guru_id', auth()->user()->guru->id)->first();
+            $j = Jadwal::where('guru_id', auth()->user()->guru->id)
+                ->when($this->filterTahunAjaran, fn ($q) => $q->where('tahun_ajaran_id', $this->filterTahunAjaran))
+                ->first();
             if ($j && !$this->filterKelas && !$this->filterMapel) {
                 $this->filterKelas = $j->kelas_id;
                 $this->filterMapel = $j->mapel_id;
@@ -81,6 +83,11 @@ class ManajemenNilaiIndex extends Component
     public function updatedFilterKelas()
     {
         $this->filterMapel = '';
+        $this->loadData();
+    }
+
+    public function updatedFilterTahunAjaran()
+    {
         $this->loadData();
     }
 
@@ -120,7 +127,7 @@ class ManajemenNilaiIndex extends Component
         $this->n_remedial = [];
 
         if ($this->filterKelas && $this->filterMapel && $this->filterTahunAjaran) {
-            $siswas = Siswa::where('kelas_id', $this->filterKelas)->pluck('id');
+            $siswas = Siswa::inKelasPadaTahunAjaran($this->filterKelas, $this->filterTahunAjaran)->pluck('id');
             $nilais = Nilai::where('mapel_id', $this->filterMapel)
                            ->where('tahun_ajaran_id', $this->filterTahunAjaran)
                            ->whereIn('siswa_id', $siswas)
@@ -216,7 +223,7 @@ class ManajemenNilaiIndex extends Component
         ]);
         
         \Maatwebsite\Excel\Facades\Excel::import(
-            new \App\Imports\FormatNilaiImport($this->filterMapel, $this->filterTahunAjaran), 
+            new \App\Imports\FormatNilaiImport($this->filterMapel, $this->filterTahunAjaran, $this->filterKelas),
             $this->fileExcel->getRealPath()
         );
         
@@ -233,7 +240,10 @@ class ManajemenNilaiIndex extends Component
         
         // Authorization Logic
         if ($user->hasRole('guru') && $user->guru) {
-            $jadwals = Jadwal::where('guru_id', $user->guru->id)->with(['kelas', 'mapel'])->get();
+            $jadwals = Jadwal::where('guru_id', $user->guru->id)
+                ->when($this->filterTahunAjaran, fn ($q) => $q->where('tahun_ajaran_id', $this->filterTahunAjaran))
+                ->with(['kelas', 'mapel'])
+                ->get();
             $listKelas = $jadwals->pluck('kelas')->unique('id');
             // Menampilkan mapel yang diajar oleh guru TSB di KELAS tsb.
             $listMapel = $jadwals->where('kelas_id', $this->filterKelas)->pluck('mapel')->unique('id');
@@ -249,7 +259,8 @@ class ManajemenNilaiIndex extends Component
         $mapelSetting = null;
 
         if ($this->filterKelas) {
-            $siswas = Siswa::with('user')->where('kelas_id', $this->filterKelas)
+            $siswas = Siswa::with('user')
+                           ->inKelasPadaTahunAjaran($this->filterKelas, $this->filterTahunAjaran)
                            ->get()
                            ->sortBy('user.name')
                            ->values(); // Reset array index to 0, 1, 2...

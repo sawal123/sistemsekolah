@@ -5,7 +5,9 @@ namespace App\Livewire\Admin\DataMaster;
 use App\Models\Guru;
 use App\Models\Jurusan;
 use App\Models\Kelas;
+use App\Models\KelasSiswa;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -176,6 +178,13 @@ class DataKelasIndex extends Component
     {
         $siswa = Siswa::findOrFail($siswaId);
         $siswa->update(['kelas_id' => null]);
+        $tahunAjaranAktif = TahunAjaran::where('is_active', true)->first();
+
+        if ($tahunAjaranAktif) {
+            KelasSiswa::where('siswa_id', $siswa->id)
+                ->where('tahun_ajaran_id', $tahunAjaranAktif->id)
+                ->delete();
+        }
 
         // Refresh selected kelas students
         if ($this->selectedKelas) {

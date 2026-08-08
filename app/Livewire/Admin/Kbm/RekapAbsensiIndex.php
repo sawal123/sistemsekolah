@@ -10,6 +10,7 @@ use App\Models\Kelas;
 use App\Models\Siswa;
 use App\Models\Absensi;
 use App\Models\KalenderAkademik;
+use App\Models\TahunAjaran;
 use Carbon\Carbon;
 use Livewire\WithFileUploads;
 use App\Services\GeminiAiScanner;
@@ -57,10 +58,10 @@ class RekapAbsensiIndex extends Component
         if ($this->filterKelas && $this->filterBulan && $this->filterTahun) {
             $startDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1)->startOfMonth();
             $endDate = $startDate->copy()->endOfMonth();
+            $tahunAjaranId = TahunAjaran::forDate($startDate)?->id;
+            $siswaIds = Siswa::inKelasPadaTahunAjaran($this->filterKelas, $tahunAjaranId)->pluck('id');
 
-            $absensis = Absensi::whereHas('siswa', function($q) {
-                $q->where('kelas_id', $this->filterKelas);
-            })
+            $absensis = Absensi::whereIn('siswa_id', $siswaIds)
             ->whereBetween('tanggal', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
             ->get();
 
@@ -155,7 +156,12 @@ class RekapAbsensiIndex extends Component
             $base64Image = base64_encode($imageData);
 
             // 1. Ekstrak Daftar Siswa target
-            $siswas = Siswa::with('user')->where('kelas_id', $this->filterKelas)->get()->sortBy('user.name')->values();
+            $tahunAjaranId = TahunAjaran::forDate(Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1))?->id;
+            $siswas = Siswa::with('user')
+                ->inKelasPadaTahunAjaran($this->filterKelas, $tahunAjaranId)
+                ->get()
+                ->sortBy('user.name')
+                ->values();
             $daftarSiswaTarget = [];
             foreach ($siswas as $idx => $s) {
                 // Memberitahu AI struktur No.Urut => [ID, NAMA]
@@ -255,8 +261,9 @@ class RekapAbsensiIndex extends Component
         $hariEfektif = 0;
 
         if ($this->filterKelas && $this->filterBulan && $this->filterTahun) {
+            $tahunAjaranId = TahunAjaran::forDate(Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1))?->id;
             $siswas = Siswa::with('user')
-                ->where('kelas_id', $this->filterKelas)
+                ->inKelasPadaTahunAjaran($this->filterKelas, $tahunAjaranId)
                 ->get()
                 ->sortBy('user.name')
                 ->values();

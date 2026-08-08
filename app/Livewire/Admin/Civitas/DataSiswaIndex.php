@@ -3,8 +3,10 @@
 namespace App\Livewire\Admin\Civitas;
 
 use App\Models\Kelas;
+use App\Models\KelasSiswa;
 use App\Models\Setting;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -247,7 +249,25 @@ class DataSiswaIndex extends Component
             }
         }
 
-        Siswa::updateOrCreate(['id' => $this->editId], $siswaData);
+        $siswa = Siswa::updateOrCreate(['id' => $this->editId], $siswaData);
+        $tahunAjaranAktif = TahunAjaran::where('is_active', true)->first();
+
+        if ($tahunAjaranAktif) {
+            KelasSiswa::updateOrCreate(
+                [
+                    'siswa_id' => $siswa->id,
+                    'tahun_ajaran_id' => $tahunAjaranAktif->id,
+                ],
+                [
+                    'kelas_id' => $this->kelas_id,
+                    'status' => $this->status,
+                    'tanggal_mulai' => now()->toDateString(),
+                    'tanggal_selesai' => in_array($this->status, ['Lulus', 'Pindah', 'Dikeluarkan'], true)
+                        ? now()->toDateString()
+                        : null,
+                ]
+            );
+        }
 
         $this->dispatch('notify', [
             'type' => 'success',

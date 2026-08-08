@@ -193,12 +193,12 @@ class ERaporIndex extends Component
         $raporsMap = collect();
         $rankings = [];
 
-        if ($this->filterKelas) {
+        if ($this->filterKelas && $this->filterTahunAjaran) {
             // Eager load nilais to avoid N+1 inside Rapor getRataRataNilaiAttribute
             $taId = $this->filterTahunAjaran;
             $siswas = Siswa::with(['user', 'nilais' => function($q) use ($taId) {
                 $q->where('tahun_ajaran_id', $taId);
-            }])->where('kelas_id', $this->filterKelas)
+            }])->inKelasPadaTahunAjaran($this->filterKelas, $this->filterTahunAjaran)
                 ->get()
                 ->sortBy('user.name')
                 ->values();
