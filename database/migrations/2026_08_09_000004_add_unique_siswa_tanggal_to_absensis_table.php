@@ -10,14 +10,20 @@ return new class extends Migration
     public function up(): void
     {
         // Hapus duplikat sebelum tambah unique constraint
-        // Pertahankan record dengan id terbesar untuk setiap (siswa_id, tanggal)
-        DB::statement('
-            DELETE a1 FROM absensis a1
-            INNER JOIN absensis a2
-            WHERE a1.id < a2.id
-              AND a1.siswa_id = a2.siswa_id
-              AND a1.tanggal = a2.tanggal
-        ');
+        // Gunakan query portable (kompatibel dengan MySQL & SQLite)
+        $duplicates = DB::table('absensis')
+            ->select('siswa_id', 'tanggal', DB::raw('MAX(id) as keep_id'))
+            ->groupBy('siswa_id', 'tanggal')
+            ->havingRaw('COUNT(*) > 1')
+            ->get();
+
+        foreach ($duplicates as $dup) {
+            DB::table('absensis')
+                ->where('siswa_id', $dup->siswa_id)
+                ->where('tanggal', $dup->tanggal)
+                ->where('id', '!=', $dup->keep_id)
+                ->delete();
+        }
 
         Schema::table('absensis', function (Blueprint $table) {
             $table->unique(['siswa_id', 'tanggal'], 'absensis_siswa_tanggal_unique');

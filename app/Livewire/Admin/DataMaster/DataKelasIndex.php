@@ -178,14 +178,18 @@ class DataKelasIndex extends Component
             if ($kelas->siswas->isNotEmpty()) {
                 Siswa::where('kelas_id', $kelas->id)->update(['kelas_id' => null]);
 
-                // 2. Hapus keanggotaan siswa dari rombel aktif tahun ajaran ini
+                // 2. Tutup keanggotaan siswa dari rombel aktif (jangan delete — pertahankan histori)
                 if ($tahunAjaranAktif) {
                     $rombelIds = Rombel::where('kelas_id', $kelas->id)
                         ->where('tahun_ajaran_id', $tahunAjaranAktif->id)
                         ->pluck('id');
 
                     if ($rombelIds->isNotEmpty()) {
-                        AnggotaRombel::whereIn('rombel_id', $rombelIds)->delete();
+                        AnggotaRombel::whereIn('rombel_id', $rombelIds)
+                            ->update([
+                                'status' => 'Pindah',
+                                'tanggal_keluar' => now()->toDateString(),
+                            ]);
                     }
                 }
             }
@@ -225,8 +229,11 @@ class DataKelasIndex extends Component
 
         if ($tahunAjaranAktif) {
             AnggotaRombel::where('siswa_id', $siswa->id)
-                ->whereHas('rombel', fn($q) => $q->where('tahun_ajaran_id', $tahunAjaranAktif->id))
-                ->delete();
+                ->whereHas('rombel', fn ($q) => $q->where('tahun_ajaran_id', $tahunAjaranAktif->id))
+                ->update([
+                    'status' => 'Pindah',
+                    'tanggal_keluar' => now()->toDateString(),
+                ]);
         }
 
         // Refresh selected kelas students

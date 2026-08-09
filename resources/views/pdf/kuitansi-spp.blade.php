@@ -248,7 +248,7 @@
 </head>
 <body>
 
-@foreach($pembayarans->groupBy(fn($p) => $p->siswa_id . '_' . $p->tahun) as $groupKey => $group)
+@foreach($pembayarans->groupBy(fn($p) => $p->tagihan?->siswa_id . '_' . $p->tagihan?->tahun) as $groupKey => $group)
 @php
     $bulanNamesArr = [
         1=>'Januari', 2=>'Februari', 3=>'Maret', 4=>'April',
@@ -256,8 +256,9 @@
         9=>'September', 10=>'Oktober', 11=>'November', 12=>'Desember',
     ];
     $firstItem  = $group->first();
-    $siswa      = $firstItem->siswa;
-    $totalNetto = $group->sum('netto_bayar');
+    $tagihan    = $firstItem->tagihan;
+    $siswa      = $tagihan?->siswa;
+    $totalNominal = $group->sum('nominal');
     $isLast     = $loop->last;
     $tglBayarStr = $firstItem->tanggal_bayar
         ? $firstItem->tanggal_bayar->format('d') . ' ' .
@@ -321,7 +322,7 @@
         <div class="info-row">
             <span class="info-label">Tahun Tagihan</span>
             <span class="info-sep">:</span>
-            <span class="info-value">{{ $firstItem->tahun }}</span>
+            <span class="info-value">{{ $tagihan?->tahun ?? '-' }}</span>
         </div>
         <div class="info-row">
             <span class="info-label">Tanggal Bayar</span>
@@ -345,23 +346,20 @@
         <tbody>
             @foreach($group as $i => $p)
             @php
-                $keterangan = $p->bulan
-                    ? ($bulanNamesArr[$p->bulan] ?? '-') . ' ' . $p->tahun
+                $tg = $p->tagihan;
+                $keterangan = $tg?->bulan
+                    ? ($bulanNamesArr[$tg->bulan] ?? '-') . ' ' . $tg->tahun
                     : 'Sekali Bayar';
             @endphp
             <tr>
                 <td>{{ $i + 1 }}</td>
-                <td>{{ $p->spp?->kategori ?? '-' }}</td>
+                <td>{{ $tg?->spp?->kategori ?? $tg?->jenis_biaya ?? '-' }}</td>
                 <td>{{ $keterangan }}</td>
-                <td class="right">Rp {{ number_format($p->jumlah_bayar, 0, ',', '.') }}</td>
+                <td class="right">Rp {{ number_format($p->nominal, 0, ',', '.') }}</td>
                 <td class="right">
-                    @if($p->potongan > 0)
-                        Rp {{ number_format($p->potongan, 0, ',', '.') }}
-                    @else
-                        <span style="color:#94a3b8">—</span>
-                    @endif
+                    <span style="color:#94a3b8">—</span>
                 </td>
-                <td class="right">Rp {{ number_format($p->netto_bayar, 0, ',', '.') }}</td>
+                <td class="right">Rp {{ number_format($p->nominal, 0, ',', '.') }}</td>
             </tr>
             @endforeach
         </tbody>
@@ -370,7 +368,7 @@
     {{-- ── TOTAL ── --}}
     <div class="total-section">
         <span class="label">TOTAL YANG DITERIMA</span>
-        <span class="amount">Rp {{ number_format($totalNetto, 0, ',', '.') }}</span>
+        <span class="amount">Rp {{ number_format($totalNominal, 0, ',', '.') }}</span>
     </div>
 
     {{-- ── STEMPEL LUNAS ── --}}
@@ -386,7 +384,7 @@
         </div>
         <div class="sig-box">
             <div class="sig-title">Petugas Tata Usaha,</div>
-            <div class="sig-name">( {{ $firstItem->user?->name ?? $petugas }} )</div>
+            <div class="sig-name">( {{ $firstItem->petugas?->name ?? $petugas }} )</div>
         </div>
     </div>
 

@@ -1054,26 +1054,31 @@ class PendaftaranMuridBaruIndex extends Component
         $tahunAjaranAktif = TahunAjaran::where('is_active', true)->first();
 
         DB::transaction(function () use ($ppdb, $tahunAjaranAktif) {
-            // 1. Generate NIS jika belum ada
-            $nis = $ppdb->nisn;
-            if (! $nis) {
-                $lastNis = Siswa::whereNotNull('nis')
-                    ->where('nis', 'like', now()->format('Y') . '%')
-                    ->orderBy('nis', 'desc')
-                    ->value('nis');
-                $nis = $lastNis
-                    ? (string) ((int) $lastNis + 1)
-                    : now()->format('Y') . '001';
+            // 1. Generate NIS (selalu auto-generate, tidak dari NISN)
+            $lastNis = Siswa::whereNotNull('nis')
+                ->where('nis', 'like', now()->format('Y') . '%')
+                ->orderBy('nis', 'desc')
+                ->value('nis');
+            $nis = $lastNis
+                ? (string) ((int) $lastNis + 1)
+                : now()->format('Y') . '001';
+
+            // 2. Buat User — cegah hijack akun existing
+            $baseEmail = $ppdb->email ?: strtolower(Str::slug($ppdb->nama_lengkap, '')) . $nis . '@sekolah.sch.id';
+
+            // Jika email sudah dipakai oleh orang lain (bukan siswa ini), buat email unik
+            $existingUser = User::where('email', $baseEmail)->first();
+            if ($existingUser && ! Siswa::where('user_id', $existingUser->id)->exists()) {
+                // Email dipakai non-siswa (guru/admin) — buat email baru
+                $baseEmail = strtolower(Str::slug($ppdb->nama_lengkap, '')) . $nis . '@sekolah.sch.id';
             }
 
-            // 2. Buat User
-            $email = $ppdb->email ?: $nis . '@sekolah.sch.id';
             $password = $ppdb->tanggal_lahir
                 ? Carbon::parse($ppdb->tanggal_lahir)->format('dmY')
                 : 'siswa123';
 
             $user = User::firstOrCreate(
-                ['email' => $email],
+                ['email' => $baseEmail],
                 [
                     'name' => $ppdb->nama_lengkap,
                     'password' => Hash::make($password),
@@ -1084,18 +1089,23 @@ class PendaftaranMuridBaruIndex extends Component
                 $user->assignRole('siswa');
             }
 
-            // 3. Buat Siswa
+            // 3. Buat Siswa — NISN hanya diisi jika ada, JANGAN diisi dengan NIS
             $jenjang = $ppdb->jenjang_pilihan ?: 'SMP';
             $jurusanId = $ppdb->jurusan_id;
 
+            $siswaKey = $ppdb->nisn
+                ? ['nisn' => $ppdb->nisn]
+                : ['user_id' => $user->id];
+
             $siswa = Siswa::updateOrCreate(
-                ['nisn' => $ppdb->nisn ?: $nis],
+                $siswaKey,
                 [
                     'user_id' => $user->id,
+                    'nisn' => $ppdb->nisn ?: null, // NISN hanya diisi jika ada dari PPDB
                     'nis' => $nis,
                     'jenjang' => $jenjang,
                     'jurusan_id' => $jurusanId,
-                    'kelas_id' => null, // Akan diisi jika ada rombel tujuan
+                    'kelas_id' => null,
                     'tempat_lahir' => $ppdb->tempat_lahir,
                     'tanggal_lahir' => $ppdb->tanggal_lahir,
                     'agama' => $ppdb->agama,

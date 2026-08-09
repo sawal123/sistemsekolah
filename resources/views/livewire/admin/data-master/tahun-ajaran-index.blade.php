@@ -71,6 +71,20 @@
                                                     d="M5 13l4 4L19 7" />
                                             </svg>
                                         </button>
+                                        {{-- Kenaikan Kelas: hanya untuk tahun ajaran berbeda tahun --}}
+                                        @php
+                                            $taAktif = $tahunAjarans->firstWhere('is_active', true);
+                                            $bedaTahun = $taAktif && explode('/', $item->tahun)[0] !== explode('/', $taAktif->tahun)[0];
+                                        @endphp
+                                        @if ($bedaTahun && $item->status === 'Draft')
+                                            <button wire:click="previewKenaikanKelas({{ $item->id }})"
+                                                class="p-2 rounded-lg hover:bg-purple-500/10 text-purple-500 transition-all cursor-pointer"
+                                                title="Kenaikan Kelas">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                                </svg>
+                                            </button>
+                                        @endif
                                     @endif
 
                                     <button wire:click="edit({{ $item->id }})"
@@ -155,10 +169,7 @@
 
                 <div
                     class="flex items-center gap-3 bg-indigo-500/[0.03] dark:bg-indigo-500/5 p-4 rounded-xl border border-indigo-500/10 mb-8">
-                    <input wire:model="is_active" type="checkbox" id="is_active"
-                        class="w-5 h-5 rounded border-indigo-500/30 text-indigo-600 focus:ring-indigo-500 bg-white/50 dark:bg-white/10 cursor-pointer" />
-                    <x-ui.label for="is_active" value="Set sebagai semester aktif"
-                        class="cursor-pointer txt-primary" />
+                    <p class="text-xs txt-muted">Pilih <strong>Aktif</strong> pada dropdown Status di atas untuk menjadikan periode ini sebagai semester aktif. Periode lain akan otomatis dinonaktifkan.</p>
                 </div>
 
                 <div class="mt-8 flex justify-end gap-3 pt-4 border-t border-indigo-500/10">
@@ -194,6 +205,85 @@
             <div class="flex justify-end">
                 <x-ui.button wire:click="closeModal" variant="secondary">
                     Mengerti
+                </x-ui.button>
+            </div>
+        </div>
+    </x-ui.modal>
+
+    {{-- Salin Rombel Modal --}}
+    <x-ui.modal name="salin-rombel-modal" maxWidth="md">
+        <div class="py-2">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold txt-primary">Salin Rombel</h3>
+            </div>
+            <p class="text-sm txt-muted mb-6">{{ $salinRombelMessage }}</p>
+            <div class="flex justify-end gap-3">
+                <x-ui.button wire:click="tolakSalinRombel" variant="secondary">
+                    Nanti Saja
+                </x-ui.button>
+                <x-ui.button wire:click="salinRombelDariSemesterSebelumnya" variant="primary">
+                    Ya, Salin Rombel
+                </x-ui.button>
+            </div>
+        </div>
+    </x-ui.modal>
+
+    {{-- Kenaikan Kelas Modal --}}
+    <x-ui.modal name="kenaikan-kelas-modal" maxWidth="2xl">
+        <div class="py-2">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold txt-primary">Pratinjau Kenaikan Kelas</h3>
+                    <p class="text-xs txt-muted">Siswa akan dipindahkan ke kelas setingkat di atasnya. Kelas akhir akan berstatus Lulus.</p>
+                </div>
+            </div>
+
+            @if (!empty($kenaikanPreview))
+                <div class="overflow-x-auto max-h-96 mb-4">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-indigo-500/5">
+                            <tr>
+                                <th class="px-3 py-2 text-xs font-bold txt-muted">Kelas Asal</th>
+                                <th class="px-3 py-2 text-xs font-bold txt-muted text-center">→</th>
+                                <th class="px-3 py-2 text-xs font-bold txt-muted">Kelas Tujuan</th>
+                                <th class="px-3 py-2 text-xs font-bold txt-muted text-center">Siswa</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-indigo-500/10">
+                            @foreach ($kenaikanPreview as $row)
+                                <tr @class(['opacity-50' => $row['is_lulus']])>
+                                    <td class="px-3 py-2 font-semibold txt-primary">{{ $row['kelas_asal'] }}</td>
+                                    <td class="px-3 py-2 text-center txt-muted">→</td>
+                                    <td class="px-3 py-2 font-semibold txt-primary">
+                                        {{ $row['is_lulus'] ? '🎓 Lulus' : $row['kelas_tujuan'] }}
+                                    </td>
+                                    <td class="px-3 py-2 text-center txt-primary font-bold">{{ $row['jumlah_siswa'] }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <p class="text-sm txt-muted text-center py-8">Tidak ada data rombel untuk dipratinjau.</p>
+            @endif
+
+            <div class="flex justify-end gap-3 border-t border-indigo-500/10 pt-4">
+                <x-ui.button wire:click="batalKenaikanKelas" variant="secondary">
+                    Batal
+                </x-ui.button>
+                <x-ui.button wire:click="executeKenaikanKelas" variant="primary"
+                    {{ empty($kenaikanPreview) ? 'disabled' : '' }}>
+                    Jalankan Kenaikan Kelas
                 </x-ui.button>
             </div>
         </div>

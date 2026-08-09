@@ -2,7 +2,12 @@
 
 namespace App\Livewire\Admin\DataMaster;
 
+use App\Models\AnggotaRombel;
+use App\Models\Kelas;
+use App\Models\Rombel;
+use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -34,6 +39,19 @@ class TahunAjaranIndex extends Component
     public $idBeingDeleted = null;
 
     public $deleteErrorMessage = null;
+
+    // ── Kenaikan Kelas ───────────────────────────────────────
+    public bool $showKenaikanModal = false;
+
+    public ?int $targetTahunAjaranId = null;
+
+    public array $kenaikanPreview = [];
+
+    public bool $showSalinRombelModal = false;
+
+    public string $salinRombelMessage = '';
+
+    public ?int $salinTargetTahunAjaranId = null;
 
     public function render()
     {
@@ -92,11 +110,31 @@ class TahunAjaranIndex extends Component
     {
         $item = TahunAjaran::findOrFail($id);
 
-        // Disable others if setting this to active
         if (! $item->is_active) {
-            TahunAjaran::where('id', '!=', $id)->update(['is_active' => false]);
+            // Nonaktifkan periode lain: set status Ditutup + is_active false
+            TahunAjaran::where('id', '!=', $id)
+                ->where('is_active', true)
+                ->update(['is_active' => false, 'status' => 'Ditutup']);
+
             $item->update(['is_active' => true, 'status' => 'Aktif']);
-            $msg = 'Status Tahun Ajaran diaktifkan!';
+
+            // Cek tawarkan salin rombel
+            $semesterSebelumnya = $item->semester === 'Ganjil' ? 'Genap' : 'Ganjil';
+            $taSebelumnya = TahunAjaran::where('tahun', $item->tahun)
+                ->where('semester', $semesterSebelumnya)
+                ->first();
+            $hasRombelSebelumnya = $taSebelumnya && Rombel::where('tahun_ajaran_id', $taSebelumnya->id)->exists();
+            $hasRombelSendiri = Rombel::where('tahun_ajaran_id', $item->id)->exists();
+
+            if (! $hasRombelSendiri && $hasRombelSebelumnya) {
+                $this->salinTargetTahunAjaranId = $item->id;
+                $this->salinRombelMessage = "Semester {$item->semester} {$item->tahun} telah diaktifkan, tetapi belum memiliki data rombel. Salin rombel dari semester {$semesterSebelumnya}?";
+                $this->showSalinRombelModal = true;
+                $this->dispatch('open-modal', 'salin-rombel-modal');
+                $msg = 'Status Tahun Ajaran diaktifkan! Anda dapat menyalin rombel dari semester sebelumnya.';
+            } else {
+                $msg = 'Status Tahun Ajaran diaktifkan!';
+            }
         } else {
             $item->update([
                 'is_active' => false,
@@ -121,15 +159,17 @@ class TahunAjaranIndex extends Component
             'status' => 'required|in:Draft,Aktif,Ditutup,Diarsipkan',
         ]);
 
-        // Jika set Aktif, sinkronkan is_active
-        $isActive = $this->status === 'Aktif' || $this->is_active;
+        // status === 'Aktif' adalah satu-satunya sumber kebenaran untuk is_active
+        $isActive = $this->status === 'Aktif';
 
         if ($this->editId) {
             $item = TahunAjaran::findOrFail($this->editId);
 
-            // Cegah perubahan status dari Draft ke Aktif jika sudah ada yang aktif
             if ($isActive && ! $item->is_active) {
-                TahunAjaran::where('id', '!=', $item->id)->update(['is_active' => false]);
+                // Nonaktifkan periode lain: set status Ditutup + is_active false
+                TahunAjaran::where('id', '!=', $item->id)
+                    ->where('is_active', true)
+                    ->update(['is_active' => false, 'status' => 'Ditutup']);
             }
 
             $item->update([
@@ -140,13 +180,10 @@ class TahunAjaranIndex extends Component
                 'status' => $this->status,
                 'is_active' => $isActive,
             ]);
-
-            if ($isActive) {
-                TahunAjaran::where('id', '!=', $item->id)->update(['is_active' => false]);
-            }
         } else {
             if ($isActive) {
-                TahunAjaran::where('is_active', true)->update(['is_active' => false]);
+                TahunAjaran::where('is_active', true)
+                    ->update(['is_active' => false, 'status' => 'Ditutup']);
             }
 
             $item = TahunAjaran::create([
@@ -206,5 +243,255 @@ class TahunAjaranIndex extends Component
             'type' => 'success',
             'message' => 'Data berhasil dihapus.',
         ]);
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  Fitur: Salin Rombel dari Semester Sebelumnya
+    // ══════════════════════════════════════════════════════════
+
+    public function salinRombelDariSemesterSebelumnya(): void
+    {
+        if (! $this->salinTargetTahunAjaranId) {
+            return;
+        }
+
+        $targetTa = TahunAjaran::findOrFail($this->salinTargetTahunAjaranId);
+        $semesterSebelumnya = $targetTa->semester === 'Ganjil' ? 'Genap' : 'Ganjil';
+        $sourceTa = TahunAjaran::where('tahun', $targetTa->tahun)
+            ->where('semester', $semesterSebelumnya)
+            ->first();
+
+        if (! $sourceTa) {
+            $this->dispatch('notify', ['type' => 'error', 'message' => 'Tidak ditemukan semester sebelumnya.']);
+
+            return;
+        }
+
+        $rombelsSumber = Rombel::with(['anggotaRombels', 'kelas'])
+            ->where('tahun_ajaran_id', $sourceTa->id)
+            ->get();
+
+        if ($rombelsSumber->isEmpty()) {
+            $this->dispatch('notify', ['type' => 'warning', 'message' => 'Semester sebelumnya tidak memiliki data rombel.']);
+
+            return;
+        }
+
+        DB::transaction(function () use ($targetTa, $rombelsSumber) {
+            foreach ($rombelsSumber as $rombelLama) {
+                $rombelBaru = Rombel::firstOrCreate(
+                    [
+                        'kelas_id' => $rombelLama->kelas_id,
+                        'tahun_ajaran_id' => $targetTa->id,
+                    ],
+                    [
+                        'wali_kelas_id' => $rombelLama->wali_kelas_id,
+                        'kapasitas' => $rombelLama->kapasitas,
+                        'status' => 'Aktif',
+                    ]
+                );
+
+                // Salin anggota rombel (siswa yang masih aktif)
+                foreach ($rombelLama->anggotaRombels as $anggota) {
+                    AnggotaRombel::firstOrCreate(
+                        [
+                            'siswa_id' => $anggota->siswa_id,
+                            'rombel_id' => $rombelBaru->id,
+                        ],
+                        [
+                            'status' => 'Aktif',
+                            'tanggal_masuk' => now()->toDateString(),
+                            'tanggal_keluar' => null,
+                        ]
+                    );
+
+                    // Update kelas_id di tabel siswas untuk kelas aktif
+                    Siswa::where('id', $anggota->siswa_id)
+                        ->update(['kelas_id' => $rombelLama->kelas_id]);
+                }
+            }
+        });
+
+        $this->showSalinRombelModal = false;
+        $this->salinTargetTahunAjaranId = null;
+        $this->dispatch('close-modal', 'salin-rombel-modal');
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "{$rombelsSumber->count()} rombel berhasil disalin ke {$targetTa->semester} {$targetTa->tahun}.",
+        ]);
+    }
+
+    public function tolakSalinRombel(): void
+    {
+        $this->showSalinRombelModal = false;
+        $this->salinTargetTahunAjaranId = null;
+        $this->dispatch('close-modal', 'salin-rombel-modal');
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  Fitur: Kenaikan Kelas (untuk Tahun Ajaran Baru)
+    // ══════════════════════════════════════════════════════════
+
+    public function previewKenaikanKelas(int $targetTahunAjaranId): void
+    {
+        $targetTa = TahunAjaran::findOrFail($targetTahunAjaranId);
+        $this->targetTahunAjaranId = $targetTa->id;
+
+        // Cari tahun ajaran sebelumnya (aktif saat ini atau yang terakhir)
+        $taAktif = TahunAjaran::where('is_active', true)
+            ->where('id', '!=', $targetTa->id)
+            ->first();
+
+        if (! $taAktif) {
+            $this->dispatch('notify', ['type' => 'error', 'message' => 'Tidak ada tahun ajaran aktif sebagai sumber kenaikan.']);
+
+            return;
+        }
+
+        $rombelsAktif = Rombel::with(['kelas', 'anggotaRombels.siswa.user'])
+            ->where('tahun_ajaran_id', $taAktif->id)
+            ->get();
+
+        if ($rombelsAktif->isEmpty()) {
+            $this->dispatch('notify', ['type' => 'warning', 'message' => 'Tahun ajaran aktif tidak memiliki rombel.']);
+
+            return;
+        }
+
+        // Mapping kenaikan: VII→VIII, VIII→IX, IX→(Lulus), X→XI, XI→XII, XII→(Lulus)
+        $this->kenaikanPreview = [];
+        $semuaKelas = Kelas::orderBy('jenjang')->orderBy('nama_kelas')->get();
+
+        foreach ($rombelsAktif as $rombel) {
+            $kelasAsal = $rombel->kelas;
+            if (! $kelasAsal) {
+                continue;
+            }
+
+            // Tentukan kelas tujuan berdasarkan jenjang dan angka
+            $kelasTujuan = $this->cariKelasTujuan($kelasAsal, $semuaKelas);
+
+            $this->kenaikanPreview[] = [
+                'rombel_id' => $rombel->id,
+                'kelas_asal' => $kelasAsal->nama_kelas,
+                'jenjang' => $kelasAsal->jenjang,
+                'kelas_tujuan' => $kelasTujuan?->nama_kelas,
+                'kelas_tujuan_id' => $kelasTujuan?->id,
+                'is_lulus' => $kelasTujuan === null,
+                'jumlah_siswa' => $rombel->anggotaRombels->count(),
+                'siswa' => $rombel->anggotaRombels->map(fn ($a) => [
+                    'id' => $a->siswa_id,
+                    'nama' => $a->siswa?->user?->name ?? '-',
+                ]),
+            ];
+        }
+
+        $this->showKenaikanModal = true;
+        $this->dispatch('open-modal', 'kenaikan-kelas-modal');
+    }
+
+    public function executeKenaikanKelas(): void
+    {
+        if (! $this->targetTahunAjaranId || empty($this->kenaikanPreview)) {
+            return;
+        }
+
+        $targetTa = TahunAjaran::findOrFail($this->targetTahunAjaranId);
+
+        DB::transaction(function () use ($targetTa) {
+            foreach ($this->kenaikanPreview as $item) {
+                if ($item['is_lulus'] || ! $item['kelas_tujuan_id']) {
+                    // Siswa lulus — update status
+                    Siswa::whereIn('id', collect($item['siswa'])->pluck('id'))
+                        ->update(['status' => 'Lulus', 'tahun_lulus' => now()->year]);
+
+                    continue;
+                }
+
+                // Buat/temukan rombel tujuan
+                $rombelTujuan = Rombel::firstOrCreate(
+                    [
+                        'kelas_id' => $item['kelas_tujuan_id'],
+                        'tahun_ajaran_id' => $targetTa->id,
+                    ],
+                    [
+                        'status' => 'Aktif',
+                    ]
+                );
+
+                // Pindahkan siswa ke rombel baru
+                foreach ($item['siswa'] as $s) {
+                    AnggotaRombel::firstOrCreate(
+                        [
+                            'siswa_id' => $s['id'],
+                            'rombel_id' => $rombelTujuan->id,
+                        ],
+                        [
+                            'status' => 'Aktif',
+                            'tanggal_masuk' => now()->toDateString(),
+                            'tanggal_keluar' => null,
+                        ]
+                    );
+
+                    // Update kelas_id di siswas
+                    Siswa::where('id', $s['id'])->update([
+                        'kelas_id' => $item['kelas_tujuan_id'],
+                    ]);
+                }
+            }
+        });
+
+        // Aktifkan tahun ajaran target, nonaktifkan yang lain
+        TahunAjaran::where('id', '!=', $targetTa->id)
+            ->where('is_active', true)
+            ->update(['is_active' => false, 'status' => 'Ditutup']);
+        $targetTa->update(['is_active' => true, 'status' => 'Aktif']);
+
+        $this->showKenaikanModal = false;
+        $this->kenaikanPreview = [];
+        $this->targetTahunAjaranId = null;
+        $this->dispatch('close-modal', 'kenaikan-kelas-modal');
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => 'Kenaikan kelas berhasil! Tahun ajaran ' . $targetTa->tahun . ' ' . $targetTa->semester . ' telah diaktifkan.',
+        ]);
+    }
+
+    public function batalKenaikanKelas(): void
+    {
+        $this->showKenaikanModal = false;
+        $this->kenaikanPreview = [];
+        $this->targetTahunAjaranId = null;
+        $this->dispatch('close-modal', 'kenaikan-kelas-modal');
+    }
+
+    /**
+     * Cari kelas tujuan kenaikan berdasarkan kelas asal.
+     * SMP: VII→VIII, VIII→IX, IX→null (lulus)
+     * SMA/SMK: X→XI, XI→XII, XII→null (lulus)
+     */
+    private function cariKelasTujuan(Kelas $kelasAsal, $semuaKelas): ?Kelas
+    {
+        $nama = $kelasAsal->nama_kelas;
+        $jenjang = $kelasAsal->jenjang;
+
+        if ($jenjang === 'SMP') {
+            $map = ['7' => '8', '8' => '9', '9' => null, 'VII' => 'VIII', 'VIII' => 'IX', 'IX' => null];
+        } else {
+            $map = ['10' => '11', '11' => '12', '12' => null, 'X' => 'XI', 'XI' => 'XII', 'XII' => null];
+        }
+
+        foreach ($map as $dari => $ke) {
+            if ($ke === null) {
+                continue;
+            }
+            if (stripos($nama, (string) $dari) !== false) {
+                $namaTujuan = str_ireplace((string) $dari, (string) $ke, $nama);
+
+                return $semuaKelas->firstWhere('nama_kelas', $namaTujuan);
+            }
+        }
+
+        return null;
     }
 }

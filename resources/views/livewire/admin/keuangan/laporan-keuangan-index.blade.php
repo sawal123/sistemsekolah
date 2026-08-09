@@ -196,30 +196,26 @@ foreach ($kelass as $kelas) {
                                         <p class="text-sm font-semibold txt-primary">{{ $item->tanggal_bayar->format('d M Y') }}</p>
                                     </td>
                                     <td class="px-5 py-3.5">
-                                        <p class="text-sm font-semibold txt-primary">{{ $item->siswa?->user?->name ?? '-' }}</p>
-                                        <p class="text-xs txt-muted">{{ $item->siswa?->nisn }} ·
-                                            {{ $item->siswa?->kelas?->nama_kelas ?? '-' }}</p>
+                                        <p class="text-sm font-semibold txt-primary">{{ $item->tagihan?->siswa?->user?->name ?? '-' }}</p>
+                                        <p class="text-xs txt-muted">{{ $item->tagihan?->siswa?->nisn }} ·
+                                            {{ $item->tagihan?->siswa?->kelas?->nama_kelas ?? '-' }}</p>
                                     </td>
                                     <td class="px-5 py-3.5">
                                         <span class="text-xs font-bold px-2 py-1 rounded-lg bg-indigo-500/10 text-indigo-400">
-                                            {{ $item->spp?->kategori ?? '-' }}
+                                            {{ $item->tagihan?->spp?->kategori ?? $item->tagihan?->jenis_biaya ?? '-' }}
                                         </span>
                                     </td>
                                     <td class="px-5 py-3.5 text-sm txt-muted">
-                                        {{ $item->nama_bulan }}
-                                        @if($item->tahun) <span class="text-xs">{{ $item->tahun }}</span> @endif
+                                        {{ $item->tagihan?->nama_bulan ?? '-' }}
+                                        @if($item->tagihan?->tahun) <span class="text-xs">{{ $item->tagihan->tahun }}</span> @endif
                                     </td>
                                     <td class="px-5 py-3.5 text-right">
                                         <p class="text-sm font-bold text-emerald-400">
-                                            Rp {{ number_format($item->netto_bayar, 0, ',', '.') }}
+                                            Rp {{ number_format($item->nominal, 0, ',', '.') }}
                                         </p>
-                                        @if($item->potongan > 0)
-                                            <p class="text-xs txt-muted line-through">Rp
-                                                {{ number_format($item->jumlah_bayar, 0, ',', '.') }}</p>
-                                        @endif
                                     </td>
                                     <td class="px-5 py-3.5 text-sm txt-muted">
-                                        {{ $item->user?->name ?? 'Sistem' }}
+                                        {{ $item->petugas?->name ?? 'Sistem' }}
                                     </td>
                                     <td class="px-5 py-3.5 text-center">
                                         <div class="flex items-center justify-center gap-1">
@@ -233,7 +229,7 @@ foreach ($kelass as $kelas) {
                                                         d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                                                 </svg>
                                             </a>
-                                            <a href="{{ route('admin.keuangan.transaksi-pembayaran', ['siswa_id' => $item->siswa_id]) }}"
+                                            <a href="{{ route('admin.keuangan.transaksi-pembayaran', ['siswa_id' => $item->tagihan?->siswa_id]) }}"
                                                 wire:navigate class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold
                                                     bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition-all"
                                                 title="Detail Transaksi Siswa">

@@ -3,13 +3,13 @@
 namespace App\Livewire\Admin\Keuangan;
 
 use App\Models\Kelas;
-use App\Models\PembayaranSpp;
+use App\Models\Pembayaran;
 use App\Models\Siswa;
 use App\Models\Spp;
+use App\Models\Tagihan;
 use App\Models\TahunAjaran;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -77,18 +77,15 @@ class LaporanKeuanganIndex extends Component
     public function render()
     {
         // ── Summary Cards ─────────────────────────────────────
-        $totalHariIni = PembayaranSpp::where('status', 'Lunas')
-            ->whereDate('tanggal_bayar', today())
-            ->sum(DB::raw('jumlah_bayar - potongan'));
+        $totalHariIni = Pembayaran::whereDate('tanggal_bayar', today())
+            ->sum('nominal');
 
-        $totalBulanIni = PembayaranSpp::where('status', 'Lunas')
-            ->whereMonth('tanggal_bayar', now()->month)
+        $totalBulanIni = Pembayaran::whereMonth('tanggal_bayar', now()->month)
             ->whereYear('tanggal_bayar', now()->year)
-            ->sum(DB::raw('jumlah_bayar - potongan'));
+            ->sum('nominal');
 
-        $totalTahunIni = PembayaranSpp::where('status', 'Lunas')
-            ->whereYear('tanggal_bayar', $this->filterTahun)
-            ->sum(DB::raw('jumlah_bayar - potongan'));
+        $totalTahunIni = Pembayaran::whereYear('tanggal_bayar', $this->filterTahun)
+            ->sum('nominal');
 
         // ── Target & Efektivitas ──────────────────────────────
         $tahunAjaran = TahunAjaran::where('is_active', true)->first();
@@ -98,8 +95,7 @@ class LaporanKeuanganIndex extends Component
             : 0;
 
         // ── Laporan Pembayaran (tabel dengan filter) ──────────
-        $laporanQuery = PembayaranSpp::with(['siswa.user', 'siswa.kelas', 'spp', 'user'])
-            ->where('status', 'Lunas');
+        $laporanQuery = Pembayaran::with(['tagihan.siswa.user', 'tagihan.siswa.kelas', 'tagihan.spp', 'petugas']);
 
         if ($this->filterDateMulai) {
             $laporanQuery->whereDate('tanggal_bayar', '>=', $this->filterDateMulai);
@@ -108,10 +104,10 @@ class LaporanKeuanganIndex extends Component
             $laporanQuery->whereDate('tanggal_bayar', '<=', $this->filterDateSelesai);
         }
         if ($this->filterJenjang) {
-            $laporanQuery->whereHas('siswa', fn ($q) => $q->where('jenjang', $this->filterJenjang));
+            $laporanQuery->whereHas('tagihan.siswa', fn ($q) => $q->where('jenjang', $this->filterJenjang));
         }
         if ($this->filterKelas) {
-            $laporanQuery->whereHas('siswa', fn ($q) => $q->where('kelas_id', $this->filterKelas));
+            $laporanQuery->whereHas('tagihan.siswa', fn ($q) => $q->where('kelas_id', $this->filterKelas));
         }
 
         $laporan = $laporanQuery->latest('tanggal_bayar')->paginate($this->perPage);
@@ -208,10 +204,9 @@ class LaporanKeuanganIndex extends Component
             ->active()
             ->get();
 
-        // Load semua pembayaran SPP Bulanan untuk tahun ini sekaligus
-        $allPembayarans = PembayaranSpp::whereIn('siswa_id', $siswaAktif->pluck('id'))
+        // Load semua tagihan SPP Bulanan untuk tahun ini
+        $allTagihans = Tagihan::whereIn('siswa_id', $siswaAktif->pluck('id'))
             ->where('tahun', $this->filterTahun)
-            ->where('status', 'Lunas')
             ->whereNotNull('bulan')
             ->whereIn('spp_id', $sppBulanan->pluck('id'))
             ->get()
@@ -231,8 +226,10 @@ class LaporanKeuanganIndex extends Component
                 continue;
             }
 
-            $paidMonths = ($allPembayarans->get($siswa->id) ?? collect())
+            $siswaTagihans = $allTagihans->get($siswa->id) ?? collect();
+            $paidMonths = $siswaTagihans
                 ->where('spp_id', $spp->id)
+                ->where('status', 'Lunas')
                 ->pluck('bulan')
                 ->toArray();
 

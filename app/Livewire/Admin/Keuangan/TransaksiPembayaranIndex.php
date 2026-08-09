@@ -325,10 +325,14 @@ class TransaksiPembayaranIndex extends Component
                 continue;
             }
 
-            $spp = Spp::find($item['spp_id']);
-            $nominal = $spp?->nominal ?? $tagihan->nominal;
+            // Bayar sisa tagihan, bukan nominal penuh (cegah overpayment)
+            $nominal = $tagihan->sisa_tagihan;
 
-            // Catat pembayaran penuh untuk tagihan ini
+            if ($nominal <= 0) {
+                continue;
+            }
+
+            // Catat pembayaran
             $pembayaran = $tagihan->bayar(
                 nominal: $nominal,
                 metode: 'Tunai',

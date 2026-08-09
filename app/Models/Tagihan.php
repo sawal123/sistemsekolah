@@ -94,9 +94,22 @@ class Tagihan extends Model
 
     /**
      * Catat pembayaran dan perbarui status tagihan secara otomatis.
+     *
+     * @throws \InvalidArgumentException bila nominal <= 0 atau melebihi sisa tagihan
      */
     public function bayar(float $nominal, string $metode = 'Tunai', ?int $petugasId = null, ?string $keterangan = null, ?\Carbon\Carbon $tanggal = null): Pembayaran
     {
+        if ($nominal <= 0) {
+            throw new \InvalidArgumentException('Nominal pembayaran harus lebih dari 0.');
+        }
+
+        $sisa = $this->sisa_tagihan;
+        if ($nominal > $sisa) {
+            throw new \InvalidArgumentException(
+                "Nominal pembayaran (Rp {$nominal}) melebihi sisa tagihan (Rp {$sisa})."
+            );
+        }
+
         $pembayaran = $this->pembayarans()->create([
             'tanggal_bayar' => $tanggal ?? now()->toDateString(),
             'nominal' => $nominal,
