@@ -27,7 +27,7 @@ return new class extends Migration
                 ->where('siswa_id', $old->siswa_id)
                 ->where('spp_id', $old->spp_id)
                 ->where('tahun', $old->tahun)
-                ->when($old->bulan, fn ($q) => $q->where('bulan', $old->bulan))
+                ->when($old->bulan, fn($q) => $q->where('bulan', $old->bulan))
                 ->value('id');
 
             if (! $tagihanId) {

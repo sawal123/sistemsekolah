@@ -104,10 +104,10 @@ class LaporanKeuanganIndex extends Component
             $laporanQuery->whereDate('tanggal_bayar', '<=', $this->filterDateSelesai);
         }
         if ($this->filterJenjang) {
-            $laporanQuery->whereHas('tagihan.siswa', fn ($q) => $q->where('jenjang', $this->filterJenjang));
+            $laporanQuery->whereHas('tagihan.siswa', fn($q) => $q->where('jenjang', $this->filterJenjang));
         }
         if ($this->filterKelas) {
-            $laporanQuery->whereHas('tagihan.siswa', fn ($q) => $q->where('kelas_id', $this->filterKelas));
+            $laporanQuery->whereHas('tagihan.siswa', fn($q) => $q->where('kelas_id', $this->filterKelas));
         }
 
         $laporan = $laporanQuery->latest('tanggal_bayar')->paginate($this->perPage);
@@ -169,9 +169,9 @@ class LaporanKeuanganIndex extends Component
         $siswaAktif = Siswa::where('status', 'Aktif')->get();
         foreach ($siswaAktif as $siswa) {
             $spp = $spps
-                ->filter(fn ($tarif) => in_array($tarif->jenjang, [$siswa->jenjang, 'Semua'], true))
-                ->filter(fn ($tarif) => $tarif->jurusan_id === null || $tarif->jurusan_id === $siswa->jurusan_id)
-                ->sortByDesc(fn ($tarif) => ($tarif->jenjang === $siswa->jenjang ? 2 : 0) + ($tarif->jurusan_id ? 1 : 0))
+                ->filter(fn($tarif) => in_array($tarif->jenjang, [$siswa->jenjang, 'Semua'], true))
+                ->filter(fn($tarif) => $tarif->jurusan_id === null || $tarif->jurusan_id === $siswa->jurusan_id)
+                ->sortByDesc(fn($tarif) => ($tarif->jenjang === $siswa->jenjang ? 2 : 0) + ($tarif->jurusan_id ? 1 : 0))
                 ->first();
 
             if ($spp) {
@@ -191,8 +191,8 @@ class LaporanKeuanganIndex extends Component
         // Load semua siswa aktif dengan filter
         $siswaAktif = Siswa::with(['user', 'kelas', 'jurusan'])
             ->where('status', 'Aktif')
-            ->when($this->filterJenjang, fn ($q) => $q->where('jenjang', $this->filterJenjang))
-            ->when($this->filterKelas, fn ($q) => $q->where('kelas_id', $this->filterKelas))
+            ->when($this->filterJenjang, fn($q) => $q->where('jenjang', $this->filterJenjang))
+            ->when($this->filterKelas, fn($q) => $q->where('kelas_id', $this->filterKelas))
             ->get();
 
         if ($siswaAktif->isEmpty()) {
@@ -218,9 +218,9 @@ class LaporanKeuanganIndex extends Component
 
         foreach ($siswaAktif as $siswa) {
             $spp = $sppBulanan
-                ->filter(fn ($tarif) => in_array($tarif->jenjang, [$siswa->jenjang, 'Semua'], true))
-                ->filter(fn ($tarif) => $tarif->jurusan_id === null || $tarif->jurusan_id === $siswa->jurusan_id)
-                ->sortByDesc(fn ($tarif) => ($tarif->jenjang === $siswa->jenjang ? 2 : 0) + ($tarif->jurusan_id ? 1 : 0))
+                ->filter(fn($tarif) => in_array($tarif->jenjang, [$siswa->jenjang, 'Semua'], true))
+                ->filter(fn($tarif) => $tarif->jurusan_id === null || $tarif->jurusan_id === $siswa->jurusan_id)
+                ->sortByDesc(fn($tarif) => ($tarif->jenjang === $siswa->jenjang ? 2 : 0) + ($tarif->jurusan_id ? 1 : 0))
                 ->first();
             if (! $spp) {
                 continue;

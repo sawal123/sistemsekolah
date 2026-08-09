@@ -379,7 +379,7 @@ class TahunAjaranIndex extends Component
                 'kelas_tujuan_id' => $kelasTujuan?->id,
                 'is_lulus' => $kelasTujuan === null,
                 'jumlah_siswa' => $rombel->anggotaRombels->count(),
-                'siswa' => $rombel->anggotaRombels->map(fn ($a) => [
+                'siswa' => $rombel->anggotaRombels->map(fn($a) => [
                     'id' => $a->siswa_id,
                     'nama' => $a->siswa?->user?->name ?? '-',
                 ]),

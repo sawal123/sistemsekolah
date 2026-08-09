@@ -1,4 +1,4 @@
-<div style="display:flex;flex-direction:column;gap:24px;height:100%;" >
+<div style="display:flex;flex-direction:column;gap:24px;height:100%;">
     <x-ui.toast />
 
     {{-- ── Header ──────────────────────────────────────────── --}}
@@ -12,10 +12,10 @@
             <span class="text-xs font-semibold txt-muted uppercase tracking-wider whitespace-nowrap">Tahun:</span>
             <div class="w-32">
                 @php
-$yearOptions = [];
-for ($y = now()->year; $y >= now()->year - 4; $y--) {
-    $yearOptions[$y] = $y;
-}
+                    $yearOptions = [];
+                    for ($y = now()->year; $y >= now()->year - 4; $y--) {
+                        $yearOptions[$y] = $y;
+                    }
                 @endphp
                 <x-ui.select wire:model.live="filterTahun" :options="$yearOptions" />
             </div>
@@ -89,7 +89,8 @@ for ($y = now()->year; $y >= now()->year - 4; $y--) {
                     </svg>
                 </div>
             </div>
-            <p class="text-3xl font-black text-amber-400 leading-tight">{{ $efektivitas }}<span class="text-lg">%</span>
+            <p class="text-3xl font-black text-amber-400 leading-tight">{{ $efektivitas }}<span
+                    class="text-lg">%</span>
             </p>
             {{-- Progress bar --}}
             <div class="w-full h-1.5 bg-amber-500/15 rounded-full overflow-hidden">
@@ -103,10 +104,11 @@ for ($y = now()->year; $y >= now()->year - 4; $y--) {
     <div class="flex items-center gap-1 p-1 rounded-xl w-fit"
         style="background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.12);">
         <button wire:click="setTab('laporan')" type="button" @class([
-    'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer',
-    'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' => $activeTab === 'laporan',
-    'txt-muted hover:txt-primary' => $activeTab !== 'laporan',
-])>
+            'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer',
+            'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' =>
+                $activeTab === 'laporan',
+            'txt-muted hover:txt-primary' => $activeTab !== 'laporan',
+        ])>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -114,10 +116,11 @@ for ($y = now()->year; $y >= now()->year - 4; $y--) {
             Riwayat Pembayaran
         </button>
         <button wire:click="setTab('tunggakan')" type="button" @class([
-    'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer',
-    'bg-red-500 text-white shadow-lg shadow-red-500/20' => $activeTab === 'tunggakan',
-    'txt-muted hover:txt-primary' => $activeTab !== 'tunggakan',
-])>
+            'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer',
+            'bg-red-500 text-white shadow-lg shadow-red-500/20' =>
+                $activeTab === 'tunggakan',
+            'txt-muted hover:txt-primary' => $activeTab !== 'tunggakan',
+        ])>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -127,238 +130,287 @@ for ($y = now()->year; $y >= now()->year - 4; $y--) {
     </div>
 
     {{-- ── Filter Bar ───────────────────────────────────────── --}}
-    <x-ui.card >
-    <div class="flex flex-col sm:flex-row gap-3 flex-wrap">
-        @if($activeTab === 'laporan')
-            <div class="flex items-center gap-2">
-                <label class="text-xs txt-muted font-semibold whitespace-nowrap">Dari:</label>
-                <input wire:model.live="filterDateMulai" type="date"
-                    class="px-3 py-2 rounded-xl text-sm bg-white/5 border border-indigo-500/20 txt-primary focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+    <x-ui.card>
+        <div class="flex flex-col sm:flex-row gap-3 flex-wrap">
+            @if ($activeTab === 'laporan')
+                <div class="flex items-center gap-2">
+                    <label class="text-xs txt-muted font-semibold whitespace-nowrap">Dari:</label>
+                    <input wire:model.live="filterDateMulai" type="date"
+                        class="px-3 py-2 rounded-xl text-sm bg-white/5 border border-indigo-500/20 txt-primary focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="text-xs txt-muted font-semibold whitespace-nowrap">Sampai:</label>
+                    <input wire:model.live="filterDateSelesai" type="date"
+                        class="px-3 py-2 rounded-xl text-sm bg-white/5 border border-indigo-500/20 txt-primary focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+                </div>
+            @endif
+            @php
+                $jenjangMap = ['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK'];
+            @endphp
+            <div class="w-44">
+                <x-ui.select wire:model.live="filterJenjang" :options="$jenjangMap" />
             </div>
-            <div class="flex items-center gap-2">
-                <label class="text-xs txt-muted font-semibold whitespace-nowrap">Sampai:</label>
-                <input wire:model.live="filterDateSelesai" type="date"
-                    class="px-3 py-2 rounded-xl text-sm bg-white/5 border border-indigo-500/20 txt-primary focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
-            </div>
-        @endif
-        @php
-$jenjangMap = ['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK'];
-        @endphp
-        <div class="w-44">
-            <x-ui.select wire:model.live="filterJenjang" :options="$jenjangMap" />
-        </div>
 
-        @php
-$kelasMap = ['' => 'Semua Kelas'];
-foreach ($kelass as $kelas) {
-    $kelasMap[$kelas->id] = $kelas->nama_kelas;
-}
-        @endphp
-        <div class="w-44">
-            <x-ui.select wire:model.live="filterKelas" :options="$kelasMap" />
-        </div>
+            @php
+                $kelasMap = ['' => 'Semua Kelas'];
+                foreach ($kelass as $kelas) {
+                    $kelasMap[$kelas->id] = $kelas->nama_kelas;
+                }
+            @endphp
+            <div class="w-44">
+                <x-ui.select wire:model.live="filterKelas" :options="$kelasMap" />
+            </div>
 
-        <div class="flex items-center gap-2 ml-auto">
-            <span class="text-[10px] font-bold txt-muted uppercase tracking-widest">Tampilkan:</span>
-            <div class="w-32">
-                <x-ui.select wire:model.live="perPage" :options="[15 => '15 Data', 30 => '30 Data', 50 => '50 Data', 100 => '100 Data']" />
+            <div class="flex items-center gap-2 ml-auto">
+                <span class="text-[10px] font-bold txt-muted uppercase tracking-widest">Tampilkan:</span>
+                <div class="w-32">
+                    <x-ui.select wire:model.live="perPage" :options="[15 => '15 Data', 30 => '30 Data', 50 => '50 Data', 100 => '100 Data']" />
+                </div>
             </div>
         </div>
-    </div>
     </x-ui.card>
 
     {{-- ── Tab: Riwayat Pembayaran ───────────────────────────── --}}
-    
+
     <div class="mb-6">
-    @if($activeTab === 'laporan')
-        <div class="mb-6">
-            <x-ui.card padding="0" >
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left" style="border-collapse:separate;border-spacing:0;">
-                        <thead>
-                            <tr class="bg-indigo-500/5 border-b border-indigo-500/10">
-                                <th class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Tanggal</th>
-                                <th class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Siswa</th>
-                                <th class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Kategori</th>
-                                <th class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Bulan/Keterangan
-                                </th>
-                                <th class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted text-right">Jumlah
-                                </th>
-                                <th class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Petugas</th>
-                                <th class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted text-center">Aksi
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-indigo-500/10">
-                            @forelse($laporan as $item)
-                                <tr class="hover:bg-indigo-500/[0.02] transition-colors">
-                                    <td class="px-5 py-3.5">
-                                        <p class="text-sm font-semibold txt-primary">{{ $item->tanggal_bayar->format('d M Y') }}</p>
-                                    </td>
-                                    <td class="px-5 py-3.5">
-                                        <p class="text-sm font-semibold txt-primary">{{ $item->tagihan?->siswa?->user?->name ?? '-' }}</p>
-                                        <p class="text-xs txt-muted">{{ $item->tagihan?->siswa?->nisn }} ·
-                                            {{ $item->tagihan?->siswa?->kelas?->nama_kelas ?? '-' }}</p>
-                                    </td>
-                                    <td class="px-5 py-3.5">
-                                        <span class="text-xs font-bold px-2 py-1 rounded-lg bg-indigo-500/10 text-indigo-400">
-                                            {{ $item->tagihan?->spp?->kategori ?? $item->tagihan?->jenis_biaya ?? '-' }}
-                                        </span>
-                                    </td>
-                                    <td class="px-5 py-3.5 text-sm txt-muted">
-                                        {{ $item->tagihan?->nama_bulan ?? '-' }}
-                                        @if($item->tagihan?->tahun) <span class="text-xs">{{ $item->tagihan->tahun }}</span> @endif
-                                    </td>
-                                    <td class="px-5 py-3.5 text-right">
-                                        <p class="text-sm font-bold text-emerald-400">
-                                            Rp {{ number_format($item->nominal, 0, ',', '.') }}
-                                        </p>
-                                    </td>
-                                    <td class="px-5 py-3.5 text-sm txt-muted">
-                                        {{ $item->petugas?->name ?? 'Sistem' }}
-                                    </td>
-                                    <td class="px-5 py-3.5 text-center">
-                                        <div class="flex items-center justify-center gap-1">
-                                            <a href="{{ route('admin.keuangan.kuitansi.cetak', ['ids' => $item->id]) }}"
-                                                target="_blank"
-                                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold
+        @if ($activeTab === 'laporan')
+            <div class="mb-6">
+                <x-ui.card padding="0">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left" style="border-collapse:separate;border-spacing:0;">
+                            <thead>
+                                <tr class="bg-indigo-500/5 border-b border-indigo-500/10">
+                                    <th class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">
+                                        Tanggal</th>
+                                    <th class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">
+                                        Siswa</th>
+                                    <th class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">
+                                        Kategori</th>
+                                    <th class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">
+                                        Bulan/Keterangan
+                                    </th>
+                                    <th
+                                        class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted text-right">
+                                        Jumlah
+                                    </th>
+                                    <th class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">
+                                        Petugas</th>
+                                    <th
+                                        class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted text-center">
+                                        Aksi
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-indigo-500/10">
+                                @forelse($laporan as $item)
+                                    <tr class="hover:bg-indigo-500/[0.02] transition-colors">
+                                        <td class="px-5 py-3.5">
+                                            <p class="text-sm font-semibold txt-primary">
+                                                {{ $item->tanggal_bayar->format('d M Y') }}</p>
+                                        </td>
+                                        <td class="px-5 py-3.5">
+                                            <p class="text-sm font-semibold txt-primary">
+                                                {{ $item->tagihan?->siswa?->user?->name ?? '-' }}</p>
+                                            <p class="text-xs txt-muted">{{ $item->tagihan?->siswa?->nisn }} ·
+                                                {{ $item->tagihan?->siswa?->kelas?->nama_kelas ?? '-' }}</p>
+                                        </td>
+                                        <td class="px-5 py-3.5">
+                                            <span
+                                                class="text-xs font-bold px-2 py-1 rounded-lg bg-indigo-500/10 text-indigo-400">
+                                                {{ $item->tagihan?->spp?->kategori ?? ($item->tagihan?->jenis_biaya ?? '-') }}
+                                            </span>
+                                        </td>
+                                        <td class="px-5 py-3.5 text-sm txt-muted">
+                                            {{ $item->tagihan?->nama_bulan ?? '-' }}
+                                            @if ($item->tagihan?->tahun)
+                                                <span class="text-xs">{{ $item->tagihan->tahun }}</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-5 py-3.5 text-right">
+                                            <p class="text-sm font-bold text-emerald-400">
+                                                Rp {{ number_format($item->nominal, 0, ',', '.') }}
+                                            </p>
+                                        </td>
+                                        <td class="px-5 py-3.5 text-sm txt-muted">
+                                            {{ $item->petugas?->name ?? 'Sistem' }}
+                                        </td>
+                                        <td class="px-5 py-3.5 text-center">
+                                            <div class="flex items-center justify-center gap-1">
+                                                <a href="{{ route('admin.keuangan.kuitansi.cetak', ['ids' => $item->id]) }}"
+                                                    target="_blank"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold
                                                     bg-slate-500/10 txt-muted hover:bg-indigo-500/15 hover:text-indigo-400 transition-all"
-                                                title="Cetak Kuitansi">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                                </svg>
-                                            </a>
-                                            <a href="{{ route('admin.keuangan.transaksi-pembayaran', ['siswa_id' => $item->tagihan?->siswa_id]) }}"
-                                                wire:navigate class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold
+                                                    title="Cetak Kuitansi">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                                    </svg>
+                                                </a>
+                                                <a href="{{ route('admin.keuangan.transaksi-pembayaran', ['siswa_id' => $item->tagihan?->siswa_id]) }}"
+                                                    wire:navigate
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold
                                                     bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition-all"
-                                                title="Detail Transaksi Siswa">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                                    title="Detail Transaksi Siswa">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="7" class="px-6 py-16 text-center">
+                                            <div class="flex flex-col items-center opacity-40">
+                                                <svg class="w-10 h-10 txt-muted mb-3" fill="none"
+                                                    stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="1.5"
+                                                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                                 </svg>
+                                                <p class="text-sm txt-muted">Tidak ada data pembayaran pada periode
+                                                    ini.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    <x-ui.pagination :links="$laporan" />
+                </x-ui.card>
+                <div class="mb-6"></div>
+
+        @endif
+
+        {{-- ── Tab: Daftar Tunggakan ─────────────────────────────── --}}
+        @if ($activeTab === 'tunggakan')
+            <div class="mb-6">
+                @if ($siswasBelumBayar->isNotEmpty())
+                    <div class="flex items-center justify-between px-1">
+                        <p class="text-sm txt-muted">
+                            <strong class="txt-primary">{{ $totalTunggakanCount }}</strong> siswa dengan tunggakan SPP
+                        </p>
+                        <p class="text-sm font-bold text-red-400">
+                            Total: Rp {{ number_format($totalNominalTunggakan, 0, ',', '.') }}
+                        </p>
+                    </div>
+                @endif
+                <x-ui.card padding="0">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left" style="border-collapse:separate;border-spacing:0;">
+                            <thead>
+                                <tr class="bg-red-500/5 border-b border-red-500/10">
+                                    <th
+                                        class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted w-10">
+                                        No</th>
+                                    <th class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">
+                                        Siswa</th>
+                                    <th
+                                        class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted text-center">
+                                        Bulan
+                                        Tunggak</th>
+                                    <th
+                                        class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted text-center w-24">
+                                        Jumlah</th>
+                                    <th
+                                        class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted text-right">
+                                        Total
+                                        Tunggakan</th>
+                                    <th
+                                        class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted text-center w-20">
+                                        Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-red-500/8">
+                                @forelse($siswasBelumBayar as $idx => $row)
+                                    @php
+                                        $bulanLabels = [
+                                            'Jan',
+                                            'Feb',
+                                            'Mar',
+                                            'Apr',
+                                            'Mei',
+                                            'Jun',
+                                            'Jul',
+                                            'Ags',
+                                            'Sep',
+                                            'Okt',
+                                            'Nov',
+                                            'Des',
+                                        ];
+                                    @endphp
+                                    <tr class="hover:bg-red-500/[0.02] transition-colors">
+                                        <td class="px-5 py-3.5 text-sm txt-muted">
+                                            {{ $siswasBelumBayar instanceof \Illuminate\Pagination\LengthAwarePaginator ? $siswasBelumBayar->firstItem() + $idx : $idx + 1 }}
+                                        </td>
+                                        <td class="px-5 py-3.5">
+                                            <p class="text-sm font-semibold txt-primary">
+                                                {{ $row['siswa']->user?->name ?? '-' }}</p>
+                                            <p class="text-xs txt-muted">{{ $row['siswa']->nisn }} ·
+                                                {{ $row['siswa']->kelas?->nama_kelas ?? '-' }}</p>
+                                        </td>
+                                        <td class="px-5 py-3.5 text-center">
+                                            <div class="flex flex-wrap gap-1 justify-center">
+                                                @foreach ($row['bulan_tunggakan'] as $bln)
+                                                    <span
+                                                        class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/15 text-red-400">
+                                                        {{ $bulanLabels[$bln - 1] }}
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                        </td>
+                                        <td class="px-5 py-3.5 text-center">
+                                            <span
+                                                class="text-sm font-bold text-red-400 bg-red-500/10 px-2.5 py-1 rounded-lg">
+                                                {{ $row['jumlah_bulan'] }} bln
+                                            </span>
+                                        </td>
+                                        <td class="px-5 py-3.5 text-right">
+                                            <p class="text-sm font-bold text-red-400">
+                                                Rp {{ number_format($row['total_tunggakan'], 0, ',', '.') }}
+                                            </p>
+                                        </td>
+                                        <td class="px-5 py-3.5 text-center">
+                                            <a href="{{ route('admin.keuangan.transaksi-pembayaran', ['siswa_id' => $row['siswa']->id]) }}"
+                                                wire:navigate
+                                                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-extrabold uppercase tracking-wider
+                                            bg-red-500 text-white shadow-lg shadow-red-500/20 hover:scale-105 transition-all">
+                                                Bayar
                                             </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="7" class="px-6 py-16 text-center">
-                                        <div class="flex flex-col items-center opacity-40">
-                                            <svg class="w-10 h-10 txt-muted mb-3" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                            </svg>
-                                            <p class="text-sm txt-muted">Tidak ada data pembayaran pada periode ini.</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-                <x-ui.pagination :links="$laporan" />
-            </x-ui.card>
-            <div class="mb-6"></div>
-
-    @endif
-
-    {{-- ── Tab: Daftar Tunggakan ─────────────────────────────── --}}
-    @if($activeTab === 'tunggakan')
-    <div class="mb-6">
-        @if($siswasBelumBayar->isNotEmpty())
-            <div class="flex items-center justify-between px-1">
-                <p class="text-sm txt-muted">
-                    <strong class="txt-primary">{{ $totalTunggakanCount }}</strong> siswa dengan tunggakan SPP
-                </p>
-                <p class="text-sm font-bold text-red-400">
-                    Total: Rp {{ number_format($totalNominalTunggakan, 0, ',', '.') }}
-                </p>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="px-6 py-16 text-center">
+                                            <div class="flex flex-col items-center opacity-40">
+                                                <svg class="w-10 h-10 text-emerald-400 mb-3" fill="none"
+                                                    stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="1.5"
+                                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                <p class="text-sm font-bold text-emerald-400">Tidak Ada Tunggakan! 🎉
+                                                </p>
+                                                <p class="text-xs txt-muted mt-1">Semua siswa telah melunasi SPP bulan
+                                                    ini.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    @if ($siswasBelumBayar instanceof \Illuminate\Pagination\LengthAwarePaginator)
+                        <x-ui.pagination :links="$siswasBelumBayar" />
+                    @endif
+                </x-ui.card>
             </div>
         @endif
-        <x-ui.card padding="0" >
-            <div class="overflow-x-auto">
-                <table class="w-full text-left" style="border-collapse:separate;border-spacing:0;">
-                    <thead>
-                        <tr class="bg-red-500/5 border-b border-red-500/10">
-                            <th class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted w-10">No</th>
-                            <th class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted">Siswa</th>
-                            <th class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted text-center">Bulan
-                                Tunggak</th>
-                            <th class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted text-center w-24">
-                                Jumlah</th>
-                            <th class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted text-right">Total
-                                Tunggakan</th>
-                            <th class="px-5 py-4 text-[11px] font-bold uppercase tracking-wider txt-muted text-center w-20">
-                                Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-red-500/8">
-                        @forelse($siswasBelumBayar as $idx => $row)
-                            @php
-        $bulanLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
-                            @endphp
-                            <tr class="hover:bg-red-500/[0.02] transition-colors">
-                                <td class="px-5 py-3.5 text-sm txt-muted">
-                                    {{ ($siswasBelumBayar instanceof \Illuminate\Pagination\LengthAwarePaginator) ? ($siswasBelumBayar->firstItem() + $idx) : ($idx + 1) }}
-                                </td>
-                                <td class="px-5 py-3.5">
-                                    <p class="text-sm font-semibold txt-primary">{{ $row['siswa']->user?->name ?? '-' }}</p>
-                                    <p class="text-xs txt-muted">{{ $row['siswa']->nisn }} ·
-                                        {{ $row['siswa']->kelas?->nama_kelas ?? '-' }}</p>
-                                </td>
-                                <td class="px-5 py-3.5 text-center">
-                                    <div class="flex flex-wrap gap-1 justify-center">
-                                        @foreach($row['bulan_tunggakan'] as $bln)
-                                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/15 text-red-400">
-                                                {{ $bulanLabels[$bln - 1] }}
-                                            </span>
-                                        @endforeach
-                                    </div>
-                                </td>
-                                <td class="px-5 py-3.5 text-center">
-                                    <span class="text-sm font-bold text-red-400 bg-red-500/10 px-2.5 py-1 rounded-lg">
-                                        {{ $row['jumlah_bulan'] }} bln
-                                    </span>
-                                </td>
-                                <td class="px-5 py-3.5 text-right">
-                                    <p class="text-sm font-bold text-red-400">
-                                        Rp {{ number_format($row['total_tunggakan'], 0, ',', '.') }}
-                                    </p>
-                                </td>
-                                <td class="px-5 py-3.5 text-center">
-                                    <a href="{{ route('admin.keuangan.transaksi-pembayaran', ['siswa_id' => $row['siswa']->id]) }}"
-                                        wire:navigate class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-extrabold uppercase tracking-wider
-                                            bg-red-500 text-white shadow-lg shadow-red-500/20 hover:scale-105 transition-all">
-                                        Bayar
-                                    </a>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="px-6 py-16 text-center">
-                                    <div class="flex flex-col items-center opacity-40">
-                                        <svg class="w-10 h-10 text-emerald-400 mb-3" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        <p class="text-sm font-bold text-emerald-400">Tidak Ada Tunggakan! 🎉</p>
-                                        <p class="text-xs txt-muted mt-1">Semua siswa telah melunasi SPP bulan ini.</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-            @if($siswasBelumBayar instanceof \Illuminate\Pagination\LengthAwarePaginator)
-                <x-ui.pagination :links="$siswasBelumBayar" />
-            @endif
-        </x-ui.card>
-        </div>
-    @endif
-</div>
-    
+    </div>
+
 </div>

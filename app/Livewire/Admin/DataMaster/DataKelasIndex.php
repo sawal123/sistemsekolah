@@ -229,7 +229,7 @@ class DataKelasIndex extends Component
 
         if ($tahunAjaranAktif) {
             AnggotaRombel::where('siswa_id', $siswa->id)
-                ->whereHas('rombel', fn ($q) => $q->where('tahun_ajaran_id', $tahunAjaranAktif->id))
+                ->whereHas('rombel', fn($q) => $q->where('tahun_ajaran_id', $tahunAjaranAktif->id))
                 ->update([
                     'status' => 'Pindah',
                     'tanggal_keluar' => now()->toDateString(),

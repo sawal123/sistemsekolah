@@ -286,7 +286,7 @@ class DataSiswaIndex extends Component
                 );
 
                 AnggotaRombel::where('siswa_id', $siswa->id)
-                    ->whereHas('rombel', fn ($q) => $q->where('tahun_ajaran_id', $tahunAjaranAktif->id))
+                    ->whereHas('rombel', fn($q) => $q->where('tahun_ajaran_id', $tahunAjaranAktif->id))
                     ->where('rombel_id', '!=', $rombel->id)
                     ->update([
                         'status' => 'Pindah',
