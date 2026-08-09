@@ -169,9 +169,10 @@
 
                 <div class="mb-6">
                     @php
-                        $statusOptions = $editId && $status === 'Aktif'
-                            ? ['Aktif', 'Ditutup', 'Diarsipkan']
-                            : ['Draft', 'Ditutup', 'Diarsipkan'];
+                        $statusOptions =
+                            $editId && $status === 'Aktif'
+                                ? ['Aktif', 'Ditutup', 'Diarsipkan']
+                                : ['Draft', 'Ditutup', 'Diarsipkan'];
                     @endphp
                     <x-ui.select label="Status" wire:model="status" :options="$statusOptions" placeholder="Pilih Status" />
                 </div>

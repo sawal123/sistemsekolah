@@ -23,21 +23,21 @@ return new class extends Migration
             ->get();
 
         if ($duplicates->isNotEmpty()) {
-            $lines = $duplicates->map(fn ($d) => "  - {$d->tahun} {$d->semester}: {$d->jumlah} record (ID: {$d->ids})")->join("\n");
+            $lines = $duplicates->map(fn($d) => "  - {$d->tahun} {$d->semester}: {$d->jumlah} record (ID: {$d->ids})")->join("\n");
 
             throw new \RuntimeException(
                 "⚠️  Ditemukan duplikat periode akademik di database production:\n\n"
-                . "{$lines}\n\n"
-                . "Langkah perbaikan manual sebelum migration dijalankan ulang:\n"
-                . "1. Pilih satu record yang akan dipertahankan untuk setiap (tahun, semester).\n"
-                . "2. Pindahkan seluruh data (nilai, rapor, SPP, rombel, jadwal) dari record yang akan dihapus ke record yang dipertahankan:\n"
-                . "   UPDATE nilais SET tahun_ajaran_id = <keep_id> WHERE tahun_ajaran_id = <remove_id>;\n"
-                . "   UPDATE rapors SET tahun_ajaran_id = <keep_id> WHERE tahun_ajaran_id = <remove_id>;\n"
-                . "   UPDATE spps SET tahun_ajaran_id = <keep_id> WHERE tahun_ajaran_id = <remove_id>;\n"
-                . "   UPDATE rombels SET tahun_ajaran_id = <keep_id> WHERE tahun_ajaran_id = <remove_id>;\n"
-                . "   UPDATE jadwals SET tahun_ajaran_id = <keep_id> WHERE tahun_ajaran_id = <remove_id>;\n"
-                . "3. Hapus record duplikat: DELETE FROM tahun_ajarans WHERE id = <remove_id>;\n"
-                . "4. Jalankan ulang php artisan migrate.\n"
+                    . "{$lines}\n\n"
+                    . "Langkah perbaikan manual sebelum migration dijalankan ulang:\n"
+                    . "1. Pilih satu record yang akan dipertahankan untuk setiap (tahun, semester).\n"
+                    . "2. Pindahkan seluruh data (nilai, rapor, SPP, rombel, jadwal) dari record yang akan dihapus ke record yang dipertahankan:\n"
+                    . "   UPDATE nilais SET tahun_ajaran_id = <keep_id> WHERE tahun_ajaran_id = <remove_id>;\n"
+                    . "   UPDATE rapors SET tahun_ajaran_id = <keep_id> WHERE tahun_ajaran_id = <remove_id>;\n"
+                    . "   UPDATE spps SET tahun_ajaran_id = <keep_id> WHERE tahun_ajaran_id = <remove_id>;\n"
+                    . "   UPDATE rombels SET tahun_ajaran_id = <keep_id> WHERE tahun_ajaran_id = <remove_id>;\n"
+                    . "   UPDATE jadwals SET tahun_ajaran_id = <keep_id> WHERE tahun_ajaran_id = <remove_id>;\n"
+                    . "3. Hapus record duplikat: DELETE FROM tahun_ajarans WHERE id = <remove_id>;\n"
+                    . "4. Jalankan ulang php artisan migrate.\n"
             );
         }
 
