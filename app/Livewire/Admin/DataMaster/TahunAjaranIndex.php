@@ -111,6 +111,19 @@ class TahunAjaranIndex extends Component
         $item = TahunAjaran::findOrFail($id);
 
         if (! $item->is_active) {
+            $taAktif = TahunAjaran::where('is_active', true)->first();
+            $bedaTahun = $taAktif && explode('/', $item->tahun)[0] !== explode('/', $taAktif->tahun)[0];
+
+            if ($bedaTahun && $item->status === 'Draft') {
+                // Tahun ajaran baru → arahkan ke Kenaikan Kelas, bukan aktivasi langsung
+                $this->dispatch('notify', [
+                    'type' => 'warning',
+                    'message' => "Gunakan tombol Kenaikan Kelas (→) untuk mengaktifkan tahun ajaran baru. Proses ini akan memindahkan siswa ke kelas setingkat di atasnya.",
+                ]);
+
+                return;
+            }
+
             // Nonaktifkan periode lain: set status Ditutup + is_active false
             TahunAjaran::where('id', '!=', $id)
                 ->where('is_active', true)
@@ -118,7 +131,7 @@ class TahunAjaranIndex extends Component
 
             $item->update(['is_active' => true, 'status' => 'Aktif']);
 
-            // Cek tawarkan salin rombel
+            // Cek tawarkan salin rombel (dalam tahun yang sama)
             $semesterSebelumnya = $item->semester === 'Ganjil' ? 'Genap' : 'Ganjil';
             $taSebelumnya = TahunAjaran::where('tahun', $item->tahun)
                 ->where('semester', $semesterSebelumnya)
@@ -151,12 +164,17 @@ class TahunAjaranIndex extends Component
 
     public function save()
     {
+        // Hanya izinkan 'Aktif' jika record sudah aktif (edit)
+        $allowedStatus = $this->editId && TahunAjaran::find($this->editId)?->is_active
+            ? 'in:Draft,Aktif,Ditutup,Diarsipkan'
+            : 'in:Draft,Ditutup,Diarsipkan';
+
         $this->validate([
             'tahun' => 'required|string|max:20',
             'semester' => 'required|in:Ganjil,Genap',
             'tanggal_mulai' => 'nullable|date',
             'tanggal_selesai' => 'nullable|date|after_or_equal:tanggal_mulai',
-            'status' => 'required|in:Draft,Aktif,Ditutup,Diarsipkan',
+            'status' => 'required|' . $allowedStatus,
         ]);
 
         // status === 'Aktif' adalah satu-satunya sumber kebenaran untuk is_active
@@ -166,7 +184,14 @@ class TahunAjaranIndex extends Component
             $item = TahunAjaran::findOrFail($this->editId);
 
             if ($isActive && ! $item->is_active) {
-                // Nonaktifkan periode lain: set status Ditutup + is_active false
+                // Seharusnya tidak terjadi karena form tidak menawarkan 'Aktif'
+                $this->addError('status', 'Gunakan tombol Aktifkan atau Kenaikan Kelas untuk mengaktifkan periode.');
+
+                return;
+            }
+
+            // Jika menonaktifkan periode yang sedang aktif
+            if (! $isActive && $item->is_active) {
                 TahunAjaran::where('id', '!=', $item->id)
                     ->where('is_active', true)
                     ->update(['is_active' => false, 'status' => 'Ditutup']);
@@ -181,18 +206,14 @@ class TahunAjaranIndex extends Component
                 'is_active' => $isActive,
             ]);
         } else {
-            if ($isActive) {
-                TahunAjaran::where('is_active', true)
-                    ->update(['is_active' => false, 'status' => 'Ditutup']);
-            }
-
+            // Record baru — tidak boleh langsung Aktif
             $item = TahunAjaran::create([
                 'tahun' => $this->tahun,
                 'semester' => $this->semester,
                 'tanggal_mulai' => $this->tanggal_mulai ?: null,
                 'tanggal_selesai' => $this->tanggal_selesai ?: null,
                 'status' => $this->status,
-                'is_active' => $isActive,
+                'is_active' => false, // Record baru selalu non-aktif
             ]);
         }
 
@@ -337,13 +358,23 @@ class TahunAjaranIndex extends Component
         $targetTa = TahunAjaran::findOrFail($targetTahunAjaranId);
         $this->targetTahunAjaranId = $targetTa->id;
 
-        // Cari tahun ajaran sebelumnya (aktif saat ini atau yang terakhir)
+        // Cari sumber: periode aktif, atau periode terakhir yang punya rombel
         $taAktif = TahunAjaran::where('is_active', true)
             ->where('id', '!=', $targetTa->id)
             ->first();
 
         if (! $taAktif) {
-            $this->dispatch('notify', ['type' => 'error', 'message' => 'Tidak ada tahun ajaran aktif sebagai sumber kenaikan.']);
+            // Fallback: cari periode Ditutup terakhir yang memiliki rombel
+            $taAktif = TahunAjaran::where('id', '!=', $targetTa->id)
+                ->where('status', 'Ditutup')
+                ->whereHas('rombels')
+                ->orderBy('tahun', 'desc')
+                ->orderBy('semester', 'desc')
+                ->first();
+        }
+
+        if (! $taAktif) {
+            $this->dispatch('notify', ['type' => 'error', 'message' => 'Tidak ada tahun ajaran sumber (aktif atau ditutup) yang memiliki rombel sebagai sumber kenaikan.']);
 
             return;
         }

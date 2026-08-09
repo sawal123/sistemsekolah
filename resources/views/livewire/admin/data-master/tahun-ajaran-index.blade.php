@@ -71,12 +71,12 @@
                                                     d="M5 13l4 4L19 7" />
                                             </svg>
                                         </button>
-                                        {{-- Kenaikan Kelas: hanya untuk tahun ajaran berbeda tahun --}}
+                                        {{-- Kenaikan Kelas: untuk tahun ajaran berbeda tahun --}}
                                         @php
                                             $taAktif = $tahunAjarans->firstWhere('is_active', true);
-                                            $bedaTahun =
-                                                $taAktif &&
-                                                explode('/', $item->tahun)[0] !== explode('/', $taAktif->tahun)[0];
+                                            $tahunIni = (int) explode('/', $item->tahun)[0];
+                                            $tahunAktif = $taAktif ? (int) explode('/', $taAktif->tahun)[0] : null;
+                                            $bedaTahun = $tahunAktif === null || $tahunIni !== $tahunAktif;
                                         @endphp
                                         @if ($bedaTahun && $item->status === 'Draft')
                                             <button wire:click="previewKenaikanKelas({{ $item->id }})"
@@ -168,7 +168,12 @@
                 </div>
 
                 <div class="mb-6">
-                    <x-ui.select label="Status" wire:model="status" :options="['Draft', 'Aktif', 'Ditutup', 'Diarsipkan']" placeholder="Pilih Status" />
+                    @php
+                        $statusOptions = $editId && $status === 'Aktif'
+                            ? ['Aktif', 'Ditutup', 'Diarsipkan']
+                            : ['Draft', 'Ditutup', 'Diarsipkan'];
+                    @endphp
+                    <x-ui.select label="Status" wire:model="status" :options="$statusOptions" placeholder="Pilih Status" />
                 </div>
 
                 <div
