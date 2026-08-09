@@ -229,28 +229,33 @@
                             $itemKey = $sppId . '_' . $b;
                             $isSelected  = isset($selectedItems[$itemKey]);
                             $isFuture    = $b > now()->month && $selectedTahun == now()->year;
+                            $isSebagian  = $bulan['sebagian'] ?? false;
                         @endphp
                         <button
                             wire:click="{{ !$bulan['lunas'] && !$isFuture ? 'toggleItem(' . $sppId . ', ' . $b . ')' : '' }}"
                             type="button"
                             @class([
                                 'flex flex-col items-center justify-center py-3 rounded-xl border-2 transition-all duration-150 text-center select-none',
-                                'bg-emerald-500/10 border-emerald-500/30 cursor-default' => $bulan['lunas'],
+                                'bg-emerald-500/10 border-emerald-500/30 cursor-default' => $bulan['lunas'] && !$isSebagian,
+                                'bg-amber-500/10 border-amber-500/30 cursor-default' => $isSebagian && !$bulan['lunas'],
                                 'bg-indigo-500/20 border-indigo-500 ring-2 ring-indigo-500/30 cursor-pointer scale-95' => !$bulan['lunas'] && $isSelected,
-                                'bg-red-500/8 border-red-500/25 hover:bg-red-500/15 hover:scale-95 cursor-pointer' => !$bulan['lunas'] && !$isSelected && !$isFuture,
+                                'bg-red-500/8 border-red-500/25 hover:bg-red-500/15 hover:scale-95 cursor-pointer' => !$bulan['lunas'] && !$isSelected && !$isFuture && !$isSebagian,
                                 'bg-slate-500/5 border-slate-500/15 cursor-not-allowed opacity-50' => $isFuture,
                             ])>
                             <span @class([
                                 'text-[11px] font-bold',
-                                'text-emerald-400' => $bulan['lunas'],
+                                'text-emerald-400' => $bulan['lunas'] && !$isSebagian,
+                                'text-amber-400' => $isSebagian && !$bulan['lunas'],
                                 'text-indigo-300' => !$bulan['lunas'] && $isSelected,
-                                'text-red-400' => !$bulan['lunas'] && !$isSelected && !$isFuture,
+                                'text-red-400' => !$bulan['lunas'] && !$isSelected && !$isFuture && !$isSebagian,
                                 'txt-muted' => $isFuture,
                             ])>{{ $bulanLabels[$b-1] }}</span>
-                            @if($bulan['lunas'])
+                            @if($bulan['lunas'] && !$isSebagian)
                                 <svg class="w-3 h-3 text-emerald-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                 </svg>
+                            @elseif($isSebagian && !$bulan['lunas'])
+                                <span class="text-[8px] text-amber-400 mt-0.5 font-bold leading-none">{{ $bulan['persentase'] }}%</span>
                             @elseif($isSelected)
                                 <svg class="w-3 h-3 text-indigo-300 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
@@ -275,28 +280,33 @@
                             $itemKey = $sppId . '_' . $b;
                             $isSelected  = isset($selectedItems[$itemKey]);
                             $isFuture    = $b > now()->month && $selectedTahun == now()->year;
+                            $isSebagian  = $bulan['sebagian'] ?? false;
                         @endphp
                         <button
                             wire:click="{{ !$bulan['lunas'] && !$isFuture ? 'toggleItem(' . $sppId . ', ' . $b . ')' : '' }}"
                             type="button"
                             @class([
                                 'flex flex-col items-center justify-center py-3 rounded-xl border-2 transition-all duration-150 text-center select-none',
-                                'bg-emerald-500/10 border-emerald-500/30 cursor-default' => $bulan['lunas'],
+                                'bg-emerald-500/10 border-emerald-500/30 cursor-default' => $bulan['lunas'] && !$isSebagian,
+                                'bg-amber-500/10 border-amber-500/30 cursor-default' => $isSebagian && !$bulan['lunas'],
                                 'bg-indigo-500/20 border-indigo-500 ring-2 ring-indigo-500/30 cursor-pointer scale-95' => !$bulan['lunas'] && $isSelected,
-                                'bg-red-500/8 border-red-500/25 hover:bg-red-500/15 hover:scale-95 cursor-pointer' => !$bulan['lunas'] && !$isSelected && !$isFuture,
+                                'bg-red-500/8 border-red-500/25 hover:bg-red-500/15 hover:scale-95 cursor-pointer' => !$bulan['lunas'] && !$isSelected && !$isFuture && !$isSebagian,
                                 'bg-slate-500/5 border-slate-500/15 cursor-not-allowed opacity-50' => $isFuture,
                             ])>
                             <span @class([
                                 'text-[11px] font-bold',
-                                'text-emerald-400' => $bulan['lunas'],
+                                'text-emerald-400' => $bulan['lunas'] && !$isSebagian,
+                                'text-amber-400' => $isSebagian && !$bulan['lunas'],
                                 'text-indigo-300' => !$bulan['lunas'] && $isSelected,
-                                'text-red-400' => !$bulan['lunas'] && !$isSelected && !$isFuture,
+                                'text-red-400' => !$bulan['lunas'] && !$isSelected && !$isFuture && !$isSebagian,
                                 'txt-muted' => $isFuture,
                             ])>{{ $bulanLabels[$b-1] }}</span>
-                            @if($bulan['lunas'])
+                            @if($bulan['lunas'] && !$isSebagian)
                                 <svg class="w-3 h-3 text-emerald-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                 </svg>
+                            @elseif($isSebagian && !$bulan['lunas'])
+                                <span class="text-[8px] text-amber-400 mt-0.5 font-bold leading-none">{{ $bulan['persentase'] }}%</span>
                             @elseif($isSelected)
                                 <svg class="w-3 h-3 text-indigo-300 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
@@ -317,18 +327,21 @@
             @php
                 $itemKey    = $sppId . '_sekali';
                 $isSelected = isset($selectedItems[$itemKey]);
+                $isSebagian = $data['sebagian'] ?? false;
+                $sisa = $data['sisa'] ?? 0;
             @endphp
             <button
                 wire:click="{{ !$data['lunas'] ? 'toggleItem(' . $sppId . ', \'sekali\')' : '' }}"
                 type="button"
                 @class([
                     'w-full flex items-center justify-between px-5 py-4 rounded-xl border-2 transition-all duration-150',
-                    'bg-emerald-500/8 border-emerald-500/30 cursor-default' => $data['lunas'],
+                    'bg-emerald-500/8 border-emerald-500/30 cursor-default' => $data['lunas'] && !$isSebagian,
+                    'bg-amber-500/8 border-amber-500/30 cursor-default' => $isSebagian && !$data['lunas'],
                     'bg-indigo-500/15 border-indigo-500 cursor-pointer' => !$data['lunas'] && $isSelected,
-                    'bg-red-500/6 border-red-500/20 hover:bg-red-500/12 cursor-pointer' => !$data['lunas'] && !$isSelected,
+                    'bg-red-500/6 border-red-500/20 hover:bg-red-500/12 cursor-pointer' => !$data['lunas'] && !$isSelected && !$isSebagian,
                 ])>
                 <div class="flex items-center gap-3">
-                    @if($data['lunas'])
+                    @if($data['lunas'] && !$isSebagian)
                         <div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
                             <svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
@@ -336,7 +349,15 @@
                         </div>
                         <div>
                             <p class="text-sm font-bold text-emerald-400">Sudah Lunas</p>
-                            <p class="text-xs txt-muted">Dibayar: {{ $data['tanggal'] ?? '-' }}</p>
+                            <p class="text-xs txt-muted">Dibayar: {{ $data['pembayaran_terakhir'] ?? '-' }}</p>
+                        </div>
+                    @elseif($isSebagian && !$data['lunas'])
+                        <div class="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+                            <span class="text-xs font-bold text-amber-400">{{ $data['persentase'] }}%</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-amber-400">Lunas Sebagian</p>
+                            <p class="text-xs txt-muted">Sisa: Rp {{ number_format($sisa, 0, ',', '.') }}</p>
                         </div>
                     @elseif($isSelected)
                         <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center">
@@ -426,20 +447,23 @@
                 {{-- Info --}}
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-semibold txt-primary truncate">
-                        {{ $r->spp?->kategori ?? '-' }}
-                        @if($r->bulan)
-                            — {{ $bulanNamesRiwayat[$r->bulan] ?? '' }} {{ $r->tahun }}
+                        {{ $r->tagihan?->jenis_biaya ?? '-' }}
+                        @if($r->tagihan?->bulan)
+                            — {{ $bulanNamesRiwayat[$r->tagihan->bulan] ?? '' }} {{ $r->tagihan->tahun }}
                         @else
-                            — Tahun {{ $r->tahun }}
+                            — Tahun {{ $r->tagihan->tahun ?? '-' }}
                         @endif
                     </p>
                     <p class="text-xs txt-muted">
-                        {{ $r->tanggal_bayar?->format('d/m/Y') }}
+                        {{ $r->tanggal_bayar?->format('d/m/Y') }} · {{ $r->metode }}
+                        @if($r->petugas)
+                            · {{ $r->petugas->name }}
+                        @endif
                     </p>
                 </div>
                 {{-- Nominal --}}
                 <span class="text-sm font-bold text-emerald-400 flex-shrink-0">
-                    Rp {{ number_format($r->netto_bayar, 0, ',', '.') }}
+                    Rp {{ number_format($r->nominal, 0, ',', '.') }}
                 </span>
                 {{-- Cetak Kuitansi --}}
                 <a href="{{ route('admin.keuangan.kuitansi.cetak', ['ids' => $r->id]) }}"

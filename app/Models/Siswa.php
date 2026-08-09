@@ -58,6 +58,14 @@ class Siswa extends Model
         return $this->hasMany(PembayaranSpp::class);
     }
 
+    /**
+     * Tagihan (invoice) siswa — sistem keuangan jangka panjang.
+     */
+    public function tagihans()
+    {
+        return $this->hasMany(Tagihan::class);
+    }
+
     public function kegiatanAlumnis()
     {
         return $this->hasMany(KegiatanAlumni::class);

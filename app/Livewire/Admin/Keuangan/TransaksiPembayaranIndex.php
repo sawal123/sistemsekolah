@@ -2,9 +2,10 @@
 
 namespace App\Livewire\Admin\Keuangan;
 
-use App\Models\PembayaranSpp;
+use App\Models\Pembayaran;
 use App\Models\Siswa;
 use App\Models\Spp;
+use App\Models\Tagihan;
 use App\Models\TahunAjaran;
 use Carbon\Carbon;
 use Livewire\Attributes\Computed;
@@ -139,6 +140,11 @@ class TransaksiPembayaranIndex extends Component
             return;
         }
 
+        $siswa = Siswa::find($this->selectedSiswaId);
+        if (! $siswa) {
+            return;
+        }
+
         $jenjang = $this->selectedSiswaData['jenjang'] ?? null;
         $jurusanId = $this->selectedSiswaData['jurusan_id'] ?? null;
         $tahunAjaran = TahunAjaran::where('is_active', true)->first();
@@ -148,31 +154,28 @@ class TransaksiPembayaranIndex extends Component
             ->applicableTo($jenjang, $jurusanId)
             ->orderBy('kategori')
             ->orderByRaw('jurusan_id IS NULL')
-            ->get();
-
-        $spps = $spps->unique('kategori');
+            ->get()
+            ->unique('kategori');
 
         $matrix = [];
 
         foreach ($spps as $spp) {
             if ($spp->kategori === 'SPP Bulanan') {
-                // ── Tipe Bulanan: matriks 12 bulan
-                $pembayarans = PembayaranSpp::where('siswa_id', $this->selectedSiswaId)
-                    ->where('spp_id', $spp->id)
-                    ->where('tahun', $this->selectedTahun)
-                    ->whereNotNull('bulan')
-                    ->where('status', 'Lunas')
-                    ->get()
-                    ->keyBy('bulan');
-
+                // ── Tagihan Bulanan: generate tagihan per bulan jika belum ada
                 $bulans = [];
                 for ($b = 1; $b <= 12; $b++) {
-                    $p = $pembayarans->get($b);
+                    $jatuhTempo = Carbon::create($this->selectedTahun, $b, 10)->toDateString();
+
+                    $tagihan = Tagihan::generateDariSpp($siswa, $spp, $this->selectedTahun, $b, $jatuhTempo);
+
                     $bulans[$b] = [
-                        'lunas' => $p !== null,
-                        'id' => $p?->id,
-                        'tanggal' => $p ? Carbon::parse($p->tanggal_bayar)->format('d/m/Y') : null,
-                        'petugas' => $p?->user?->name,
+                        'tagihan_id' => $tagihan->id,
+                        'lunas' => $tagihan->status === 'Lunas',
+                        'sebagian' => $tagihan->status === 'Lunas Sebagian',
+                        'total_terbayar' => $tagihan->total_terbayar,
+                        'sisa' => $tagihan->sisa_tagihan,
+                        'persentase' => $tagihan->persentase_terbayar,
+                        'pembayaran_terakhir' => $tagihan->pembayarans()->latest()->first()?->tanggal_bayar?->format('d/m/Y'),
                     ];
                 }
 
@@ -184,21 +187,21 @@ class TransaksiPembayaranIndex extends Component
                     'bulans' => $bulans,
                 ];
             } else {
-                // ── Tipe Sekali Bayar
-                $pembayaran = PembayaranSpp::where('siswa_id', $this->selectedSiswaId)
-                    ->where('spp_id', $spp->id)
-                    ->where('tahun', $this->selectedTahun)
-                    ->where('status', 'Lunas')
-                    ->first();
+                // ── Tagihan Sekali Bayar
+                $tagihan = Tagihan::generateDariSpp($siswa, $spp, $this->selectedTahun);
 
                 $matrix[$spp->id] = [
                     'id' => $spp->id,
                     'kategori' => $spp->kategori,
                     'nominal' => (float) $spp->nominal,
                     'is_bulanan' => false,
-                    'lunas' => $pembayaran !== null,
-                    'pembayaran_id' => $pembayaran?->id,
-                    'tanggal' => $pembayaran ? Carbon::parse($pembayaran->tanggal_bayar)->format('d/m/Y') : null,
+                    'tagihan_id' => $tagihan->id,
+                    'lunas' => $tagihan->status === 'Lunas',
+                    'sebagian' => $tagihan->status === 'Lunas Sebagian',
+                    'total_terbayar' => $tagihan->total_terbayar,
+                    'sisa' => $tagihan->sisa_tagihan,
+                    'persentase' => $tagihan->persentase_terbayar,
+                    'pembayaran_terakhir' => $tagihan->pembayarans()->latest()->first()?->tanggal_bayar?->format('d/m/Y'),
                 ];
             }
         }
@@ -210,7 +213,6 @@ class TransaksiPembayaranIndex extends Component
 
     /**
      * Toggle pilih/batalkan bulan untuk dibayar.
-     * $bulan: integer (1-12) untuk SPP Bulanan, string 'sekali' untuk non-bulanan
      */
     public function toggleItem(int $sppId, $bulan): void
     {
@@ -223,14 +225,23 @@ class TransaksiPembayaranIndex extends Component
         }
 
         if ($bulan === 'sekali') {
-            // Cek belum lunas
-            if (! ($this->sppMatrix[$sppId]['lunas'] ?? false)) {
-                $this->selectedItems[$key] = ['spp_id' => $sppId, 'bulan' => null];
+            $data = $this->sppMatrix[$sppId] ?? null;
+            if ($data && ! ($data['lunas'] ?? false)) {
+                $this->selectedItems[$key] = [
+                    'spp_id' => $sppId,
+                    'bulan' => null,
+                    'tagihan_id' => $data['tagihan_id'],
+                ];
             }
         } else {
             $bulanInt = (int) $bulan;
-            if (! ($this->sppMatrix[$sppId]['bulans'][$bulanInt]['lunas'] ?? false)) {
-                $this->selectedItems[$key] = ['spp_id' => $sppId, 'bulan' => $bulanInt];
+            $data = $this->sppMatrix[$sppId]['bulans'][$bulanInt] ?? null;
+            if ($data && ! ($data['lunas'] ?? false)) {
+                $this->selectedItems[$key] = [
+                    'spp_id' => $sppId,
+                    'bulan' => $bulanInt,
+                    'tagihan_id' => $data['tagihan_id'],
+                ];
             }
         }
     }
@@ -250,6 +261,7 @@ class TransaksiPembayaranIndex extends Component
                         $this->selectedItems[$sppId.'_'.$b] = [
                             'spp_id' => (int) $sppId,
                             'bulan' => $b,
+                            'tagihan_id' => $data['bulans'][$b]['tagihan_id'],
                         ];
                     }
                 }
@@ -258,6 +270,7 @@ class TransaksiPembayaranIndex extends Component
                     $this->selectedItems[$sppId.'_sekali'] = [
                         'spp_id' => (int) $sppId,
                         'bulan' => null,
+                        'tagihan_id' => $data['tagihan_id'],
                     ];
                 }
             }
@@ -307,23 +320,19 @@ class TransaksiPembayaranIndex extends Component
         $ids = [];
 
         foreach ($this->selectedItems as $item) {
-            $spp = Spp::find($item['spp_id']);
-            if (! $spp) {
+            $tagihan = Tagihan::find($item['tagihan_id']);
+            if (! $tagihan || $tagihan->status === 'Lunas') {
                 continue;
             }
 
-            $pembayaran = PembayaranSpp::create([
-                'siswa_id' => $this->selectedSiswaId,
-                'spp_id' => $item['spp_id'],
-                'user_id' => auth()->id(),
-                'tahun' => $this->selectedTahun,
-                'bulan' => $item['bulan'],
-                'tanggal_bayar' => now(),
-                'jumlah_bayar' => $spp->nominal,
-                'potongan' => 0,
-                'status' => 'Lunas',
-                'keterangan' => null,
-            ]);
+            $spp = Spp::find($item['spp_id']);
+            $nominal = $spp?->nominal ?? $tagihan->nominal;
+
+            // Catat pembayaran penuh untuk tagihan ini
+            $pembayaran = $tagihan->bayar(
+                nominal: $nominal,
+                metode: 'Tunai',
+            );
 
             $ids[] = $pembayaran->id;
         }
@@ -366,9 +375,8 @@ class TransaksiPembayaranIndex extends Component
         // Riwayat pembayaran siswa terpilih (10 terakhir)
         $riwayat = collect();
         if ($this->selectedSiswaId) {
-            $riwayat = PembayaranSpp::with(['spp'])
-                ->where('siswa_id', $this->selectedSiswaId)
-                ->where('status', 'Lunas')
+            $riwayat = Pembayaran::with('tagihan')
+                ->whereHas('tagihan', fn ($q) => $q->where('siswa_id', $this->selectedSiswaId))
                 ->latest('tanggal_bayar')
                 ->limit(10)
                 ->get();

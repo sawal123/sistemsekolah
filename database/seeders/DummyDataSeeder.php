@@ -42,18 +42,27 @@ class DummyDataSeeder extends Seeder
         TahunAjaran::create([
             'tahun' => '2025/2026',
             'semester' => 'Ganjil',
+            'tanggal_mulai' => '2025-07-14',
+            'tanggal_selesai' => '2025-12-20',
+            'status' => 'Ditutup',
             'is_active' => false,
         ]);
 
         $ta = TahunAjaran::create([
             'tahun' => '2025/2026',
             'semester' => 'Genap',
+            'tanggal_mulai' => '2026-01-05',
+            'tanggal_selesai' => '2026-06-20',
+            'status' => 'Aktif',
             'is_active' => true,
         ]);
 
         $taBerikutnya = TahunAjaran::create([
             'tahun' => '2026/2027',
             'semester' => 'Ganjil',
+            'tanggal_mulai' => '2026-07-13',
+            'tanggal_selesai' => '2026-12-19',
+            'status' => 'Draft',
             'is_active' => false,
         ]);
 

@@ -39,6 +39,14 @@ class Spp extends Model
         return $this->hasMany(PembayaranSpp::class);
     }
 
+    /**
+     * Tagihan yang dihasilkan dari template SPP ini.
+     */
+    public function tagihans()
+    {
+        return $this->hasMany(Tagihan::class);
+    }
+
     // ── Scopes ────────────────────────────────────────────────
 
     public function scopeForJenjang($query, string $jenjang)

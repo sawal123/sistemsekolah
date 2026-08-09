@@ -41,15 +41,21 @@
                                 <span class="txt-primary">{{ $item->semester }}</span>
                             </td>
                             <td class="px-6 py-4 text-center">
-                                @if($item->is_active)
-                                    <x-ui.badge variant="success">Aktif</x-ui.badge>
-                                @else
-                                    <x-ui.badge variant="secondary">Tidak Aktif</x-ui.badge>
-                                @endif
+                                @php
+                                    $statusColors = [
+                                        'Draft' => 'secondary',
+                                        'Aktif' => 'success',
+                                        'Ditutup' => 'warning',
+                                        'Diarsipkan' => 'secondary',
+                                    ];
+                                @endphp
+                                <x-ui.badge variant="{{ $statusColors[$item->status] ?? 'secondary' }}">
+                                    {{ $item->status }}
+                                </x-ui.badge>
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <div class="flex items-center justify-end gap-2">
-                                    @if(!$item->is_active)
+                                    @if($item->status !== 'Aktif')
                                         <button wire:click="toggleStatus({{ $item->id }})" 
                                             class="p-2 rounded-lg hover:bg-emerald-500/10 text-emerald-500 transition-all cursor-pointer" 
                                             title="Set Aktif">
@@ -67,13 +73,15 @@
                                         </svg>
                                     </button>
                                     
-                                    <button wire:click="confirmDelete({{ $item->id }})" 
-                                        class="p-2 rounded-lg hover:bg-red-500/10 text-red-500 transition-all cursor-pointer" 
-                                        title="Hapus">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </button>
+                                    @if($item->status === 'Draft')
+                                        <button wire:click="confirmDelete({{ $item->id }})" 
+                                            class="p-2 rounded-lg hover:bg-red-500/10 text-red-500 transition-all cursor-pointer" 
+                                            title="Hapus">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -119,6 +127,26 @@
                     />
                 </div>
 
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <x-ui.label for="tanggal_mulai" value="Tanggal Mulai" class="mb-2 txt-secondary" />
+                        <x-ui.input wire:model="tanggal_mulai" id="tanggal_mulai" type="date" class="w-full" />
+                    </div>
+                    <div>
+                        <x-ui.label for="tanggal_selesai" value="Tanggal Selesai" class="mb-2 txt-secondary" />
+                        <x-ui.input wire:model="tanggal_selesai" id="tanggal_selesai" type="date" class="w-full" />
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <x-ui.select 
+                        label="Status" 
+                        wire:model="status" 
+                        :options="['Draft', 'Aktif', 'Ditutup', 'Diarsipkan']" 
+                        placeholder="Pilih Status"
+                    />
+                </div>
+
                 <div class="flex items-center gap-3 bg-indigo-500/[0.03] dark:bg-indigo-500/5 p-4 rounded-xl border border-indigo-500/10 mb-8">
                     <input wire:model="is_active" type="checkbox" id="is_active" class="w-5 h-5 rounded border-indigo-500/30 text-indigo-600 focus:ring-indigo-500 bg-white/50 dark:bg-white/10 cursor-pointer" />
                     <x-ui.label for="is_active" value="Set sebagai semester aktif" class="cursor-pointer txt-primary" />
@@ -140,7 +168,27 @@
     <x-ui.confirm-modal 
         name="confirm-delete-modal" 
         title="Hapus Tahun Ajaran"
-        message="Apakah Anda yakin ingin menghapus data tahun ajaran ini? Seluruh data yang terkait mungkin akan terpengaruh."
+        message="Apakah Anda yakin ingin menghapus tahun ajaran ini? Hanya tahun ajaran dengan status 'Draft' yang dapat dihapus. Data yang sudah memiliki transaksi nilai, rapor, atau SPP tidak akan terpengaruh karena sudah dicegah oleh sistem."
         onConfirm="delete"
     />
+
+    {{-- Cannot Delete Modal --}}
+    <x-ui.modal name="cannot-delete-modal" maxWidth="md">
+        <div class="py-2">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold txt-primary">Tidak Dapat Dihapus</h3>
+            </div>
+            <p class="text-sm txt-muted mb-6">{{ $deleteErrorMessage }}</p>
+            <div class="flex justify-end">
+                <x-ui.button wire:click="closeModal" variant="secondary">
+                    Mengerti
+                </x-ui.button>
+            </div>
+        </div>
+    </x-ui.modal>
 </div>

@@ -157,7 +157,7 @@ class DataKelasIndex extends Component
         $this->deleteClassName = $kelas->nama_kelas;
         $this->deleteStudentCount = $kelas->siswas_count;
         $this->deleteMessage = $kelas->siswas_count > 0
-            ? "Kelas {$kelas->nama_kelas} berisi {$kelas->siswas_count} siswa. Jika dilanjutkan, kelas dan seluruh siswa tersebut akan dinonaktifkan (soft delete) dan tidak tampil lagi. Akun login siswa juga dinonaktifkan. Riwayat nilai dan pembayaran tetap tersimpan."
+            ? "Kelas {$kelas->nama_kelas} berisi {$kelas->siswas_count} siswa. Jika dilanjutkan, kelas akan dihapus (soft delete) dan siswa akan dikeluarkan dari kelas ini. Akun siswa tetap aktif dan data historis (nilai, rapor, pembayaran) tetap tersimpan. Siswa dapat dimasukkan ke kelas lain melalui menu Data Siswa."
             : "Kelas {$kelas->nama_kelas} tidak memiliki siswa. Kelas akan dinonaktifkan menggunakan soft delete dan tetap tersimpan di database.";
 
         $this->dispatch('open-modal', 'confirm-delete-modal');
@@ -169,15 +169,35 @@ class DataKelasIndex extends Component
             return;
         }
 
-        $kelas = Kelas::with(['siswas.user'])->findOrFail($this->deleteId);
+        $kelas = Kelas::with(['siswas'])->findOrFail($this->deleteId);
         $studentCount = $kelas->siswas->count();
+        $tahunAjaranAktif = TahunAjaran::where('is_active', true)->first();
 
-        DB::transaction(function () use ($kelas) {
-            foreach ($kelas->siswas as $siswa) {
-                $siswa->user?->update(['is_active' => false]);
-                $siswa->delete();
+        DB::transaction(function () use ($kelas, $tahunAjaranAktif) {
+            // 1. Keluarkan semua siswa dari kelas ini (set kelas_id = null)
+            if ($kelas->siswas->isNotEmpty()) {
+                Siswa::where('kelas_id', $kelas->id)->update(['kelas_id' => null]);
+
+                // 2. Hapus keanggotaan siswa dari rombel aktif tahun ajaran ini
+                if ($tahunAjaranAktif) {
+                    $rombelIds = Rombel::where('kelas_id', $kelas->id)
+                        ->where('tahun_ajaran_id', $tahunAjaranAktif->id)
+                        ->pluck('id');
+
+                    if ($rombelIds->isNotEmpty()) {
+                        AnggotaRombel::whereIn('rombel_id', $rombelIds)->delete();
+                    }
+                }
             }
 
+            // 3. Tutup rombel aktif untuk kelas ini (jika ada)
+            if ($tahunAjaranAktif) {
+                Rombel::where('kelas_id', $kelas->id)
+                    ->where('tahun_ajaran_id', $tahunAjaranAktif->id)
+                    ->update(['status' => 'Ditutup']);
+            }
+
+            // 4. Hapus wali kelas, lalu soft-delete kelas
             $kelas->update(['wali_kelas_id' => null]);
             $kelas->delete();
         });
@@ -186,7 +206,7 @@ class DataKelasIndex extends Component
         $this->dispatch('notify', [
             'type' => 'success',
             'message' => $studentCount > 0
-                ? "Kelas dan {$studentCount} siswa berhasil dinonaktifkan. Data historis tetap tersimpan."
+                ? "Kelas berhasil dihapus. {$studentCount} siswa dikeluarkan dari kelas — akun tetap aktif. Data historis tetap tersimpan."
                 : 'Kelas berhasil dinonaktifkan. Data tetap tersimpan.',
         ]);
     }

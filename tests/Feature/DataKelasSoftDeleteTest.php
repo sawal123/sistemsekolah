@@ -27,10 +27,10 @@ class DataKelasSoftDeleteTest extends TestCase
             ->assertSet('deleteClassName', 'X RPL 1')
             ->assertSet('deleteMessage', fn ($message) => str_contains($message, '1 siswa')
                 && str_contains($message, 'soft delete')
-                && str_contains($message, 'Riwayat nilai dan pembayaran tetap tersimpan'));
+                && str_contains($message, 'data historis'));
     }
 
-    public function test_deleting_class_soft_deletes_class_and_students_and_disables_accounts(): void
+    public function test_deleting_class_only_soft_deletes_class_not_students(): void
     {
         [$kelas, $siswa, $user] = $this->createClassWithStudent();
 
@@ -38,19 +38,24 @@ class DataKelasSoftDeleteTest extends TestCase
             ->call('confirmDelete', $kelas->id)
             ->call('delete');
 
+        // Kelas di-soft-delete
         $this->assertSoftDeleted('kelas', ['id' => $kelas->id]);
-        $this->assertSoftDeleted('siswas', ['id' => $siswa->id]);
-        $this->assertDatabaseHas('users', ['id' => $user->id, 'is_active' => false]);
         $this->assertNotNull(Kelas::withTrashed()->find($kelas->id));
-        $this->assertNotNull(Siswa::withTrashed()->find($siswa->id));
+
+        // Siswa TIDAK dihapus — hanya dikeluarkan dari kelas
+        $this->assertDatabaseHas('siswas', ['id' => $siswa->id, 'deleted_at' => null, 'kelas_id' => null]);
+
+        // Akun user siswa tetap aktif
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'is_active' => true]);
     }
 
-    public function test_payment_history_still_resolves_soft_deleted_student(): void
+    public function test_payment_history_still_resolves_after_class_deletion(): void
     {
-        [$kelas, $siswa] = $this->createClassWithStudent();
+        [$kelas, $siswa, $user] = $this->createClassWithStudent();
         $tahunAjaran = TahunAjaran::create([
             'tahun' => '2026/2027',
             'semester' => 'Ganjil',
+            'status' => 'Aktif',
             'is_active' => true,
         ]);
         $spp = Spp::create([
@@ -76,8 +81,10 @@ class DataKelasSoftDeleteTest extends TestCase
             ->call('confirmDelete', $kelas->id)
             ->call('delete');
 
+        // Siswa tetap aktif (tidak di-soft-delete), histori pembayaran tetap bisa diakses
         $this->assertSame($siswa->id, $payment->fresh()->siswa->id);
         $this->assertSame('Siswa Soft Delete', $payment->fresh()->siswa->user->name);
+        $this->assertTrue($payment->fresh()->siswa->user->is_active);
     }
 
     private function createClassWithStudent(): array

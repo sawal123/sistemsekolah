@@ -215,6 +215,8 @@
                                     'Lengkap' => 'bg-emerald-500/10 text-emerald-500',
                                     'Diterima' => 'bg-blue-500/10 text-blue-500',
                                     'Ditolak' => 'bg-red-500/10 text-red-500',
+                                    'Daftar Ulang' => 'bg-purple-500/10 text-purple-500',
+                                    'Aktif' => 'bg-green-500/10 text-green-500',
                                 ];
                                 $files = [
                                     'Ijazah/SKL' => $item->ijazah_skl,
@@ -279,6 +281,16 @@
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex items-center justify-end gap-2">
+                                        @if($item->status === 'Diterima')
+                                            <button wire:click="konversiKeSiswa({{ $item->id }})" 
+                                                wire:confirm="Konversi {{ $item->nama_lengkap }} menjadi siswa aktif? Pastikan data sudah lengkap dan benar."
+                                                class="p-2 rounded-lg hover:bg-emerald-500/10 text-emerald-500 transition-all cursor-pointer" 
+                                                title="Konversi ke Siswa">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </button>
+                                        @endif
                                         <button wire:click="edit({{ $item->id }})" class="p-2 rounded-lg hover:bg-indigo-500/10 text-indigo-500 transition-all cursor-pointer" title="Edit">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />

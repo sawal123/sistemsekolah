@@ -6,10 +6,15 @@ use App\Models\Jurusan;
 use App\Models\PendaftaranMuridBaru;
 use App\Models\PpdbGelombang;
 use App\Models\PpdbGelombangRiwayat;
+use App\Models\Siswa;
+use App\Models\TahunAjaran;
+use App\Models\User;
 use App\Services\AddressGeocodingService;
 use App\Services\PpdbDocumentExtractionService;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
@@ -628,7 +633,7 @@ class PendaftaranMuridBaruIndex extends Component
             'sekolah_pilihan_2' => 'nullable|string|max:150',
             'jurusan_pilihan_2' => 'nullable|string|max:100',
             'document_upload_mode' => 'required|in:terpisah',
-            'status' => 'required|in:Baru,Diperiksa,Lengkap,Diterima,Ditolak',
+            'status' => 'required|in:Baru,Diperiksa,Lengkap,Diterima,Ditolak,Daftar Ulang,Aktif',
             'catatan' => 'nullable|string|max:1000',
             'ijazah_skl' => 'nullable|file|mimes:pdf,jpg,jpeg|max:5120',
             'kartu_keluarga' => 'nullable|file|mimes:pdf,jpg,jpeg|max:5120',
@@ -898,6 +903,104 @@ class PendaftaranMuridBaruIndex extends Component
             'Lengkap' => 'Lengkap',
             'Diterima' => 'Diterima',
             'Ditolak' => 'Ditolak',
+            'Daftar Ulang' => 'Daftar Ulang',
+            'Aktif' => 'Aktif',
         ];
+    }
+
+    /**
+     * Konversi pendaftar PPDB berstatus "Diterima" menjadi Siswa aktif.
+     * Membuat User, Siswa, dan memasukkan ke Rombel tahun ajaran aktif.
+     */
+    public function konversiKeSiswa(int $id): void
+    {
+        $ppdb = PendaftaranMuridBaru::with('gelombang')->findOrFail($id);
+
+        if ($ppdb->status !== 'Diterima') {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Hanya pendaftar dengan status "Diterima" yang dapat dikonversi menjadi siswa.',
+            ]);
+
+            return;
+        }
+
+        // Cek apakah NISN sudah terdaftar sebagai siswa
+        if ($ppdb->nisn && Siswa::where('nisn', $ppdb->nisn)->exists()) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => "NISN {$ppdb->nisn} sudah terdaftar sebagai siswa aktif.",
+            ]);
+
+            return;
+        }
+
+        $tahunAjaranAktif = TahunAjaran::where('is_active', true)->first();
+
+        DB::transaction(function () use ($ppdb, $tahunAjaranAktif) {
+            // 1. Generate NIS jika belum ada
+            $nis = $ppdb->nisn;
+            if (! $nis) {
+                $lastNis = Siswa::whereNotNull('nis')
+                    ->where('nis', 'like', now()->format('Y').'%')
+                    ->orderBy('nis', 'desc')
+                    ->value('nis');
+                $nis = $lastNis
+                    ? (string) ((int) $lastNis + 1)
+                    : now()->format('Y').'001';
+            }
+
+            // 2. Buat User
+            $email = $ppdb->email ?: $nis.'@sekolah.sch.id';
+            $password = $ppdb->tanggal_lahir
+                ? Carbon::parse($ppdb->tanggal_lahir)->format('dmY')
+                : 'siswa123';
+
+            $user = User::firstOrCreate(
+                ['email' => $email],
+                [
+                    'name' => $ppdb->nama_lengkap,
+                    'password' => Hash::make($password),
+                ]
+            );
+
+            if (! $user->hasRole('siswa')) {
+                $user->assignRole('siswa');
+            }
+
+            // 3. Buat Siswa
+            $jenjang = $ppdb->jenjang_pilihan ?: 'SMP';
+            $jurusanId = $ppdb->jurusan_id;
+
+            $siswa = Siswa::updateOrCreate(
+                ['nisn' => $ppdb->nisn ?: $nis],
+                [
+                    'user_id' => $user->id,
+                    'nis' => $nis,
+                    'jenjang' => $jenjang,
+                    'jurusan_id' => $jurusanId,
+                    'kelas_id' => null, // Akan diisi jika ada rombel tujuan
+                    'tempat_lahir' => $ppdb->tempat_lahir,
+                    'tanggal_lahir' => $ppdb->tanggal_lahir,
+                    'agama' => $ppdb->agama,
+                    'jenis_kelamin' => $ppdb->jenis_kelamin,
+                    'alamat' => $ppdb->alamat,
+                    'nama_ayah' => $ppdb->nama_ayah,
+                    'nama_ibu' => $ppdb->nama_ibu,
+                    'pekerjaan_ayah' => $ppdb->pekerjaan_ayah,
+                    'pekerjaan_ibu' => $ppdb->pekerjaan_ibu,
+                    'no_telp_ortu' => $ppdb->no_telp_ortu,
+                    'status' => 'Aktif',
+                ]
+            );
+
+            // 4. Update status PPDB
+            $ppdb->update(['status' => 'Aktif']);
+        });
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "{$ppdb->nama_lengkap} berhasil dikonversi menjadi siswa aktif. Silakan tempatkan ke kelas melalui menu Data Siswa.",
+        ]);
     }
 }
