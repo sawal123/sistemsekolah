@@ -104,7 +104,7 @@ class Siswa extends Model
 
         return $this->anggotaRombels()
             ->with('rombel.kelas')
-            ->whereHas('rombel', fn ($q) => $q->where('tahun_ajaran_id', $tahunAjaranId))
+            ->whereHas('rombel', fn($q) => $q->where('tahun_ajaran_id', $tahunAjaranId))
             ->latest('id')
             ->first()
             ?->rombel;

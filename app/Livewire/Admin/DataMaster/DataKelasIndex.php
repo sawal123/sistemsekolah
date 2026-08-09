@@ -98,7 +98,7 @@ class DataKelasIndex extends Component
         if ($tahunAjaranAktif && $this->wali_kelas_id) {
             $waliDipakai = Rombel::where('tahun_ajaran_id', $tahunAjaranAktif->id)
                 ->where('wali_kelas_id', $this->wali_kelas_id)
-                ->when($this->editId, fn ($q) => $q->where('kelas_id', '!=', $this->editId))
+                ->when($this->editId, fn($q) => $q->where('kelas_id', '!=', $this->editId))
                 ->exists();
 
             if ($waliDipakai) {
@@ -225,7 +225,7 @@ class DataKelasIndex extends Component
 
         if ($tahunAjaranAktif) {
             AnggotaRombel::where('siswa_id', $siswa->id)
-                ->whereHas('rombel', fn ($q) => $q->where('tahun_ajaran_id', $tahunAjaranAktif->id))
+                ->whereHas('rombel', fn($q) => $q->where('tahun_ajaran_id', $tahunAjaranAktif->id))
                 ->delete();
         }
 
@@ -242,7 +242,7 @@ class DataKelasIndex extends Component
         $query = Kelas::with(['wali_kelas.user', 'jurusan'])
             ->withCount('siswas')
             ->when($this->search, function ($q) {
-                $q->where('nama_kelas', 'like', '%'.$this->search.'%');
+                $q->where('nama_kelas', 'like', '%' . $this->search . '%');
             })
             ->when($this->filterJenjang, function ($q) {
                 $q->where('jenjang', $this->filterJenjang);
@@ -253,12 +253,12 @@ class DataKelasIndex extends Component
         // Get teachers for dropdown with "Already Wali" check
         $gurus = Guru::with(['user', 'rombels' => function ($q) use ($tahunAjaranAktif) {
             $q->with('kelas')
-                ->when($tahunAjaranAktif, fn ($query) => $query->where('tahun_ajaran_id', $tahunAjaranAktif->id));
+                ->when($tahunAjaranAktif, fn($query) => $query->where('tahun_ajaran_id', $tahunAjaranAktif->id));
         }])->get()->mapWithKeys(function ($guru) {
             $label = $guru->user->name;
             $rombelAktif = $guru->rombels->first();
             if ($rombelAktif?->kelas && $rombelAktif->kelas->id != $this->editId) {
-                $label .= ' (Sudah Wali Kelas: '.$rombelAktif->kelas->nama_kelas.')';
+                $label .= ' (Sudah Wali Kelas: ' . $rombelAktif->kelas->nama_kelas . ')';
             }
 
             return [$guru->id => $label];

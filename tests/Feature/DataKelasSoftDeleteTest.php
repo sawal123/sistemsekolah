@@ -25,7 +25,7 @@ class DataKelasSoftDeleteTest extends TestCase
             ->call('confirmDelete', $kelas->id)
             ->assertSet('deleteStudentCount', 1)
             ->assertSet('deleteClassName', 'X RPL 1')
-            ->assertSet('deleteMessage', fn ($message) => str_contains($message, '1 siswa')
+            ->assertSet('deleteMessage', fn($message) => str_contains($message, '1 siswa')
                 && str_contains($message, 'soft delete')
                 && str_contains($message, 'data historis'));
     }

@@ -74,7 +74,7 @@ class Spp extends Model
     public function scopeApplicableTo($query, string $jenjang, ?int $jurusanId = null)
     {
         return $query
-            ->where(fn ($q) => $q->where('jenjang', $jenjang)->orWhere('jenjang', 'Semua'))
+            ->where(fn($q) => $q->where('jenjang', $jenjang)->orWhere('jenjang', 'Semua'))
             ->where(function ($q) use ($jenjang, $jurusanId) {
                 if ($jenjang === 'SMK' && $jurusanId) {
                     $q->whereNull('jurusan_id')->orWhere('jurusan_id', $jurusanId);

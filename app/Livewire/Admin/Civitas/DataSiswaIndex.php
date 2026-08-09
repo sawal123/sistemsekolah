@@ -114,9 +114,26 @@ class DataSiswaIndex extends Component
     {
         $this->resetValidation();
         $this->reset([
-            'editId', 'name', 'email', 'password', 'nisn', 'nis', 'jenjang', 'kelas_id',
-            'tempat_lahir', 'tanggal_lahir', 'agama', 'alamat', 'foto', 'existingFoto',
-            'nama_ayah', 'nama_ibu', 'pekerjaan_ayah', 'pekerjaan_ibu', 'no_telp_ortu', 'status',
+            'editId',
+            'name',
+            'email',
+            'password',
+            'nisn',
+            'nis',
+            'jenjang',
+            'kelas_id',
+            'tempat_lahir',
+            'tanggal_lahir',
+            'agama',
+            'alamat',
+            'foto',
+            'existingFoto',
+            'nama_ayah',
+            'nama_ibu',
+            'pekerjaan_ayah',
+            'pekerjaan_ibu',
+            'no_telp_ortu',
+            'status',
         ]);
         $this->foto = null; // Explicitly clear file instance
         $this->isModalOpen = true;
@@ -142,7 +159,7 @@ class DataSiswaIndex extends Component
         $settings = Setting::pluck('value', 'key')->toArray();
 
         // Use storage_path for absolute internal path to file
-        $logoPath = storage_path('app/public/'.($settings['app_logo'] ?? 'branding/logo.png'));
+        $logoPath = storage_path('app/public/' . ($settings['app_logo'] ?? 'branding/logo.png'));
 
         // Safety check if logo doesn't exist
         $logo = file_exists($logoPath) ? $logoPath : null;
@@ -155,16 +172,16 @@ class DataSiswaIndex extends Component
 
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();
-        }, 'Profil-Siswa-'.$siswa->nis.'.pdf');
+        }, 'Profil-Siswa-' . $siswa->nis . '.pdf');
     }
 
     public function save()
     {
         $this->validate([
             'name' => 'required|string|max:255',
-            'email' => 'nullable|email|unique:users,email,'.($this->editId ? Siswa::find($this->editId)->user_id : ''),
-            'nisn' => 'required|string|unique:siswas,nisn,'.$this->editId,
-            'nis' => 'required|string|unique:siswas,nis,'.$this->editId,
+            'email' => 'nullable|email|unique:users,email,' . ($this->editId ? Siswa::find($this->editId)->user_id : ''),
+            'nisn' => 'required|string|unique:siswas,nisn,' . $this->editId,
+            'nis' => 'required|string|unique:siswas,nis,' . $this->editId,
             'jenjang' => 'required|in:SMP,SMA,SMK',
             'kelas_id' => 'required|exists:kelas,id',
             'status' => 'required|in:Aktif,Lulus,Pindah,Dikeluarkan',
@@ -182,7 +199,7 @@ class DataSiswaIndex extends Component
         // 1. Process User Account
         $finalEmail = $this->email;
         if (! $finalEmail) {
-            $finalEmail = $this->nis.'@sekolah.sch.id';
+            $finalEmail = $this->nis . '@sekolah.sch.id';
         }
 
         $finalPassword = $this->password;
@@ -269,7 +286,7 @@ class DataSiswaIndex extends Component
                 );
 
                 AnggotaRombel::where('siswa_id', $siswa->id)
-                    ->whereHas('rombel', fn ($q) => $q->where('tahun_ajaran_id', $tahunAjaranAktif->id))
+                    ->whereHas('rombel', fn($q) => $q->where('tahun_ajaran_id', $tahunAjaranAktif->id))
                     ->where('rombel_id', '!=', $rombel->id)
                     ->delete();
 
@@ -349,10 +366,10 @@ class DataSiswaIndex extends Component
     {
         $query = Siswa::with(['user', 'kelas', 'jurusan'])
             ->when($this->search, function ($q) {
-                $q->where('nis', 'like', '%'.$this->search.'%')
-                    ->orWhere('nisn', 'like', '%'.$this->search.'%')
+                $q->where('nis', 'like', '%' . $this->search . '%')
+                    ->orWhere('nisn', 'like', '%' . $this->search . '%')
                     ->orWhereHas('user', function ($qu) {
-                        $qu->where('name', 'like', '%'.$this->search.'%');
+                        $qu->where('name', 'like', '%' . $this->search . '%');
                     });
             })
             ->when($this->filterJenjang, function ($q) {

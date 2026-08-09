@@ -67,13 +67,13 @@ class TransaksiPembayaranIndex extends Component
         return Siswa::with(['kelas', 'user', 'jurusan'])
             ->where('status', 'Aktif')
             ->where(function ($q) {
-                $q->where('nisn', 'like', '%'.$this->searchQuery.'%')
-                    ->orWhere('nis', 'like', '%'.$this->searchQuery.'%')
-                    ->orWhereHas('user', fn ($uq) => $uq->where('name', 'like', '%'.$this->searchQuery.'%'));
+                $q->where('nisn', 'like', '%' . $this->searchQuery . '%')
+                    ->orWhere('nis', 'like', '%' . $this->searchQuery . '%')
+                    ->orWhereHas('user', fn($uq) => $uq->where('name', 'like', '%' . $this->searchQuery . '%'));
             })
             ->limit(8)
             ->get()
-            ->map(fn ($s) => [
+            ->map(fn($s) => [
                 'id' => $s->id,
                 'nama' => $s->user?->name ?? '-',
                 'nisn' => $s->nisn,
@@ -149,7 +149,7 @@ class TransaksiPembayaranIndex extends Component
         $jurusanId = $this->selectedSiswaData['jurusan_id'] ?? null;
         $tahunAjaran = TahunAjaran::where('is_active', true)->first();
 
-        $spps = Spp::when($tahunAjaran, fn ($q) => $q->where('tahun_ajaran_id', $tahunAjaran->id))
+        $spps = Spp::when($tahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaran->id))
             ->active()
             ->applicableTo($jenjang, $jurusanId)
             ->orderBy('kategori')
@@ -216,7 +216,7 @@ class TransaksiPembayaranIndex extends Component
      */
     public function toggleItem(int $sppId, $bulan): void
     {
-        $key = $sppId.'_'.$bulan;
+        $key = $sppId . '_' . $bulan;
 
         if (isset($this->selectedItems[$key])) {
             unset($this->selectedItems[$key]);
@@ -258,7 +258,7 @@ class TransaksiPembayaranIndex extends Component
             if ($data['is_bulanan']) {
                 for ($b = 1; $b <= $currentMonth; $b++) {
                     if (! $data['bulans'][$b]['lunas']) {
-                        $this->selectedItems[$sppId.'_'.$b] = [
+                        $this->selectedItems[$sppId . '_' . $b] = [
                             'spp_id' => (int) $sppId,
                             'bulan' => $b,
                             'tagihan_id' => $data['bulans'][$b]['tagihan_id'],
@@ -267,7 +267,7 @@ class TransaksiPembayaranIndex extends Component
                 }
             } else {
                 if (! $data['lunas']) {
-                    $this->selectedItems[$sppId.'_sekali'] = [
+                    $this->selectedItems[$sppId . '_sekali'] = [
                         'spp_id' => (int) $sppId,
                         'bulan' => null,
                         'tagihan_id' => $data['tagihan_id'],
@@ -281,7 +281,7 @@ class TransaksiPembayaranIndex extends Component
         } else {
             $this->dispatch('notify', [
                 'type' => 'info',
-                'message' => count($this->selectedItems).' item tunggakan dipilih.',
+                'message' => count($this->selectedItems) . ' item tunggakan dipilih.',
             ]);
         }
     }
@@ -345,7 +345,7 @@ class TransaksiPembayaranIndex extends Component
 
         $this->dispatch('notify', [
             'type' => 'success',
-            'message' => count($ids).' tagihan berhasil dicatat! 🎉',
+            'message' => count($ids) . ' tagihan berhasil dicatat! 🎉',
         ]);
     }
 
@@ -376,7 +376,7 @@ class TransaksiPembayaranIndex extends Component
         $riwayat = collect();
         if ($this->selectedSiswaId) {
             $riwayat = Pembayaran::with('tagihan')
-                ->whereHas('tagihan', fn ($q) => $q->where('siswa_id', $this->selectedSiswaId))
+                ->whereHas('tagihan', fn($q) => $q->where('siswa_id', $this->selectedSiswaId))
                 ->latest('tanggal_bayar')
                 ->limit(10)
                 ->get();

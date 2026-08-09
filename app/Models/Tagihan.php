@@ -61,10 +61,18 @@ class Tagihan extends Model
         }
 
         $bulanNames = [
-            1 => 'Januari', 2 => 'Februari', 3 => 'Maret',
-            4 => 'April',   5 => 'Mei',      6 => 'Juni',
-            7 => 'Juli',    8 => 'Agustus',  9 => 'September',
-            10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+            1 => 'Januari',
+            2 => 'Februari',
+            3 => 'Maret',
+            4 => 'April',
+            5 => 'Mei',
+            6 => 'Juni',
+            7 => 'Juli',
+            8 => 'Agustus',
+            9 => 'September',
+            10 => 'Oktober',
+            11 => 'November',
+            12 => 'Desember',
         ];
 
         return $bulanNames[$this->bulan] ?? '-';
@@ -128,7 +136,7 @@ class Tagihan extends Model
         $existing = static::where('siswa_id', $siswa->id)
             ->where('spp_id', $spp->id)
             ->where('tahun', $tahun)
-            ->when($bulan, fn ($q) => $q->where('bulan', $bulan))
+            ->when($bulan, fn($q) => $q->where('bulan', $bulan))
             ->first();
 
         if ($existing) {

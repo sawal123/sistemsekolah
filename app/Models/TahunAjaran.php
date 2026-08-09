@@ -28,10 +28,22 @@ class TahunAjaran extends Model
         return $this->canBeDeleted();
     }
 
-    public function nilais() { return $this->hasMany(Nilai::class); }
-    public function rapors() { return $this->hasMany(Rapor::class); }
-    public function spps() { return $this->hasMany(Spp::class); }
-    public function rombels() { return $this->hasMany(Rombel::class); }
+    public function nilais()
+    {
+        return $this->hasMany(Nilai::class);
+    }
+    public function rapors()
+    {
+        return $this->hasMany(Rapor::class);
+    }
+    public function spps()
+    {
+        return $this->hasMany(Spp::class);
+    }
+    public function rombels()
+    {
+        return $this->hasMany(Rombel::class);
+    }
 
     public static function forDate($date): ?self
     {
@@ -50,8 +62,8 @@ class TahunAjaran extends Model
 
         // Fallback ke logika semester-based
         $tahun = $date->month >= 7
-            ? $date->year.'/'.($date->year + 1)
-            : ($date->year - 1).'/'.$date->year;
+            ? $date->year . '/' . ($date->year + 1)
+            : ($date->year - 1) . '/' . $date->year;
         $semester = $date->month >= 7 ? 'Ganjil' : 'Genap';
 
         return static::where('tahun', $tahun)

@@ -25,24 +25,26 @@ class LandingPagesTest extends TestCase
 
     public function test_public_landing_pages_are_accessible(): void
     {
-        foreach ([
-            '/tentang',
-            '/akademik/ipa',
-            '/akademik/ips',
-            '/akademik/bahasa',
-            '/akademik/kurikulum',
-            '/kepegawaian/guru',
-            '/kepegawaian/tata-usaha',
-            '/kepegawaian/struktur-organisasi',
-            '/fasilitas-sekolah',
-            '/blog',
-            '/ppdb',
-            '/ppdb/syarat',
-            '/ppdb/jalur',
-            '/ppdb/biaya',
-            '/ppdb/daftar',
-            '/kontak',
-        ] as $uri) {
+        foreach (
+            [
+                '/tentang',
+                '/akademik/ipa',
+                '/akademik/ips',
+                '/akademik/bahasa',
+                '/akademik/kurikulum',
+                '/kepegawaian/guru',
+                '/kepegawaian/tata-usaha',
+                '/kepegawaian/struktur-organisasi',
+                '/fasilitas-sekolah',
+                '/blog',
+                '/ppdb',
+                '/ppdb/syarat',
+                '/ppdb/jalur',
+                '/ppdb/biaya',
+                '/ppdb/daftar',
+                '/kontak',
+            ] as $uri
+        ) {
             $this->get($uri)->assertOk();
         }
     }

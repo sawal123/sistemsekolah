@@ -340,11 +340,13 @@ class DummyDataSeeder extends Seeder
             'keterangan' => 'Uang Bangunan Tahunan — Satu kali bayar per tahun ajaran',
         ]);
 
-        foreach ([
-            [$jurusanRpl, 600000],
-            [$jurusanTkj, 625000],
-            [$jurusanAkl, 540000],
-        ] as [$jurusan, $nominal]) {
+        foreach (
+            [
+                [$jurusanRpl, 600000],
+                [$jurusanTkj, 625000],
+                [$jurusanAkl, 540000],
+            ] as [$jurusan, $nominal]
+        ) {
             Spp::create([
                 'tahun_ajaran_id' => $taBerikutnya->id,
                 'jenjang' => 'SMK',
