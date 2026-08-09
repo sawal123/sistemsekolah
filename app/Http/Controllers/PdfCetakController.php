@@ -26,9 +26,14 @@ class PdfCetakController extends Controller
             ->with('kelas.wali_kelas.user')
             ->first();
 
-        $kelasRapor = $rapor?->kelas ?? $siswa->kelasPadaTahunAjaran($taId) ?? $siswa->kelas;
+        $rombelRapor = $siswa->rombelPadaTahunAjaran($taId);
+        $kelasRapor = $rapor?->kelas ?? $rombelRapor?->kelas ?? $siswa->kelas;
         if ($kelasRapor) {
             $kelasRapor->loadMissing('wali_kelas.user');
+            if ($rombelRapor?->waliKelas) {
+                $rombelRapor->waliKelas->loadMissing('user');
+                $kelasRapor->setRelation('wali_kelas', $rombelRapor->waliKelas);
+            }
             $siswa->setRelation('kelas', $kelasRapor);
         }
 
@@ -86,6 +91,13 @@ class PdfCetakController extends Controller
     {
         $kelas = \App\Models\Kelas::with('wali_kelas.user')->findOrFail($kelasId);
         $tahunAjaranId = TahunAjaran::forDate(\Carbon\Carbon::createFromDate($tahun, $bulan, 1))?->id;
+        $rombel = \App\Models\Rombel::with('waliKelas.user')
+            ->where('kelas_id', $kelasId)
+            ->when($tahunAjaranId, fn ($query) => $query->where('tahun_ajaran_id', $tahunAjaranId))
+            ->first();
+        if ($rombel?->waliKelas) {
+            $kelas->setRelation('wali_kelas', $rombel->waliKelas);
+        }
         $siswas = \App\Models\Siswa::with('user')
             ->inKelasPadaTahunAjaran($kelasId, $tahunAjaranId)
             ->get()

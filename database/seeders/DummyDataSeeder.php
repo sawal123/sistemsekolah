@@ -10,12 +10,13 @@ use App\Models\Jurusan;
 use App\Models\KalenderAkademik;
 use App\Models\Kategori;
 use App\Models\Kelas;
-use App\Models\KelasSiswa;
+use App\Models\AnggotaRombel;
 use App\Models\Mapel;
 use App\Models\Nilai;
 use App\Models\PembayaranSpp;
 use App\Models\Post;
 use App\Models\Rapor;
+use App\Models\Rombel;
 use App\Models\Ruangan;
 use App\Models\Setting;
 use App\Models\Siswa;
@@ -137,6 +138,7 @@ class DummyDataSeeder extends Seeder
 
         // 5. Kelas (SMP & SMA)
         $kelasIds = [];
+        $rombelByKelas = [];
         $daftarKelas = [
             ['nama' => '7A', 'jenjang' => 'SMP'],
             ['nama' => '8A', 'jenjang' => 'SMP'],
@@ -155,6 +157,13 @@ class DummyDataSeeder extends Seeder
                 'jurusan_id' => $kls['jurusan_id'] ?? null,
             ]);
             $kelasIds[] = $k->id;
+            $rombelByKelas[$k->id] = Rombel::create([
+                'kelas_id' => $k->id,
+                'tahun_ajaran_id' => $ta->id,
+                'wali_kelas_id' => $k->wali_kelas_id,
+                'kapasitas' => 32,
+                'status' => 'Aktif',
+            ]);
         }
 
         // 6. Siswa — 32 siswa per kelas
@@ -191,11 +200,11 @@ class DummyDataSeeder extends Seeder
                 ]);
                 $siswas[] = $siswa;
 
-                KelasSiswa::create([
+                AnggotaRombel::create([
                     'siswa_id' => $siswa->id,
-                    'kelas_id' => $kelasId,
-                    'tahun_ajaran_id' => $ta->id,
+                    'rombel_id' => $rombelByKelas[$kelasId]->id,
                     'status' => 'Aktif',
+                    'tanggal_masuk' => now()->toDateString(),
                 ]);
 
                 $siswaCounter++;

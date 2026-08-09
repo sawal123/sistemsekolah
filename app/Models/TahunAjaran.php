@@ -11,7 +11,7 @@ class TahunAjaran extends Model
     public function nilais() { return $this->hasMany(Nilai::class); }
     public function rapors() { return $this->hasMany(Rapor::class); }
     public function spps() { return $this->hasMany(Spp::class); }
-    public function keanggotaanKelas() { return $this->hasMany(KelasSiswa::class); }
+    public function rombels() { return $this->hasMany(Rombel::class); }
 
     public static function forDate($date): ?self
     {

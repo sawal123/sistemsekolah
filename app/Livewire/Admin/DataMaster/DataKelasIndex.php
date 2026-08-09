@@ -5,7 +5,8 @@ namespace App\Livewire\Admin\DataMaster;
 use App\Models\Guru;
 use App\Models\Jurusan;
 use App\Models\Kelas;
-use App\Models\KelasSiswa;
+use App\Models\Rombel;
+use App\Models\AnggotaRombel;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use Illuminate\Support\Facades\DB;
@@ -58,7 +59,7 @@ class DataKelasIndex extends Component
         'nama_kelas' => 'required|string|max:50',
         'jenjang' => 'required|in:SMP,SMA,SMK',
         'jurusan_id' => 'nullable|required_if:jenjang,SMK|exists:jurusans,id',
-        'wali_kelas_id' => 'nullable|unique:kelas,wali_kelas_id',
+        'wali_kelas_id' => 'nullable|exists:gurus,id',
     ];
 
     public function updatingSearch()
@@ -91,18 +92,40 @@ class DataKelasIndex extends Component
     public function save()
     {
         $rules = $this->rules;
-        if ($this->editId) {
-            $rules['wali_kelas_id'] = 'nullable|unique:kelas,wali_kelas_id,'.$this->editId;
+        $this->validate($rules);
+        $tahunAjaranAktif = TahunAjaran::where('is_active', true)->first();
+
+        if ($tahunAjaranAktif && $this->wali_kelas_id) {
+            $waliDipakai = Rombel::where('tahun_ajaran_id', $tahunAjaranAktif->id)
+                ->where('wali_kelas_id', $this->wali_kelas_id)
+                ->when($this->editId, fn ($q) => $q->where('kelas_id', '!=', $this->editId))
+                ->exists();
+
+            if ($waliDipakai) {
+                $this->addError('wali_kelas_id', 'Guru ini sudah menjadi wali kelas pada tahun ajaran aktif.');
+
+                return;
+            }
         }
 
-        $this->validate($rules);
-
-        Kelas::updateOrCreate(['id' => $this->editId], [
+        $kelas = Kelas::updateOrCreate(['id' => $this->editId], [
             'nama_kelas' => $this->nama_kelas,
             'jenjang' => $this->jenjang,
             'jurusan_id' => $this->jenjang === 'SMK' ? $this->jurusan_id : null,
             'wali_kelas_id' => $this->wali_kelas_id ?: null,
         ]);
+        if ($tahunAjaranAktif) {
+            Rombel::updateOrCreate(
+                [
+                    'kelas_id' => $kelas->id,
+                    'tahun_ajaran_id' => $tahunAjaranAktif->id,
+                ],
+                [
+                    'wali_kelas_id' => $this->wali_kelas_id ?: null,
+                    'status' => 'Aktif',
+                ]
+            );
+        }
 
         $this->dispatch('notify', [
             'type' => 'success',
@@ -181,8 +204,8 @@ class DataKelasIndex extends Component
         $tahunAjaranAktif = TahunAjaran::where('is_active', true)->first();
 
         if ($tahunAjaranAktif) {
-            KelasSiswa::where('siswa_id', $siswa->id)
-                ->where('tahun_ajaran_id', $tahunAjaranAktif->id)
+            AnggotaRombel::where('siswa_id', $siswa->id)
+                ->whereHas('rombel', fn ($q) => $q->where('tahun_ajaran_id', $tahunAjaranAktif->id))
                 ->delete();
         }
 
@@ -205,11 +228,17 @@ class DataKelasIndex extends Component
                 $q->where('jenjang', $this->filterJenjang);
             });
 
+        $tahunAjaranAktif = TahunAjaran::where('is_active', true)->first();
+
         // Get teachers for dropdown with "Already Wali" check
-        $gurus = Guru::with('user', 'kelas')->get()->mapWithKeys(function ($guru) {
+        $gurus = Guru::with(['user', 'rombels' => function ($q) use ($tahunAjaranAktif) {
+            $q->with('kelas')
+                ->when($tahunAjaranAktif, fn ($query) => $query->where('tahun_ajaran_id', $tahunAjaranAktif->id));
+        }])->get()->mapWithKeys(function ($guru) {
             $label = $guru->user->name;
-            if ($guru->kelas && $guru->kelas->id != $this->editId) {
-                $label .= ' (Sudah Wali Kelas: '.$guru->kelas->nama_kelas.')';
+            $rombelAktif = $guru->rombels->first();
+            if ($rombelAktif?->kelas && $rombelAktif->kelas->id != $this->editId) {
+                $label .= ' (Sudah Wali Kelas: '.$rombelAktif->kelas->nama_kelas.')';
             }
 
             return [$guru->id => $label];

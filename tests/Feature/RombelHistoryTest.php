@@ -2,19 +2,20 @@
 
 namespace Tests\Feature;
 
+use App\Models\AnggotaRombel;
 use App\Models\Kelas;
-use App\Models\KelasSiswa;
+use App\Models\Rombel;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class KelasSiswaHistoryTest extends TestCase
+class RombelHistoryTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_student_roster_uses_class_membership_for_selected_academic_year(): void
+    public function test_student_roster_uses_rombel_for_selected_academic_year(): void
     {
         $tahunLama = TahunAjaran::create([
             'tahun' => '2026/2027',
@@ -28,6 +29,16 @@ class KelasSiswaHistoryTest extends TestCase
         ]);
         $kelasTujuh = Kelas::create(['nama_kelas' => 'VII A', 'jenjang' => 'SMP']);
         $kelasDelapan = Kelas::create(['nama_kelas' => 'VIII A', 'jenjang' => 'SMP']);
+        $rombelTujuh = Rombel::create([
+            'kelas_id' => $kelasTujuh->id,
+            'tahun_ajaran_id' => $tahunLama->id,
+            'status' => 'Aktif',
+        ]);
+        $rombelDelapan = Rombel::create([
+            'kelas_id' => $kelasDelapan->id,
+            'tahun_ajaran_id' => $tahunBaru->id,
+            'status' => 'Aktif',
+        ]);
         $user = User::create([
             'name' => 'Budi',
             'email' => 'budi@example.com',
@@ -42,23 +53,21 @@ class KelasSiswaHistoryTest extends TestCase
             'status' => 'Aktif',
         ]);
 
-        KelasSiswa::create([
+        AnggotaRombel::create([
             'siswa_id' => $siswa->id,
-            'kelas_id' => $kelasTujuh->id,
-            'tahun_ajaran_id' => $tahunLama->id,
+            'rombel_id' => $rombelTujuh->id,
             'status' => 'Naik',
         ]);
-        KelasSiswa::create([
+        AnggotaRombel::create([
             'siswa_id' => $siswa->id,
-            'kelas_id' => $kelasDelapan->id,
-            'tahun_ajaran_id' => $tahunBaru->id,
+            'rombel_id' => $rombelDelapan->id,
             'status' => 'Aktif',
         ]);
 
         $this->assertTrue(Siswa::inKelasPadaTahunAjaran($kelasTujuh->id, $tahunLama->id)->whereKey($siswa->id)->exists());
         $this->assertFalse(Siswa::inKelasPadaTahunAjaran($kelasTujuh->id, $tahunBaru->id)->whereKey($siswa->id)->exists());
         $this->assertSame($kelasTujuh->id, $siswa->kelasPadaTahunAjaran($tahunLama->id)->id);
-        $this->assertSame($kelasDelapan->id, $siswa->kelasPadaTahunAjaran($tahunBaru->id)->id);
+        $this->assertSame($rombelDelapan->id, $siswa->rombelPadaTahunAjaran($tahunBaru->id)->id);
     }
 
     public function test_academic_year_can_be_inferred_from_attendance_date(): void

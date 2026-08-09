@@ -10,6 +10,7 @@ use App\Models\Kelas;
 use App\Models\Siswa;
 use App\Models\Absensi;
 use App\Models\KalenderAkademik;
+use App\Models\Rombel;
 use App\Models\TahunAjaran;
 use Carbon\Carbon;
 use Livewire\WithFileUploads;
@@ -44,9 +45,13 @@ class RekapAbsensiIndex extends Component
         
         $user = auth()->user();
         if ($user->hasRole('guru') && $user->guru) {
-            $kelasWali = Kelas::where('wali_kelas_id', $user->guru->id)->first();
-            if ($kelasWali && !$this->filterKelas) {
-                $this->filterKelas = $kelasWali->id;
+            $tahunAjaranId = TahunAjaran::forDate(Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1))?->id;
+            $rombelWali = Rombel::with('kelas')
+                ->where('wali_kelas_id', $user->guru->id)
+                ->when($tahunAjaranId, fn ($q) => $q->where('tahun_ajaran_id', $tahunAjaranId))
+                ->first();
+            if ($rombelWali?->kelas && !$this->filterKelas) {
+                $this->filterKelas = $rombelWali->kelas->id;
             }
         }
     }
@@ -251,7 +256,17 @@ class RekapAbsensiIndex extends Component
 
         $user = auth()->user();
         if ($user->hasRole('guru') && $user->guru) {
-            $listKelas = Kelas::where('wali_kelas_id', $user->guru->id)->get();
+            $tahunAjaranId = $this->filterBulan && $this->filterTahun
+                ? TahunAjaran::forDate(Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1))?->id
+                : null;
+            $listKelas = Rombel::with('kelas')
+                ->where('wali_kelas_id', $user->guru->id)
+                ->when($tahunAjaranId, fn ($q) => $q->where('tahun_ajaran_id', $tahunAjaranId))
+                ->get()
+                ->pluck('kelas')
+                ->filter()
+                ->unique('id')
+                ->values();
         } else {
             $listKelas = Kelas::orderBy('jenjang')->orderBy('nama_kelas')->get();
         }

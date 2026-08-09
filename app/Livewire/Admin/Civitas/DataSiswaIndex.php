@@ -3,7 +3,8 @@
 namespace App\Livewire\Admin\Civitas;
 
 use App\Models\Kelas;
-use App\Models\KelasSiswa;
+use App\Models\AnggotaRombel;
+use App\Models\Rombel;
 use App\Models\Setting;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
@@ -253,16 +254,31 @@ class DataSiswaIndex extends Component
         $tahunAjaranAktif = TahunAjaran::where('is_active', true)->first();
 
         if ($tahunAjaranAktif) {
-            KelasSiswa::updateOrCreate(
+            $rombel = Rombel::firstOrCreate(
                 [
-                    'siswa_id' => $siswa->id,
+                    'kelas_id' => $this->kelas_id,
                     'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 ],
                 [
-                    'kelas_id' => $this->kelas_id,
+                    'wali_kelas_id' => $kelas->wali_kelas_id,
+                    'status' => 'Aktif',
+                ]
+            );
+
+            AnggotaRombel::where('siswa_id', $siswa->id)
+                ->whereHas('rombel', fn ($q) => $q->where('tahun_ajaran_id', $tahunAjaranAktif->id))
+                ->where('rombel_id', '!=', $rombel->id)
+                ->delete();
+
+            AnggotaRombel::updateOrCreate(
+                [
+                    'siswa_id' => $siswa->id,
+                    'rombel_id' => $rombel->id,
+                ],
+                [
                     'status' => $this->status,
-                    'tanggal_mulai' => now()->toDateString(),
-                    'tanggal_selesai' => in_array($this->status, ['Lulus', 'Pindah', 'Dikeluarkan'], true)
+                    'tanggal_masuk' => now()->toDateString(),
+                    'tanggal_keluar' => in_array($this->status, ['Lulus', 'Pindah', 'Dikeluarkan'], true)
                         ? now()->toDateString()
                         : null,
                 ]

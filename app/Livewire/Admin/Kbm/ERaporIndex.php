@@ -8,6 +8,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use App\Models\Kelas;
 use App\Models\Rapor;
+use App\Models\Rombel;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\Absensi;
@@ -45,9 +46,12 @@ class ERaporIndex extends Component
 
         // Jika Guru (Wali Kelas)
         if(auth()->user()->hasRole('guru') && auth()->user()->guru) {
-            $kelasWali = Kelas::where('wali_kelas_id', auth()->user()->guru->id)->first();
-            if ($kelasWali && !$this->filterKelas) {
-                $this->filterKelas = $kelasWali->id;
+            $rombelWali = Rombel::with('kelas')
+                ->where('wali_kelas_id', auth()->user()->guru->id)
+                ->when($this->filterTahunAjaran, fn ($q) => $q->where('tahun_ajaran_id', $this->filterTahunAjaran))
+                ->first();
+            if ($rombelWali?->kelas && !$this->filterKelas) {
+                $this->filterKelas = $rombelWali->kelas->id;
             }
         }
     }
@@ -182,7 +186,14 @@ class ERaporIndex extends Component
         
         // Authorization Logic
         if ($user->hasRole('guru') && $user->guru) {
-            $listKelas = Kelas::where('wali_kelas_id', $user->guru->id)->get();
+            $listKelas = Rombel::with('kelas')
+                ->where('wali_kelas_id', $user->guru->id)
+                ->when($this->filterTahunAjaran, fn ($q) => $q->where('tahun_ajaran_id', $this->filterTahunAjaran))
+                ->get()
+                ->pluck('kelas')
+                ->filter()
+                ->unique('id')
+                ->values();
         } else {
             $listKelas = Kelas::orderBy('jenjang')->orderBy('nama_kelas')->get();
         }
