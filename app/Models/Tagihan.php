@@ -11,6 +11,7 @@ class Tagihan extends Model
 
     protected $casts = [
         'nominal' => 'float',
+        'potongan' => 'float',
         'jatuh_tempo' => 'date',
         'tahun' => 'integer',
         'bulan' => 'integer',
@@ -42,7 +43,7 @@ class Tagihan extends Model
 
     public function getSisaTagihanAttribute(): float
     {
-        return max(0, $this->nominal - $this->total_terbayar);
+        return max(0, $this->nominal - $this->total_terbayar - $this->potongan);
     }
 
     public function getPersentaseTerbayarAttribute(): float

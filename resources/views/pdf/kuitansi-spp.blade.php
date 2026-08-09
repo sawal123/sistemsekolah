@@ -423,10 +423,23 @@
                 <span class="amount">Rp {{ number_format($totalNominal, 0, ',', '.') }}</span>
             </div>
 
-            {{-- ── STEMPEL LUNAS ── --}}
-            <div class="lunas-badge">
-                <span>✓ LUNAS</span>
-            </div>
+            {{-- ── STEMPEL ── --}}
+            @php
+                $sisaKuitansi = $tagihan ? $tagihan->sisa_tagihan : 0;
+            @endphp
+            @if ($sisaKuitansi <= 0)
+                <div class="lunas-badge">
+                    <span>✓ LUNAS</span>
+                </div>
+            @else
+                <div style="text-align: center; margin-bottom: 12px; padding: 8px; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px;">
+                    <p style="font-size: 11px; font-weight: 700; color: #92400e; margin: 0;">⚠ PEMBAYARAN SEBAGIAN</p>
+                    <p style="font-size: 10px; color: #92400e; margin: 4px 0 0;">
+                        Dibayar: Rp {{ number_format($totalNominal, 0, ',', '.') }} &nbsp;|&nbsp;
+                        Sisa: Rp {{ number_format($sisaKuitansi, 0, ',', '.') }}
+                    </p>
+                </div>
+            @endif
 
             {{-- ── TANDA TANGAN ── --}}
             <div class="signature-section">

@@ -218,38 +218,49 @@ class LaporanKeuanganIndex extends Component
 
         foreach ($siswaAktif as $siswa) {
             $spp = $sppBulanan
-                ->filter(fn($tarif) => in_array($tarif->jenjang, [$siswa->jenjang, 'Semua'], true))
-                ->filter(fn($tarif) => $tarif->jurusan_id === null || $tarif->jurusan_id === $siswa->jurusan_id)
-                ->sortByDesc(fn($tarif) => ($tarif->jenjang === $siswa->jenjang ? 2 : 0) + ($tarif->jurusan_id ? 1 : 0))
+                ->filter(fn ($tarif) => in_array($tarif->jenjang, [$siswa->jenjang, 'Semua'], true))
+                ->filter(fn ($tarif) => $tarif->jurusan_id === null || $tarif->jurusan_id === $siswa->jurusan_id)
+                ->sortByDesc(fn ($tarif) => ($tarif->jenjang === $siswa->jenjang ? 2 : 0) + ($tarif->jurusan_id ? 1 : 0))
                 ->first();
             if (! $spp) {
                 continue;
             }
 
             $siswaTagihans = $allTagihans->get($siswa->id) ?? collect();
-            $paidMonths = $siswaTagihans
+            $tagihanByBulan = $siswaTagihans
                 ->where('spp_id', $spp->id)
-                ->where('status', 'Lunas')
-                ->pluck('bulan')
-                ->toArray();
+                ->keyBy('bulan');
 
             $bulanTunggakan = [];
+            $nominalTunggakan = 0;
+
             for ($b = 1; $b <= $bulanMax; $b++) {
-                if (! in_array($b, $paidMonths)) {
-                    $bulanTunggakan[] = $b;
+                $tagihan = $tagihanByBulan->get($b);
+
+                if ($tagihan && $tagihan->status === 'Lunas') {
+                    continue; // Bulan ini sudah lunas
+                }
+
+                $bulanTunggakan[] = $b;
+
+                if ($tagihan && $tagihan->status === 'Lunas Sebagian') {
+                    // Hanya hitung sisa yang belum terbayar
+                    $nominalTunggakan += $tagihan->sisa_tagihan;
+                } else {
+                    // Belum ada pembayaran sama sekali
+                    $nominalTunggakan += $spp->nominal;
                 }
             }
 
             if (! empty($bulanTunggakan)) {
-                $nominal = $spp->nominal * count($bulanTunggakan);
                 $result->push([
                     'siswa' => $siswa,
                     'bulan_tunggakan' => $bulanTunggakan,
                     'jumlah_bulan' => count($bulanTunggakan),
                     'nominal_per_bulan' => $spp->nominal,
-                    'total_tunggakan' => $nominal,
+                    'total_tunggakan' => $nominalTunggakan,
                 ]);
-                $totalTunggakan += $nominal;
+                $totalTunggakan += $nominalTunggakan;
             }
         }
 

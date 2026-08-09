@@ -64,7 +64,7 @@ class RekapAbsensiIndex extends Component
             $startDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1)->startOfMonth();
             $endDate = $startDate->copy()->endOfMonth();
             $tahunAjaranId = TahunAjaran::forDate($startDate)?->id;
-            $siswaIds = Siswa::inKelasPadaTahunAjaran($this->filterKelas, $tahunAjaranId)->pluck('id');
+            $siswaIds = Siswa::aktifDiKelasPadaTahunAjaran($this->filterKelas, $tahunAjaranId)->pluck('id');
 
             $absensis = Absensi::whereIn('siswa_id', $siswaIds)
             ->whereBetween('tanggal', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
@@ -163,7 +163,7 @@ class RekapAbsensiIndex extends Component
             // 1. Ekstrak Daftar Siswa target
             $tahunAjaranId = TahunAjaran::forDate(Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1))?->id;
             $siswas = Siswa::with('user')
-                ->inKelasPadaTahunAjaran($this->filterKelas, $tahunAjaranId)
+                ->aktifDiKelasPadaTahunAjaran($this->filterKelas, $tahunAjaranId)
                 ->get()
                 ->sortBy('user.name')
                 ->values();
@@ -278,7 +278,7 @@ class RekapAbsensiIndex extends Component
         if ($this->filterKelas && $this->filterBulan && $this->filterTahun) {
             $tahunAjaranId = TahunAjaran::forDate(Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1))?->id;
             $siswas = Siswa::with('user')
-                ->inKelasPadaTahunAjaran($this->filterKelas, $tahunAjaranId)
+                ->aktifDiKelasPadaTahunAjaran($this->filterKelas, $tahunAjaranId)
                 ->get()
                 ->sortBy('user.name')
                 ->values();

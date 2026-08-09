@@ -71,6 +71,10 @@ class Siswa extends Model
         return $this->hasMany(KegiatanAlumni::class);
     }
 
+    /**
+     * Scope: siswa yang PERNAH berada di kelas pada tahun ajaran tertentu (histori).
+     * Cocok untuk: laporan historis, transkrip nilai lama.
+     */
     public function scopeInKelasPadaTahunAjaran($query, $kelasId, $tahunAjaranId)
     {
         if (! $kelasId) {
@@ -84,6 +88,54 @@ class Siswa extends Model
         return $query->whereHas('anggotaRombels.rombel', function ($q) use ($kelasId, $tahunAjaranId) {
             $q->where('kelas_id', $kelasId)
                 ->where('tahun_ajaran_id', $tahunAjaranId);
+        });
+    }
+
+    /**
+     * Scope: siswa yang SAAT INI AKTIF di kelas pada tahun ajaran tertentu.
+     * Filter: anggota_rombels.status = Aktif, tanggal_keluar IS NULL, siswa.status = Aktif.
+     * Cocok untuk: Manajemen Nilai, e-Rapor, roster aktif.
+     */
+    public function scopeAktifDiKelasPadaTahunAjaran($query, $kelasId, $tahunAjaranId)
+    {
+        if (! $kelasId || ! $tahunAjaranId) {
+            return $query->where('kelas_id', $kelasId);
+        }
+
+        return $query->where('status', 'Aktif')
+            ->whereHas('anggotaRombels', function ($q) use ($kelasId, $tahunAjaranId) {
+                $q->where('status', 'Aktif')
+                    ->whereNull('tanggal_keluar')
+                    ->whereHas('rombel', function ($r) use ($kelasId, $tahunAjaranId) {
+                        $r->where('kelas_id', $kelasId)
+                            ->where('tahun_ajaran_id', $tahunAjaranId);
+                    });
+            });
+    }
+
+    /**
+     * Scope: siswa yang berada di kelas pada TANGGAL tertentu.
+     * Berdasarkan: tanggal_masuk <= tanggal AND (tanggal_keluar IS NULL OR tanggal_keluar >= tanggal).
+     * Cocok untuk: rekap absensi harian, laporan per tanggal.
+     */
+    public function scopeInKelasPadaTanggal($query, $kelasId, $tanggal)
+    {
+        if (! $kelasId || ! $tanggal) {
+            return $query;
+        }
+
+        $tanggalStr = \Carbon\Carbon::parse($tanggal)->toDateString();
+
+        return $query->whereHas('anggotaRombels', function ($q) use ($kelasId, $tanggalStr) {
+            $q->where('status', 'Aktif')
+                ->where('tanggal_masuk', '<=', $tanggalStr)
+                ->where(function ($sub) use ($tanggalStr) {
+                    $sub->whereNull('tanggal_keluar')
+                        ->orWhere('tanggal_keluar', '>=', $tanggalStr);
+                })
+                ->whereHas('rombel', function ($r) use ($kelasId) {
+                    $r->where('kelas_id', $kelasId);
+                });
         });
     }
 

@@ -127,7 +127,7 @@ class ManajemenNilaiIndex extends Component
         $this->n_remedial = [];
 
         if ($this->filterKelas && $this->filterMapel && $this->filterTahunAjaran) {
-            $siswas = Siswa::inKelasPadaTahunAjaran($this->filterKelas, $this->filterTahunAjaran)->pluck('id');
+            $siswas = Siswa::aktifDiKelasPadaTahunAjaran($this->filterKelas, $this->filterTahunAjaran)->pluck('id');
             $nilais = Nilai::where('mapel_id', $this->filterMapel)
                            ->where('tahun_ajaran_id', $this->filterTahunAjaran)
                            ->whereIn('siswa_id', $siswas)
@@ -260,7 +260,7 @@ class ManajemenNilaiIndex extends Component
 
         if ($this->filterKelas) {
             $siswas = Siswa::with('user')
-                           ->inKelasPadaTahunAjaran($this->filterKelas, $this->filterTahunAjaran)
+                           ->aktifDiKelasPadaTahunAjaran($this->filterKelas, $this->filterTahunAjaran)
                            ->get()
                            ->sortBy('user.name')
                            ->values(); // Reset array index to 0, 1, 2...

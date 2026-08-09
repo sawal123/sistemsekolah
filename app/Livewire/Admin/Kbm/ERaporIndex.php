@@ -209,7 +209,7 @@ class ERaporIndex extends Component
             $taId = $this->filterTahunAjaran;
             $siswas = Siswa::with(['user', 'nilais' => function($q) use ($taId) {
                 $q->where('tahun_ajaran_id', $taId);
-            }])->inKelasPadaTahunAjaran($this->filterKelas, $this->filterTahunAjaran)
+            }])->aktifDiKelasPadaTahunAjaran($this->filterKelas, $this->filterTahunAjaran)
                 ->get()
                 ->sortBy('user.name')
                 ->values();

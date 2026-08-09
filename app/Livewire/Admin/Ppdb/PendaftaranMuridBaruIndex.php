@@ -1066,11 +1066,17 @@ class PendaftaranMuridBaruIndex extends Component
             // 2. Buat User — cegah hijack akun existing
             $baseEmail = $ppdb->email ?: strtolower(Str::slug($ppdb->nama_lengkap, '')) . $nis . '@sekolah.sch.id';
 
-            // Jika email sudah dipakai oleh orang lain (bukan siswa ini), buat email unik
+            // Cek apakah email sudah dipakai oleh orang LAIN (siapa pun)
             $existingUser = User::where('email', $baseEmail)->first();
-            if ($existingUser && ! Siswa::where('user_id', $existingUser->id)->exists()) {
-                // Email dipakai non-siswa (guru/admin) — buat email baru
-                $baseEmail = strtolower(Str::slug($ppdb->nama_lengkap, '')) . $nis . '@sekolah.sch.id';
+            if ($existingUser) {
+                // Cek apakah user ini sudah terhubung ke siswa yang SAMA (misal konversi ulang)
+                $existingSiswa = Siswa::where('user_id', $existingUser->id)->first();
+                $isSiswaSama = $existingSiswa && $ppdb->nisn && $existingSiswa->nisn === $ppdb->nisn;
+
+                if (! $isSiswaSama) {
+                    // Email dipakai orang lain — buat email unik baru
+                    $baseEmail = strtolower(Str::slug($ppdb->nama_lengkap, '')) . $nis . '@sekolah.sch.id';
+                }
             }
 
             $password = $ppdb->tanggal_lahir

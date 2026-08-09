@@ -288,7 +288,13 @@ class TahunAjaranIndex extends Component
             return;
         }
 
-        $rombelsSumber = Rombel::with(['anggotaRombels', 'kelas'])
+        $rombelsSumber = Rombel::with([
+                'kelas',
+                'anggotaRombels' => fn ($q) => $q
+                    ->where('status', 'Aktif')
+                    ->whereNull('tanggal_keluar')
+                    ->whereHas('siswa', fn ($s) => $s->where('status', 'Aktif')),
+            ])
             ->where('tahun_ajaran_id', $sourceTa->id)
             ->get();
 
@@ -379,7 +385,14 @@ class TahunAjaranIndex extends Component
             return;
         }
 
-        $rombelsAktif = Rombel::with(['kelas', 'anggotaRombels.siswa.user'])
+        $rombelsAktif = Rombel::with([
+                'kelas',
+                'anggotaRombels' => fn ($q) => $q
+                    ->where('status', 'Aktif')
+                    ->whereNull('tanggal_keluar')
+                    ->whereHas('siswa', fn ($s) => $s->where('status', 'Aktif')),
+                'anggotaRombels.siswa.user',
+            ])
             ->where('tahun_ajaran_id', $taAktif->id)
             ->get();
 
@@ -498,6 +511,7 @@ class TahunAjaranIndex extends Component
 
     /**
      * Cari kelas tujuan kenaikan berdasarkan kelas asal.
+     * Parse level (VII/7/X/10) dan suffix (A, RPL 1, IPS 2) secara eksplisit.
      * SMP: VII→VIII, VIII→IX, IX→null (lulus)
      * SMA/SMK: X→XI, XI→XII, XII→null (lulus)
      */
@@ -506,23 +520,64 @@ class TahunAjaranIndex extends Component
         $nama = $kelasAsal->nama_kelas;
         $jenjang = $kelasAsal->jenjang;
 
-        if ($jenjang === 'SMP') {
-            $map = ['7' => '8', '8' => '9', '9' => null, 'VII' => 'VIII', 'VIII' => 'IX', 'IX' => null];
-        } else {
-            $map = ['10' => '11', '11' => '12', '12' => null, 'X' => 'XI', 'XI' => 'XII', 'XII' => null];
+        // Roman ↔ Numeric mapping
+        $romanToNum = ['VII' => 7, 'VIII' => 8, 'IX' => 9, 'X' => 10, 'XI' => 11, 'XII' => 12];
+        $numToRoman = [7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 11 => 'XI', 12 => 'XII'];
+
+        $level = null;
+        $suffix = '';
+        $isRoman = false;
+
+        // Coba match Roman numerals (urutan descending panjang dulu: VIII, VII, III...)
+        $romanSorted = ['VIII', 'VII', 'XII', 'XI', 'IX', 'X'];
+        foreach ($romanSorted as $roman) {
+            if (str_starts_with($nama, $roman)) {
+                // Pastikan bukan partial match (VIII vs VII)
+                $afterRoman = substr($nama, strlen($roman));
+                if ($afterRoman === '' || ctype_space($afterRoman[0]) || ctype_digit($afterRoman[0])) {
+                    $level = $romanToNum[$roman];
+                    $suffix = $afterRoman;
+                    $isRoman = true;
+                    break;
+                }
+            }
         }
 
-        foreach ($map as $dari => $ke) {
-            if ($ke === null) {
-                continue;
-            }
-            if (stripos($nama, (string) $dari) !== false) {
-                $namaTujuan = str_ireplace((string) $dari, (string) $ke, $nama);
-
-                return $semuaKelas->firstWhere('nama_kelas', $namaTujuan);
+        // Jika tidak match Roman, coba numeric
+        if ($level === null) {
+            $numericSorted = ['12', '11', '10', '9', '8', '7'];
+            foreach ($numericSorted as $num) {
+                if (str_starts_with($nama, $num)) {
+                    $afterNum = substr($nama, strlen($num));
+                    if ($afterNum === '' || ctype_space($afterNum[0]) || ctype_alpha($afterNum[0])) {
+                        $level = (int) $num;
+                        $suffix = $afterNum;
+                        break;
+                    }
+                }
             }
         }
 
-        return null;
+        if ($level === null) {
+            return null; // Tidak bisa diparse
+        }
+
+        // Mapping kenaikan
+        $nextLevel = match ($level) {
+            7 => 8, 8 => 9, 9 => null,       // SMP
+            10 => 11, 11 => 12, 12 => null,    // SMA/SMK
+            default => null,
+        };
+
+        if ($nextLevel === null) {
+            return null; // Lulus
+        }
+
+        // Rekonstruksi nama kelas tujuan
+        $nextName = $isRoman
+            ? ($numToRoman[$nextLevel] ?? (string) $nextLevel) . $suffix
+            : (string) $nextLevel . $suffix;
+
+        return $semuaKelas->firstWhere('nama_kelas', $nextName);
     }
 }

@@ -39,30 +39,35 @@ return new class extends Migration
                     'jenis_biaya' => $sppCache[$old->spp_id] ?? 'SPP Bulanan',
                     'tahun' => $old->tahun,
                     'bulan' => $old->bulan,
-                    'nominal' => $sppNominal,
+                    'nominal' => $sppNominal,                              // Harga penuh SPP
+                    'potongan' => max(0, $old->potongan),                  // Diskon dari sistem lama
                     'jatuh_tempo' => null,
-                    'status' => 'Lunas', // Karena sudah dibayar di sistem lama
+                    'status' => 'Lunas',
                     'keterangan' => 'Migrasi dari sistem lama',
                     'created_at' => $old->created_at ?? now(),
                     'updated_at' => $old->updated_at ?? now(),
                 ]);
             } else {
-                // Update status tagihan jadi Lunas
-                DB::table('tagihans')->where('id', $tagihanId)->update(['status' => 'Lunas']);
+                // Update status + potongan tagihan
+                DB::table('tagihans')->where('id', $tagihanId)->update([
+                    'status' => 'Lunas',
+                    'potongan' => max(0, $old->potongan),
+                ]);
             }
 
-            // 2. Buat Pembayaran (hindari duplikat)
+            // 2. Buat Pembayaran (netto = jumlah_bayar - potongan)
+            $netto = $old->jumlah_bayar - max(0, $old->potongan);
             $alreadyExists = DB::table('pembayarans')
                 ->where('tagihan_id', $tagihanId)
                 ->where('tanggal_bayar', $old->tanggal_bayar)
-                ->where('nominal', $old->jumlah_bayar - max(0, $old->potongan))
+                ->where('nominal', $netto)
                 ->exists();
 
             if (! $alreadyExists) {
                 DB::table('pembayarans')->insert([
                     'tagihan_id' => $tagihanId,
                     'tanggal_bayar' => $old->tanggal_bayar,
-                    'nominal' => $old->jumlah_bayar - max(0, $old->potongan),
+                    'nominal' => $netto,
                     'metode' => 'Tunai',
                     'petugas_id' => $old->user_id,
                     'keterangan' => $old->keterangan ?? 'Migrasi dari sistem lama',
