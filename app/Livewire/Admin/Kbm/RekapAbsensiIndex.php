@@ -25,7 +25,7 @@ class RekapAbsensiIndex extends Component
 
     #[Url]
     public $filterKelas;
-    
+
     #[Url]
     public $filterBulan;
 
@@ -33,7 +33,7 @@ class RekapAbsensiIndex extends Component
     public $filterTahun;
 
     public $absensiData = [];
-    
+
     // Scanner AI State
     public $fotoKertas;
     public $isScanning = false;
@@ -42,13 +42,13 @@ class RekapAbsensiIndex extends Component
     {
         if (!$this->filterBulan) $this->filterBulan = date('m');
         if (!$this->filterTahun) $this->filterTahun = date('Y');
-        
+
         $user = auth()->user();
         if ($user->hasRole('guru') && $user->guru) {
             $tahunAjaranId = TahunAjaran::forDate(Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1))?->id;
             $rombelWali = Rombel::with('kelas')
                 ->where('wali_kelas_id', $user->guru->id)
-                ->when($tahunAjaranId, fn ($q) => $q->where('tahun_ajaran_id', $tahunAjaranId))
+                ->when($tahunAjaranId, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaranId))
                 ->first();
             if ($rombelWali?->kelas && !$this->filterKelas) {
                 $this->filterKelas = $rombelWali->kelas->id;
@@ -59,7 +59,7 @@ class RekapAbsensiIndex extends Component
     public function loadData()
     {
         $this->absensiData = [];
-        
+
         if ($this->filterKelas && $this->filterBulan && $this->filterTahun) {
             $startDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1)->startOfMonth();
             $endDate = $startDate->copy()->endOfMonth();
@@ -67,8 +67,8 @@ class RekapAbsensiIndex extends Component
             $siswaIds = Siswa::aktifDiKelasPadaTahunAjaran($this->filterKelas, $tahunAjaranId)->pluck('id');
 
             $absensis = Absensi::whereIn('siswa_id', $siswaIds)
-            ->whereBetween('tanggal', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-            ->get();
+                ->whereBetween('tanggal', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                ->get();
 
             foreach ($absensis as $ab) {
                 $this->absensiData[$ab->siswa_id][$ab->tanggal->format('Y-m-d')] = $ab->status;
@@ -117,7 +117,7 @@ class RekapAbsensiIndex extends Component
             // --- Optimasi Gambar: Resize untuk Kecepatan AI & Mencegah 504 Timeout ---
             $imagePath = $this->fotoKertas->getRealPath();
             $mimeType = $this->fotoKertas->getMimeType();
-            
+
             // Buat resource gambar berdasarkan mime
             if ($mimeType == 'image/jpeg' || $mimeType == 'image/jpg') {
                 $img = imagecreatefromjpeg($imagePath);
@@ -131,7 +131,7 @@ class RekapAbsensiIndex extends Component
                 $width = imagesx($img);
                 $height = imagesy($img);
                 $maxDim = 1600; // Ukuran optimal untuk Gemini vision
-                
+
                 if ($width > $maxDim || $height > $maxDim) {
                     $ratio = $width / $height;
                     if ($ratio > 1) {
@@ -143,12 +143,12 @@ class RekapAbsensiIndex extends Component
                     }
                     $resizedImg = imagecreatetruecolor($newWidth, $newHeight);
                     imagecopyresampled($resizedImg, $img, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-                    
+
                     // Simpan ke buffer
                     ob_start();
                     imagejpeg($resizedImg, null, 80); // Kualitas 80 cukup untuk OCR
                     $imageData = ob_get_clean();
-                    
+
                     imagedestroy($resizedImg);
                 } else {
                     $imageData = file_get_contents($imagePath);
@@ -188,17 +188,17 @@ class RekapAbsensiIndex extends Component
 
             // 3. Panggil Gemini
             $hasilJsonArray = GeminiAiScanner::scanAbsenMatriks(
-                $base64Image, 
-                $mimeType, 
-                $daftarSiswaTarget, 
-                $this->filterTahun, 
-                $this->filterBulan, 
+                $base64Image,
+                $mimeType,
+                $daftarSiswaTarget,
+                $this->filterTahun,
+                $this->filterBulan,
                 $tanggalLibur
             );
 
             // 4. Update Massal ke Database (Lewati Hari Libur)
             $countUpdate = 0;
-            
+
             if (empty($hasilJsonArray)) {
                 throw new Exception("Mata AI tidak menemukan data yang cocok. Pastikan Nama Siswa di kertas sesuai dengan daftar kelas yang dipilih.");
             }
@@ -207,7 +207,7 @@ class RekapAbsensiIndex extends Component
                 foreach ($dataAbsenBulan as $item) {
                     $tanggal = $item['tanggal'] ?? null;
                     $status = $item['status'] ?? null;
-                    
+
                     if ($tanggal && $status) {
                         // Anti-Bypass: Meskipun AI ngaco, backend tetap mem-blokir hari libur
                         if (!in_array($tanggal, $tanggalLibur)) {
@@ -225,21 +225,22 @@ class RekapAbsensiIndex extends Component
             $this->fotoKertas = null;
             $this->loadData();
             $this->dispatch('close-modal', 'modal-scanner-ai');
-            
+
             if ($countUpdate > 0) {
-                $this->dispatch('notify', 
-                    title: 'Pemindaian Selesai', 
-                    message: "Berhasil memproses $countUpdate data. PENTING: Mohon periksa kembali keselarasan data di tabel sebelum lanjut.", 
+                $this->dispatch(
+                    'notify',
+                    title: 'Pemindaian Selesai',
+                    message: "Berhasil memproses $countUpdate data. PENTING: Mohon periksa kembali keselarasan data di tabel sebelum lanjut.",
                     type: 'success'
                 );
             } else {
-                $this->dispatch('notify', 
-                    title: 'Peringatan', 
-                    message: "Pemindaian selesai tapi tidak ada data yang masuk. Pastikan tanda di kertas terbaca jelas.", 
+                $this->dispatch(
+                    'notify',
+                    title: 'Peringatan',
+                    message: "Pemindaian selesai tapi tidak ada data yang masuk. Pastikan tanda di kertas terbaca jelas.",
                     type: 'warning'
                 );
             }
-            
         } catch (Exception $e) {
             $this->dispatch('notify', title: 'AI Error', message: $e->getMessage(), type: 'danger');
         }
@@ -261,7 +262,7 @@ class RekapAbsensiIndex extends Component
                 : null;
             $listKelas = Rombel::with('kelas')
                 ->where('wali_kelas_id', $user->guru->id)
-                ->when($tahunAjaranId, fn ($q) => $q->where('tahun_ajaran_id', $tahunAjaranId))
+                ->when($tahunAjaranId, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaranId))
                 ->get()
                 ->pluck('kelas')
                 ->filter()
@@ -284,12 +285,12 @@ class RekapAbsensiIndex extends Component
                 ->values();
 
             $daysInMonth = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1)->daysInMonth;
-            
+
             // Build Matrix dates
             for ($i = 1; $i <= $daysInMonth; $i++) {
                 $dateStr = Carbon::createFromDate($this->filterTahun, $this->filterBulan, $i)->format('Y-m-d');
                 $isLibur = KalenderAkademik::isHariLibur($dateStr);
-                
+
                 $kalender[$i] = [
                     'tanggal' => $dateStr,
                     'is_libur' => $isLibur,

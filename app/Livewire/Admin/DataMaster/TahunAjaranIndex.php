@@ -289,12 +289,12 @@ class TahunAjaranIndex extends Component
         }
 
         $rombelsSumber = Rombel::with([
-                'kelas',
-                'anggotaRombels' => fn ($q) => $q
-                    ->where('status', 'Aktif')
-                    ->whereNull('tanggal_keluar')
-                    ->whereHas('siswa', fn ($s) => $s->where('status', 'Aktif')),
-            ])
+            'kelas',
+            'anggotaRombels' => fn($q) => $q
+                ->where('status', 'Aktif')
+                ->whereNull('tanggal_keluar')
+                ->whereHas('siswa', fn($s) => $s->where('status', 'Aktif')),
+        ])
             ->where('tahun_ajaran_id', $sourceTa->id)
             ->get();
 
@@ -386,13 +386,13 @@ class TahunAjaranIndex extends Component
         }
 
         $rombelsAktif = Rombel::with([
-                'kelas',
-                'anggotaRombels' => fn ($q) => $q
-                    ->where('status', 'Aktif')
-                    ->whereNull('tanggal_keluar')
-                    ->whereHas('siswa', fn ($s) => $s->where('status', 'Aktif')),
-                'anggotaRombels.siswa.user',
-            ])
+            'kelas',
+            'anggotaRombels' => fn($q) => $q
+                ->where('status', 'Aktif')
+                ->whereNull('tanggal_keluar')
+                ->whereHas('siswa', fn($s) => $s->where('status', 'Aktif')),
+            'anggotaRombels.siswa.user',
+        ])
             ->where('tahun_ajaran_id', $taAktif->id)
             ->get();
 
@@ -564,8 +564,12 @@ class TahunAjaranIndex extends Component
 
         // Mapping kenaikan
         $nextLevel = match ($level) {
-            7 => 8, 8 => 9, 9 => null,       // SMP
-            10 => 11, 11 => 12, 12 => null,    // SMA/SMK
+            7 => 8,
+            8 => 9,
+            9 => null,       // SMP
+            10 => 11,
+            11 => 12,
+            12 => null,    // SMA/SMK
             default => null,
         };
 

@@ -218,9 +218,9 @@ class LaporanKeuanganIndex extends Component
 
         foreach ($siswaAktif as $siswa) {
             $spp = $sppBulanan
-                ->filter(fn ($tarif) => in_array($tarif->jenjang, [$siswa->jenjang, 'Semua'], true))
-                ->filter(fn ($tarif) => $tarif->jurusan_id === null || $tarif->jurusan_id === $siswa->jurusan_id)
-                ->sortByDesc(fn ($tarif) => ($tarif->jenjang === $siswa->jenjang ? 2 : 0) + ($tarif->jurusan_id ? 1 : 0))
+                ->filter(fn($tarif) => in_array($tarif->jenjang, [$siswa->jenjang, 'Semua'], true))
+                ->filter(fn($tarif) => $tarif->jurusan_id === null || $tarif->jurusan_id === $siswa->jurusan_id)
+                ->sortByDesc(fn($tarif) => ($tarif->jenjang === $siswa->jenjang ? 2 : 0) + ($tarif->jurusan_id ? 1 : 0))
                 ->first();
             if (! $spp) {
                 continue;
