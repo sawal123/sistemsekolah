@@ -149,8 +149,9 @@ class TransaksiPembayaranIndex extends Component
         $jurusanId = $this->selectedSiswaData['jurusan_id'] ?? null;
 
         // ── Petakan setiap bulan ke SPP yang berlaku bulan tsb (via forDate) ──
-        $sppPerBulan = [];  // bulan => spp_id
-        $sppCache = [];     // spp_id => Spp model
+        $sppPerBulan = [];   // bulan => spp_id
+        $sppCache = [];      // spp_id => Spp model
+        $taIdsSelTahun = []; // distinct tahun_ajaran_id yang menutupi tahun terpilih
 
         for ($b = 1; $b <= 12; $b++) {
             $tgl = Carbon::create($this->selectedTahun, $b, 1);
@@ -158,6 +159,7 @@ class TransaksiPembayaranIndex extends Component
             if (! $taBulan) {
                 continue;
             }
+            $taIdsSelTahun[$taBulan->id] = true;
             $spp = Spp::where('tahun_ajaran_id', $taBulan->id)
                 ->active()
                 ->applicableTo($jenjang, $jurusanId)
@@ -175,6 +177,7 @@ class TransaksiPembayaranIndex extends Component
         if (empty($sppCache)) {
             $tahunAjaran = TahunAjaran::where('is_active', true)->first();
             if ($tahunAjaran) {
+                $taIdsSelTahun[$tahunAjaran->id] = true;
                 $spp = Spp::where('tahun_ajaran_id', $tahunAjaran->id)
                     ->active()
                     ->applicableTo($jenjang, $jurusanId)
@@ -254,17 +257,27 @@ class TransaksiPembayaranIndex extends Component
             ];
         }
 
-        // ── Tagihan Sekali Bayar (dari TA yang terkait tahun ini) ──
-        $taIds = collect($sppPerBulan)->unique()->values()->all();
+        // ── Tagihan Sekali Bayar ────────────────────────────────
+        // Ambil ID TahunAjaran dari periode yang menutupi tahun kalender terpilih.
+        // (Sebelumnya memakai spp_id sebagai tahun_ajaran_id → periode salah / tidak muncul.)
+        $taIds = array_keys($taIdsSelTahun);
+        $taAktifId = TahunAjaran::where('is_active', true)->value('id');
+
         $sekaliSpps = $taIds
             ? Spp::whereIn('tahun_ajaran_id', $taIds)
-            ->active()
-            ->applicableTo($jenjang, $jurusanId)
-            ->where('kategori', '!=', 'SPP Bulanan')
-            ->orderBy('kategori')
-            ->orderByRaw('jurusan_id IS NULL')
-            ->get()
-            ->unique('kategori')
+                ->active()
+                ->applicableTo($jenjang, $jurusanId)
+                ->where('kategori', '!=', 'SPP Bulanan')
+                ->orderBy('kategori')
+                ->orderByRaw('jurusan_id IS NULL')
+                ->get()
+                ->sortBy([
+                    // Periode aktif diutamakan → kategori sama hanya muncul 1×, dari periode benar
+                    fn($s) => $s->tahun_ajaran_id === $taAktifId ? 0 : 1,
+                    fn($s) => -1 * (int) $s->id,
+                ])
+                ->unique('kategori')
+                ->values()
             : collect();
 
         foreach ($sekaliSpps as $spp) {

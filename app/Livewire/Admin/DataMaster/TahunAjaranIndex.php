@@ -140,11 +140,15 @@ class TahunAjaranIndex extends Component
                 $this->dispatch('open-modal', 'salin-rombel-modal');
                 $msg = 'Tunggu — selesaikan penyalinan rombel sebelum periode baru diaktifkan.';
             } else {
-                // Sudah punya rombel atau tidak ada sumber → aman aktivasi atomik
-                TahunAjaran::where('id', '!=', $id)
-                    ->where('is_active', true)
-                    ->update(['is_active' => false, 'status' => 'Ditutup']);
-                $item->update(['is_active' => true, 'status' => 'Aktif']);
+                // Sudah punya rombel atau tidak ada sumber → aman aktivasi atomik.
+                // Tutup periode lama + aktifkan target dalam SATU transaksi.
+                // Gagal di tengah → rollback, periode lama tetap aktif.
+                DB::transaction(function () use ($item, $id) {
+                    TahunAjaran::where('id', '!=', $id)
+                        ->where('is_active', true)
+                        ->update(['is_active' => false, 'status' => 'Ditutup']);
+                    $item->update(['is_active' => true, 'status' => 'Aktif']);
+                });
                 $msg = 'Status Tahun Ajaran diaktifkan!';
             }
         } else {

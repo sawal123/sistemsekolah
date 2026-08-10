@@ -68,4 +68,38 @@ class DashboardAtomicActivationTest extends TestCase
         $this->assertEquals('Draft', TahunAjaran::find($taGenap->id)->status);
         $this->assertTrue(TahunAjaran::find($taGanjil->id)->is_active);
     }
+
+    public function test_toggle_status_direct_activation_rollback_saat_gagal(): void
+    {
+        $taGanjil = TahunAjaran::create(['tahun' => '2026/2027', 'semester' => 'Ganjil', 'status' => 'Aktif', 'is_active' => true]);
+        $taGenap = TahunAjaran::create(['tahun' => '2026/2027', 'semester' => 'Genap', 'status' => 'Draft', 'is_active' => false]);
+
+        $kelas = Kelas::create(['nama_kelas' => 'VII A', 'jenjang' => 'SMP']);
+        // Target sudah punya rombel → jalur aktivasi langsung (bukan salin rombel)
+        Rombel::create(['kelas_id' => $kelas->id, 'tahun_ajaran_id' => $taGenap->id, 'status' => 'Aktif']);
+
+        // Gagalkan langkah "aktifkan target" (UPDATE dengan is_active=1) di tengah transaksi
+        \Illuminate\Support\Facades\DB::statement(
+            "CREATE TRIGGER fail_toggle BEFORE UPDATE ON tahun_ajarans WHEN NEW.is_active = 1 "
+            . "BEGIN SELECT RAISE(ABORT, 'forced failure'); END;"
+        );
+
+        try {
+            $component = new TahunAjaranIndex();
+            try {
+                $component->toggleStatus($taGenap->id);
+                $this->fail('Harusnya throw karena trigger memaksa kegagalan.');
+            } catch (\Throwable $e) {
+                // expected
+            }
+        } finally {
+            \Illuminate\Support\Facades\DB::statement('DROP TRIGGER IF EXISTS fail_toggle');
+        }
+
+        // Rollback: Genap TIDAK aktif, Ganjil TETAP aktif & TIDAK Ditutup
+        $this->assertFalse(TahunAjaran::find($taGenap->id)->is_active);
+        $this->assertEquals('Draft', TahunAjaran::find($taGenap->id)->status);
+        $this->assertTrue(TahunAjaran::find($taGanjil->id)->is_active);
+        $this->assertEquals('Aktif', TahunAjaran::find($taGanjil->id)->status);
+    }
 }

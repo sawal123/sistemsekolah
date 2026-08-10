@@ -470,6 +470,69 @@ class DashboardBugRelasi3Test extends TestCase
     }
 
     // ═══════════════════════════════════════════════════════════
+    //  Test: Biaya non-bulanan mengambil tahun_ajaran_id yang benar
+    // ═══════════════════════════════════════════════════════════
+
+    public function test_biaya_non_bulanan_ambil_tahun_ajaran_yang_benar(): void
+    {
+        // 2025/2026 Genap = Jan–Jun 2026 (Ditutup), Uang Bangunan 1jt
+        $taGenap = TahunAjaran::create([
+            'tahun' => '2025/2026',
+            'semester' => 'Genap',
+            'tanggal_mulai' => '2026-01-05',
+            'tanggal_selesai' => '2026-06-30',
+            'status' => 'Ditutup',
+            'is_active' => false,
+        ]);
+        // 2026/2027 Ganjil = Jul–Des 2026 (Aktif), Uang Bangunan 1.5jt
+        $taGanjil = TahunAjaran::create([
+            'tahun' => '2026/2027',
+            'semester' => 'Ganjil',
+            'tanggal_mulai' => '2026-07-01',
+            'tanggal_selesai' => '2026-12-31',
+            'status' => 'Aktif',
+            'is_active' => true,
+        ]);
+
+        // SPP Bulanan di kedua periode agar matriks bulanan terisi
+        Spp::create(['tahun_ajaran_id' => $taGenap->id, 'jenjang' => 'SMP', 'kategori' => 'SPP Bulanan', 'nominal' => 400000, 'is_active' => true]);
+        Spp::create(['tahun_ajaran_id' => $taGanjil->id, 'jenjang' => 'SMP', 'kategori' => 'SPP Bulanan', 'nominal' => 500000, 'is_active' => true]);
+
+        // Uang Bangunan ada di DUA periode → harus muncul 1×, dari periode Aktif (Ganjil)
+        $sppGenap = Spp::create(['tahun_ajaran_id' => $taGenap->id, 'jenjang' => 'SMP', 'kategori' => 'Uang Bangunan', 'nominal' => 1000000, 'is_active' => true]);
+        $sppGanjil = Spp::create(['tahun_ajaran_id' => $taGanjil->id, 'jenjang' => 'SMP', 'kategori' => 'Uang Bangunan', 'nominal' => 1500000, 'is_active' => true]);
+
+        $user = User::create(['name' => 'Sekali', 'email' => 'sekali@test.com', 'password' => 'p']);
+        $siswa = Siswa::create(['user_id' => $user->id, 'nisn' => '0091', 'nis' => 'S091', 'jenjang' => 'SMP', 'status' => 'Aktif']);
+
+        $component = \Livewire\Livewire::test(\App\Livewire\Admin\Keuangan\TransaksiPembayaranIndex::class);
+        $component->set('selectedSiswaId', $siswa->id);
+        $component->set('selectedSiswaData', [
+            'id' => $siswa->id,
+            'nama' => 'Sekali',
+            'nisn' => $siswa->nisn,
+            'nis' => $siswa->nis,
+            'jenjang' => 'SMP',
+            'jurusan_id' => null,
+            'kelas' => 'Belum Ada Kelas',
+            'status' => 'Aktif',
+        ]);
+        $component->set('selectedTahun', 2026);
+        $component->call('loadPaymentMatrix');
+
+        $matrix = $component->get('sppMatrix');
+        $sekali = collect($matrix)->where('is_bulanan', false);
+
+        // Uang Bangunan hanya muncul SEKALI, dari periode Aktif (Ganjil 1.5jt)
+        $this->assertCount(1, $sekali);
+        $this->assertSame(1500000.0, (float) $sekali->first()['nominal']);
+
+        // Tagihan sekali bayar dibuat dari SPP periode Aktif (Ganjil), bukan dari periode lama (Genap)
+        $this->assertTrue(Tagihan::where('siswa_id', $siswa->id)->where('spp_id', $sppGanjil->id)->exists());
+        $this->assertFalse(Tagihan::where('siswa_id', $siswa->id)->where('spp_id', $sppGenap->id)->exists());
+    }
+
+    // ═══════════════════════════════════════════════════════════
     //  Test: Mutasi kelas tengah bulan (absensi)
     // ═══════════════════════════════════════════════════════════
 
