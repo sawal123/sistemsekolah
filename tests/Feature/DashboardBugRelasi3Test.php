@@ -42,6 +42,42 @@ class DashboardBugRelasi3Test extends TestCase
         $this->assertTrue(Schema::hasColumn('tagihans', 'potongan'));
     }
 
+    public function test_wali_kelas_id_tidak_unique_tapi_fk_valid(): void
+    {
+        // Setelah migrate: index biasa tersedia, unique hilang
+        $this->assertTrue(Schema::hasIndex('kelas', 'kelas_wali_kelas_id_index'));
+        $this->assertFalse(Schema::hasIndex('kelas', 'kelas_wali_kelas_id_unique'));
+
+        // Dua kelas boleh memakai wali_kelas_id yang sama (bukan unique)
+        $user = User::create(['name' => 'Wali Satu', 'email' => 'wali1@test.com', 'password' => 'p']);
+        $guru = \App\Models\Guru::create(['user_id' => $user->id, 'nip' => 'G0001']);
+        Kelas::create(['nama_kelas' => 'VII A', 'jenjang' => 'SMP', 'wali_kelas_id' => $guru->id]);
+        Kelas::create(['nama_kelas' => 'VII B', 'jenjang' => 'SMP', 'wali_kelas_id' => $guru->id]);
+
+        $this->assertSame(2, Kelas::where('wali_kelas_id', $guru->id)->count());
+
+        // FK tetap valid: guru tak dikenal ditolak
+        $this->expectException(\Illuminate\Database\QueryException::class);
+        Kelas::create(['nama_kelas' => 'VII C', 'jenjang' => 'SMP', 'wali_kelas_id' => 999999]);
+    }
+
+    public function test_wali_kelas_drop_unique_down_mengembalikan_unique(): void
+    {
+        $migration = require database_path('migrations/2026_08_08_000003_drop_unique_wali_kelas_from_kelas_table.php');
+        $migration->down();
+
+        $this->assertTrue(Schema::hasIndex('kelas', 'kelas_wali_kelas_id_unique'));
+        $this->assertFalse(Schema::hasIndex('kelas', 'kelas_wali_kelas_id_index'));
+
+        // Unique kembali aktif → wali yang sama hanya boleh 1 kelas
+        $user = User::create(['name' => 'Wali Dua', 'email' => 'wali2@test.com', 'password' => 'p']);
+        $guru = \App\Models\Guru::create(['user_id' => $user->id, 'nip' => 'G0002']);
+        Kelas::create(['nama_kelas' => 'VII A', 'jenjang' => 'SMP', 'wali_kelas_id' => $guru->id]);
+
+        $this->expectException(\Illuminate\Database\QueryException::class);
+        Kelas::create(['nama_kelas' => 'VII B', 'jenjang' => 'SMP', 'wali_kelas_id' => $guru->id]);
+    }
+
     // ═══════════════════════════════════════════════════════════
     //  Test: TahunAjaran unique constraint with preflight
     // ═══════════════════════════════════════════════════════════
