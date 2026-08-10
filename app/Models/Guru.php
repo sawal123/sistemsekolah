@@ -10,5 +10,6 @@ class Guru extends Model
 
     public function user() { return $this->belongsTo(User::class); }
     public function kelas() { return $this->hasOne(Kelas::class, 'wali_kelas_id'); }
+    public function rombels() { return $this->hasMany(Rombel::class, 'wali_kelas_id'); }
     public function jadwals() { return $this->hasMany(Jadwal::class); }
 }

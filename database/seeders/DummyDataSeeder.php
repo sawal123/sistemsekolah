@@ -10,11 +10,13 @@ use App\Models\Jurusan;
 use App\Models\KalenderAkademik;
 use App\Models\Kategori;
 use App\Models\Kelas;
+use App\Models\AnggotaRombel;
 use App\Models\Mapel;
 use App\Models\Nilai;
 use App\Models\PembayaranSpp;
 use App\Models\Post;
 use App\Models\Rapor;
+use App\Models\Rombel;
 use App\Models\Ruangan;
 use App\Models\Setting;
 use App\Models\Siswa;
@@ -40,18 +42,27 @@ class DummyDataSeeder extends Seeder
         TahunAjaran::create([
             'tahun' => '2025/2026',
             'semester' => 'Ganjil',
+            'tanggal_mulai' => '2025-07-14',
+            'tanggal_selesai' => '2025-12-20',
+            'status' => 'Ditutup',
             'is_active' => false,
         ]);
 
         $ta = TahunAjaran::create([
             'tahun' => '2025/2026',
             'semester' => 'Genap',
+            'tanggal_mulai' => '2026-01-05',
+            'tanggal_selesai' => '2026-06-20',
+            'status' => 'Aktif',
             'is_active' => true,
         ]);
 
         $taBerikutnya = TahunAjaran::create([
             'tahun' => '2026/2027',
             'semester' => 'Ganjil',
+            'tanggal_mulai' => '2026-07-13',
+            'tanggal_selesai' => '2026-12-19',
+            'status' => 'Draft',
             'is_active' => false,
         ]);
 
@@ -136,6 +147,7 @@ class DummyDataSeeder extends Seeder
 
         // 5. Kelas (SMP & SMA)
         $kelasIds = [];
+        $rombelByKelas = [];
         $daftarKelas = [
             ['nama' => '7A', 'jenjang' => 'SMP'],
             ['nama' => '8A', 'jenjang' => 'SMP'],
@@ -154,6 +166,13 @@ class DummyDataSeeder extends Seeder
                 'jurusan_id' => $kls['jurusan_id'] ?? null,
             ]);
             $kelasIds[] = $k->id;
+            $rombelByKelas[$k->id] = Rombel::create([
+                'kelas_id' => $k->id,
+                'tahun_ajaran_id' => $ta->id,
+                'wali_kelas_id' => $k->wali_kelas_id,
+                'kapasitas' => 32,
+                'status' => 'Aktif',
+            ]);
         }
 
         // 6. Siswa — 32 siswa per kelas
@@ -171,7 +190,7 @@ class DummyDataSeeder extends Seeder
                 ]);
                 $user->assignRole('siswa');
 
-                $siswas[] = Siswa::create([
+                $siswa = Siswa::create([
                     'user_id' => $user->id,
                     'kelas_id' => $kelasId,
                     'nisn' => $faker->unique()->numerify('00########'),
@@ -187,6 +206,14 @@ class DummyDataSeeder extends Seeder
                     'nama_ibu' => $faker->name('female'),
                     'no_telp_ortu' => $faker->phoneNumber,
                     'status' => 'Aktif',
+                ]);
+                $siswas[] = $siswa;
+
+                AnggotaRombel::create([
+                    'siswa_id' => $siswa->id,
+                    'rombel_id' => $rombelByKelas[$kelasId]->id,
+                    'status' => 'Aktif',
+                    'tanggal_masuk' => now()->toDateString(),
                 ]);
 
                 $siswaCounter++;
@@ -214,6 +241,7 @@ class DummyDataSeeder extends Seeder
             for ($j = 0; $j < 2; $j++) {
                 $jadwals[] = Jadwal::create([
                     'kelas_id' => $k_id,
+                    'tahun_ajaran_id' => $ta->id,
                     'mapel_id' => $faker->randomElement($mapelIds),
                     // Pastikan beda guru untuk setiap kelas biar gampang tidak bentrok guru
                     'guru_id' => $gurus[($idxKelas + $j) % count($gurus)]->id,
@@ -312,11 +340,13 @@ class DummyDataSeeder extends Seeder
             'keterangan' => 'Uang Bangunan Tahunan — Satu kali bayar per tahun ajaran',
         ]);
 
-        foreach ([
-            [$jurusanRpl, 600000],
-            [$jurusanTkj, 625000],
-            [$jurusanAkl, 540000],
-        ] as [$jurusan, $nominal]) {
+        foreach (
+            [
+                [$jurusanRpl, 600000],
+                [$jurusanTkj, 625000],
+                [$jurusanAkl, 540000],
+            ] as [$jurusan, $nominal]
+        ) {
             Spp::create([
                 'tahun_ajaran_id' => $taBerikutnya->id,
                 'jenjang' => 'SMK',

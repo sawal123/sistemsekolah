@@ -8,6 +8,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use App\Models\Kelas;
 use App\Models\Rapor;
+use App\Models\Rombel;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\Absensi;
@@ -19,7 +20,7 @@ class ERaporIndex extends Component
 {
     #[Url]
     public $filterTahunAjaran;
-    
+
     #[Url]
     public $filterKelas;
 
@@ -30,7 +31,7 @@ class ERaporIndex extends Component
     public $formIzin = 0;
     public $formAlpa = 0;
     public $formKeputusan = '';
-    
+
     // JSON arrays
     public $formEkskul = [];
     public $formPrestasi = [];
@@ -44,10 +45,13 @@ class ERaporIndex extends Component
         }
 
         // Jika Guru (Wali Kelas)
-        if(auth()->user()->hasRole('guru') && auth()->user()->guru) {
-            $kelasWali = Kelas::where('wali_kelas_id', auth()->user()->guru->id)->first();
-            if ($kelasWali && !$this->filterKelas) {
-                $this->filterKelas = $kelasWali->id;
+        if (auth()->user()->hasRole('guru') && auth()->user()->guru) {
+            $rombelWali = Rombel::with('kelas')
+                ->where('wali_kelas_id', auth()->user()->guru->id)
+                ->when($this->filterTahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $this->filterTahunAjaran))
+                ->first();
+            if ($rombelWali?->kelas && !$this->filterKelas) {
+                $this->filterKelas = $rombelWali->kelas->id;
             }
         }
     }
@@ -66,7 +70,7 @@ class ERaporIndex extends Component
 
         $this->formCatatan = $rapor->catatan_wali_kelas ?? '';
         $this->formKeputusan = $rapor->keputusan ?? '';
-        
+
         $this->formEkskul = $rapor->ekskul ?? [];
         $this->formPrestasi = $rapor->prestasi ?? [];
         $this->formKarakter = $rapor->karakter ?? [];
@@ -103,9 +107,9 @@ class ERaporIndex extends Component
         $this->formSakit = $absensiCount->sakit ?? 0;
         $this->formIzin = $absensiCount->izin ?? 0;
         $this->formAlpa = $absensiCount->alpa ?? 0;
-        
+
         if ($this->editSiswaId) {
-             $this->dispatch('notify', title: 'Sinkronisasi', message: 'Data absensi harian berhasil ditarik.', type: 'info');
+            $this->dispatch('notify', title: 'Sinkronisasi', message: 'Data absensi harian berhasil ditarik.', type: 'info');
         }
     }
 
@@ -132,10 +136,24 @@ class ERaporIndex extends Component
         }
     }
 
-    public function addEkskul() { $this->formEkskul[] = ['nama' => '', 'predikat' => '', 'keterangan' => '']; }
-    public function addPrestasi() { $this->formPrestasi[] = ['jenis' => '', 'keterangan' => '']; }
-    public function removeEkskul($index) { unset($this->formEkskul[$index]); $this->formEkskul = array_values($this->formEkskul); }
-    public function removePrestasi($index) { unset($this->formPrestasi[$index]); $this->formPrestasi = array_values($this->formPrestasi); }
+    public function addEkskul()
+    {
+        $this->formEkskul[] = ['nama' => '', 'predikat' => '', 'keterangan' => ''];
+    }
+    public function addPrestasi()
+    {
+        $this->formPrestasi[] = ['jenis' => '', 'keterangan' => ''];
+    }
+    public function removeEkskul($index)
+    {
+        unset($this->formEkskul[$index]);
+        $this->formEkskul = array_values($this->formEkskul);
+    }
+    public function removePrestasi($index)
+    {
+        unset($this->formPrestasi[$index]);
+        $this->formPrestasi = array_values($this->formPrestasi);
+    }
 
     public function simpanRapor()
     {
@@ -179,36 +197,43 @@ class ERaporIndex extends Component
     public function render()
     {
         $user = auth()->user();
-        
+
         // Authorization Logic
         if ($user->hasRole('guru') && $user->guru) {
-            $listKelas = Kelas::where('wali_kelas_id', $user->guru->id)->get();
+            $listKelas = Rombel::with('kelas')
+                ->where('wali_kelas_id', $user->guru->id)
+                ->when($this->filterTahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $this->filterTahunAjaran))
+                ->get()
+                ->pluck('kelas')
+                ->filter()
+                ->unique('id')
+                ->values();
         } else {
             $listKelas = Kelas::orderBy('jenjang')->orderBy('nama_kelas')->get();
         }
-        
+
         $listTahunAjaran = TahunAjaran::orderBy('tahun', 'desc')->orderBy('semester')->get();
 
         $siswas = [];
         $raporsMap = collect();
         $rankings = [];
 
-        if ($this->filterKelas) {
+        if ($this->filterKelas && $this->filterTahunAjaran) {
             // Eager load nilais to avoid N+1 inside Rapor getRataRataNilaiAttribute
             $taId = $this->filterTahunAjaran;
-            $siswas = Siswa::with(['user', 'nilais' => function($q) use ($taId) {
+            $siswas = Siswa::with(['user', 'nilais' => function ($q) use ($taId) {
                 $q->where('tahun_ajaran_id', $taId);
-            }])->where('kelas_id', $this->filterKelas)
+            }])->aktifDiKelasPadaTahunAjaran($this->filterKelas, $this->filterTahunAjaran)
                 ->get()
                 ->sortBy('user.name')
                 ->values();
 
             // Setup empty rapors if they don't exist logic handled below if needed
             $rapors = Rapor::where('kelas_id', $this->filterKelas)
-                           ->where('tahun_ajaran_id', $this->filterTahunAjaran)
-                           ->whereIn('siswa_id', $siswas->pluck('id'))
-                           ->get()
-                           ->keyBy('siswa_id');
+                ->where('tahun_ajaran_id', $this->filterTahunAjaran)
+                ->whereIn('siswa_id', $siswas->pluck('id'))
+                ->get()
+                ->keyBy('siswa_id');
 
             // Caching average and mapping
             $rRatas = [];

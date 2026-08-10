@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PembayaranSpp;
+use App\Models\Pembayaran;
 use App\Models\Setting;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -20,11 +20,11 @@ class KeuanganPdfController extends Controller
 
         abort_if(empty($ids), 404, 'ID pembayaran tidak ditemukan.');
 
-        $pembayarans = PembayaranSpp::with([
-            'siswa.user',
-            'siswa.kelas',
-            'spp.tahunAjaran',
-            'user',
+        $pembayarans = Pembayaran::with([
+            'tagihan.siswa.user',
+            'tagihan.siswa.kelas',
+            'tagihan.spp.tahunAjaran',
+            'petugas',
         ])->whereIn('id', $ids)->get();
 
         abort_if($pembayarans->isEmpty(), 404, 'Data pembayaran tidak ditemukan.');

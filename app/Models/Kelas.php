@@ -26,6 +26,11 @@ class Kelas extends Model
         return $this->hasMany(Siswa::class);
     }
 
+    public function rombels()
+    {
+        return $this->hasMany(Rombel::class);
+    }
+
     public function jadwals()
     {
         return $this->hasMany(Jadwal::class);

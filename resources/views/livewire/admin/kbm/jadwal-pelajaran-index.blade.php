@@ -27,7 +27,17 @@
 
     {{-- Filter Panel --}}
     <x-ui.card class="fu d2 relative z-20">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+            <div>
+                <x-ui.label value="Tahun Ajaran" class="text-xs" />
+                @php
+                    $optTA = ['' => 'Pilih Tahun Ajaran'];
+                    foreach ($listTahunAjaran as $ta) {
+                        $optTA[$ta->id] = $ta->tahun . ' - ' . ucfirst($ta->semester);
+                    }
+                @endphp
+                <x-ui.select wire:model.live="filterTahunAjaran" :options="$optTA" />
+            </div>
             <div>
                 <x-ui.label value="Kaca Pembesar Kelas" class="text-xs" />
                 @php

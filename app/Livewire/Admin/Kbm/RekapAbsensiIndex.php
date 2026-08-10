@@ -10,6 +10,8 @@ use App\Models\Kelas;
 use App\Models\Siswa;
 use App\Models\Absensi;
 use App\Models\KalenderAkademik;
+use App\Models\Rombel;
+use App\Models\TahunAjaran;
 use Carbon\Carbon;
 use Livewire\WithFileUploads;
 use App\Services\GeminiAiScanner;
@@ -23,7 +25,7 @@ class RekapAbsensiIndex extends Component
 
     #[Url]
     public $filterKelas;
-    
+
     #[Url]
     public $filterBulan;
 
@@ -31,7 +33,7 @@ class RekapAbsensiIndex extends Component
     public $filterTahun;
 
     public $absensiData = [];
-    
+
     // Scanner AI State
     public $fotoKertas;
     public $isScanning = false;
@@ -40,12 +42,16 @@ class RekapAbsensiIndex extends Component
     {
         if (!$this->filterBulan) $this->filterBulan = date('m');
         if (!$this->filterTahun) $this->filterTahun = date('Y');
-        
+
         $user = auth()->user();
         if ($user->hasRole('guru') && $user->guru) {
-            $kelasWali = Kelas::where('wali_kelas_id', $user->guru->id)->first();
-            if ($kelasWali && !$this->filterKelas) {
-                $this->filterKelas = $kelasWali->id;
+            $tahunAjaranId = TahunAjaran::forDate(Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1))?->id;
+            $rombelWali = Rombel::with('kelas')
+                ->where('wali_kelas_id', $user->guru->id)
+                ->when($tahunAjaranId, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaranId))
+                ->first();
+            if ($rombelWali?->kelas && !$this->filterKelas) {
+                $this->filterKelas = $rombelWali->kelas->id;
             }
         }
     }
@@ -53,19 +59,32 @@ class RekapAbsensiIndex extends Component
     public function loadData()
     {
         $this->absensiData = [];
-        
+
         if ($this->filterKelas && $this->filterBulan && $this->filterTahun) {
             $startDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1)->startOfMonth();
             $endDate = $startDate->copy()->endOfMonth();
 
-            $absensis = Absensi::whereHas('siswa', function($q) {
-                $q->where('kelas_id', $this->filterKelas);
-            })
-            ->whereBetween('tanggal', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-            ->get();
+            // Roster bulanan = siswa yang membership-nya OVERLAP rentang bulan
+            $siswas = Siswa::with(['anggotaRombels' => fn($q) => $q->whereHas('rombel', fn($r) => $r->where('kelas_id', $this->filterKelas))])
+                ->inKelasPadaRentangTanggal($this->filterKelas, $startDate->format('Y-m-d'), $endDate->format('Y-m-d'))
+                ->get();
+
+            // Peta SEMUA interval membership per siswa utk kelas ini:
+            // [siswa_id => [[masuk, keluar], [masuk, keluar], ...]]
+            $mapIntervals = $this->buildMembershipIntervalsMap($siswas);
+
+            $absensis = Absensi::whereIn('siswa_id', $siswas->pluck('id'))
+                ->whereBetween('tanggal', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                ->get();
 
             foreach ($absensis as $ab) {
-                $this->absensiData[$ab->siswa_id][$ab->tanggal->format('Y-m-d')] = $ab->status;
+                $tgl = $ab->tanggal->format('Y-m-d');
+                // Validasi: siswa harus menjadi anggota kelas pada tanggal tsb
+                // (dicocokkan ke interval membership mana pun, bukan hanya yang pertama)
+                if (! $this->isDalamInterval($mapIntervals[$ab->siswa_id] ?? [], $tgl)) {
+                    continue;
+                }
+                $this->absensiData[$ab->siswa_id][$tgl] = $ab->status;
             }
         }
     }
@@ -74,6 +93,18 @@ class RekapAbsensiIndex extends Component
     {
         if (KalenderAkademik::isHariLibur($tanggal)) {
             $this->dispatch('notify', title: 'Aksi Ditolak', message: 'Tidak dapat mengisi absensi pada Hari Libur / Minggu.', type: 'danger');
+            return;
+        }
+
+        // Validasi keanggotaan: siswa harus menjadi anggota filterKelas pada tanggal tsb.
+        // inKelasPadaTanggal mencocokkan ke SEMUA interval membership (bukan hanya yang pertama).
+        $isAnggota = $this->filterKelas
+            && Siswa::whereKey($siswaId)
+                ->inKelasPadaTanggal($this->filterKelas, $tanggal)
+                ->exists();
+
+        if (! $isAnggota) {
+            $this->dispatch('notify', title: 'Aksi Ditolak', message: 'Siswa bukan anggota kelas ini pada tanggal tersebut (belum masuk / sudah pindah).', type: 'danger');
             return;
         }
 
@@ -111,7 +142,7 @@ class RekapAbsensiIndex extends Component
             // --- Optimasi Gambar: Resize untuk Kecepatan AI & Mencegah 504 Timeout ---
             $imagePath = $this->fotoKertas->getRealPath();
             $mimeType = $this->fotoKertas->getMimeType();
-            
+
             // Buat resource gambar berdasarkan mime
             if ($mimeType == 'image/jpeg' || $mimeType == 'image/jpg') {
                 $img = imagecreatefromjpeg($imagePath);
@@ -125,7 +156,7 @@ class RekapAbsensiIndex extends Component
                 $width = imagesx($img);
                 $height = imagesy($img);
                 $maxDim = 1600; // Ukuran optimal untuk Gemini vision
-                
+
                 if ($width > $maxDim || $height > $maxDim) {
                     $ratio = $width / $height;
                     if ($ratio > 1) {
@@ -137,12 +168,12 @@ class RekapAbsensiIndex extends Component
                     }
                     $resizedImg = imagecreatetruecolor($newWidth, $newHeight);
                     imagecopyresampled($resizedImg, $img, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-                    
+
                     // Simpan ke buffer
                     ob_start();
                     imagejpeg($resizedImg, null, 80); // Kualitas 80 cukup untuk OCR
                     $imageData = ob_get_clean();
-                    
+
                     imagedestroy($resizedImg);
                 } else {
                     $imageData = file_get_contents($imagePath);
@@ -154,8 +185,22 @@ class RekapAbsensiIndex extends Component
 
             $base64Image = base64_encode($imageData);
 
-            // 1. Ekstrak Daftar Siswa target
-            $siswas = Siswa::with('user')->where('kelas_id', $this->filterKelas)->get()->sortBy('user.name')->values();
+            // 1. Ekstrak Daftar Siswa target (overlap rentang bulan)
+            $startDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1)->startOfMonth();
+            $endDate = $startDate->copy()->endOfMonth();
+            $siswas = Siswa::with([
+                'user',
+                'anggotaRombels' => fn($q) => $q->whereHas('rombel', fn($r) => $r->where('kelas_id', $this->filterKelas)),
+            ])
+                ->inKelasPadaRentangTanggal($this->filterKelas, $startDate->format('Y-m-d'), $endDate->format('Y-m-d'))
+                ->get()
+                ->sortBy('user.name')
+                ->values();
+
+            // Peta SEMUA interval membership per siswa utk kelas ini:
+            // [siswa_id => [[masuk, keluar], [masuk, keluar], ...]]
+            $mapIntervals = $this->buildMembershipIntervalsMap($siswas);
+
             $daftarSiswaTarget = [];
             foreach ($siswas as $idx => $s) {
                 // Memberitahu AI struktur No.Urut => [ID, NAMA]
@@ -177,17 +222,17 @@ class RekapAbsensiIndex extends Component
 
             // 3. Panggil Gemini
             $hasilJsonArray = GeminiAiScanner::scanAbsenMatriks(
-                $base64Image, 
-                $mimeType, 
-                $daftarSiswaTarget, 
-                $this->filterTahun, 
-                $this->filterBulan, 
+                $base64Image,
+                $mimeType,
+                $daftarSiswaTarget,
+                $this->filterTahun,
+                $this->filterBulan,
                 $tanggalLibur
             );
 
             // 4. Update Massal ke Database (Lewati Hari Libur)
             $countUpdate = 0;
-            
+
             if (empty($hasilJsonArray)) {
                 throw new Exception("Mata AI tidak menemukan data yang cocok. Pastikan Nama Siswa di kertas sesuai dengan daftar kelas yang dipilih.");
             }
@@ -196,16 +241,24 @@ class RekapAbsensiIndex extends Component
                 foreach ($dataAbsenBulan as $item) {
                     $tanggal = $item['tanggal'] ?? null;
                     $status = $item['status'] ?? null;
-                    
+
                     if ($tanggal && $status) {
                         // Anti-Bypass: Meskipun AI ngaco, backend tetap mem-blokir hari libur
-                        if (!in_array($tanggal, $tanggalLibur)) {
-                            Absensi::updateOrCreate(
-                                ['siswa_id' => $siswaId, 'tanggal' => $tanggal],
-                                ['status' => $status]
-                            );
-                            $countUpdate++;
+                        if (in_array($tanggal, $tanggalLibur)) {
+                            continue;
                         }
+
+                        // Validasi keanggotaan: siswa harus menjadi anggota filterKelas pada tanggal tsb
+                        // (dicocokkan ke interval membership mana pun, bukan hanya yang pertama)
+                        if (! $this->isDalamInterval($mapIntervals[$siswaId] ?? [], $tanggal)) {
+                            continue;
+                        }
+
+                        Absensi::updateOrCreate(
+                            ['siswa_id' => $siswaId, 'tanggal' => $tanggal],
+                            ['status' => $status]
+                        );
+                        $countUpdate++;
                     }
                 }
             }
@@ -214,21 +267,22 @@ class RekapAbsensiIndex extends Component
             $this->fotoKertas = null;
             $this->loadData();
             $this->dispatch('close-modal', 'modal-scanner-ai');
-            
+
             if ($countUpdate > 0) {
-                $this->dispatch('notify', 
-                    title: 'Pemindaian Selesai', 
-                    message: "Berhasil memproses $countUpdate data. PENTING: Mohon periksa kembali keselarasan data di tabel sebelum lanjut.", 
+                $this->dispatch(
+                    'notify',
+                    title: 'Pemindaian Selesai',
+                    message: "Berhasil memproses $countUpdate data. PENTING: Mohon periksa kembali keselarasan data di tabel sebelum lanjut.",
                     type: 'success'
                 );
             } else {
-                $this->dispatch('notify', 
-                    title: 'Peringatan', 
-                    message: "Pemindaian selesai tapi tidak ada data yang masuk. Pastikan tanda di kertas terbaca jelas.", 
+                $this->dispatch(
+                    'notify',
+                    title: 'Peringatan',
+                    message: "Pemindaian selesai tapi tidak ada data yang masuk. Pastikan tanda di kertas terbaca jelas.",
                     type: 'warning'
                 );
             }
-            
         } catch (Exception $e) {
             $this->dispatch('notify', title: 'AI Error', message: $e->getMessage(), type: 'danger');
         }
@@ -245,7 +299,17 @@ class RekapAbsensiIndex extends Component
 
         $user = auth()->user();
         if ($user->hasRole('guru') && $user->guru) {
-            $listKelas = Kelas::where('wali_kelas_id', $user->guru->id)->get();
+            $tahunAjaranId = $this->filterBulan && $this->filterTahun
+                ? TahunAjaran::forDate(Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1))?->id
+                : null;
+            $listKelas = Rombel::with('kelas')
+                ->where('wali_kelas_id', $user->guru->id)
+                ->when($tahunAjaranId, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaranId))
+                ->get()
+                ->pluck('kelas')
+                ->filter()
+                ->unique('id')
+                ->values();
         } else {
             $listKelas = Kelas::orderBy('jenjang')->orderBy('nama_kelas')->get();
         }
@@ -255,19 +319,21 @@ class RekapAbsensiIndex extends Component
         $hariEfektif = 0;
 
         if ($this->filterKelas && $this->filterBulan && $this->filterTahun) {
+            $startDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1)->startOfMonth();
+            $endDate = $startDate->copy()->endOfMonth();
             $siswas = Siswa::with('user')
-                ->where('kelas_id', $this->filterKelas)
+                ->inKelasPadaRentangTanggal($this->filterKelas, $startDate->format('Y-m-d'), $endDate->format('Y-m-d'))
                 ->get()
                 ->sortBy('user.name')
                 ->values();
 
             $daysInMonth = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1)->daysInMonth;
-            
+
             // Build Matrix dates
             for ($i = 1; $i <= $daysInMonth; $i++) {
                 $dateStr = Carbon::createFromDate($this->filterTahun, $this->filterBulan, $i)->format('Y-m-d');
                 $isLibur = KalenderAkademik::isHariLibur($dateStr);
-                
+
                 $kalender[$i] = [
                     'tanggal' => $dateStr,
                     'is_libur' => $isLibur,
@@ -281,5 +347,43 @@ class RekapAbsensiIndex extends Component
         }
 
         return view('livewire.admin.kbm.rekap-absensi-index', compact('listKelas', 'siswas', 'kalender', 'hariEfektif'));
+    }
+
+    /**
+     * Bangun peta SEMUA interval membership per siswa untuk filterKelas.
+     * Return: [siswa_id => [[masuk, keluar], [masuk, keluar], ...]]
+     * mendukung siswa yang pernah masuk kelas yang sama lebih dari satu kali.
+     */
+    private function buildMembershipIntervalsMap($siswas): array
+    {
+        $map = [];
+        foreach ($siswas as $s) {
+            foreach ($s->anggotaRombels as $a) {
+                if ((int) $a->rombel?->kelas_id !== (int) $this->filterKelas) {
+                    continue;
+                }
+                $map[$s->id][] = [
+                    $a->tanggal_masuk ? $a->tanggal_masuk->format('Y-m-d') : null,
+                    $a->tanggal_keluar ? $a->tanggal_keluar->format('Y-m-d') : null,
+                ];
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * Cek apakah $tgl berada dalam salah satu interval [masuk, keluar].
+     * null pada masuk = sejak awal; null pada keluar = masih aktif.
+     */
+    private function isDalamInterval(array $intervals, string $tgl): bool
+    {
+        foreach ($intervals as [$masuk, $keluar]) {
+            if (($masuk === null || $tgl >= $masuk) && ($keluar === null || $tgl <= $keluar)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -8,6 +8,7 @@ use App\Models\Kelas;
 use App\Models\Mapel;
 use App\Models\Ruangan;
 use App\Models\Setting;
+use App\Models\TahunAjaran;
 use Carbon\Carbon;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -21,6 +22,8 @@ class JadwalPelajaranIndex extends Component
     use WithPagination;
 
     // Filter Global
+    public $filterTahunAjaran = '';
+
     public $filterKelas = '';
 
     public $filterGuru = '';
@@ -62,6 +65,7 @@ class JadwalPelajaranIndex extends Component
     public $conflictErrors = [];
 
     protected $rules = [
+        'filterTahunAjaran' => 'required|exists:tahun_ajarans,id',
         'kelas_id' => 'required',
         'mapel_id' => 'required',
         'guru_id' => 'required',
@@ -73,13 +77,17 @@ class JadwalPelajaranIndex extends Component
 
     public function mount()
     {
+        $this->filterTahunAjaran = TahunAjaran::where('is_active', true)->value('id') ?? '';
+
         // Tetapkan filter otomatis berdasarkan Role Login
         if (auth()->check()) {
             $user = auth()->user();
             if ($user->hasRole('guru')) {
                 $this->filterGuru = $user->guru->id ?? '';
             } elseif ($user->hasRole('siswa')) {
-                $this->filterKelas = $user->siswa->kelas_id ?? '';
+                $this->filterKelas = $user->siswa?->kelasPadaTahunAjaran($this->filterTahunAjaran)?->id
+                    ?? $user->siswa->kelas_id
+                    ?? '';
             }
         }
     }
@@ -114,7 +122,8 @@ class JadwalPelajaranIndex extends Component
     {
         $this->conflictErrors = [];
 
-        $baseQuery = Jadwal::where('hari', $this->hari);
+        $baseQuery = Jadwal::where('hari', $this->hari)
+            ->where('tahun_ajaran_id', $this->filterTahunAjaran);
         if ($this->isEdit) {
             $baseQuery->where('id', '!=', $this->jadwalId);
         }
@@ -169,6 +178,7 @@ class JadwalPelajaranIndex extends Component
             ['id' => $this->jadwalId],
             [
                 'kelas_id' => $this->kelas_id,
+                'tahun_ajaran_id' => $this->filterTahunAjaran,
                 'mapel_id' => $this->mapel_id,
                 'guru_id' => $this->guru_id,
                 'ruangan_id' => $this->ruangan_id ?: null,
@@ -213,7 +223,8 @@ class JadwalPelajaranIndex extends Component
 
     public function render()
     {
-        $query = Jadwal::with(['kelas', 'mapel', 'guru', 'ruangan']);
+        $query = Jadwal::with(['kelas', 'mapel', 'guru', 'ruangan'])
+            ->when($this->filterTahunAjaran, fn ($q) => $q->where('tahun_ajaran_id', $this->filterTahunAjaran));
 
         if ($this->filterKelas) {
             $query->where('kelas_id', $this->filterKelas);
@@ -250,7 +261,9 @@ class JadwalPelajaranIndex extends Component
 
             $isTaken = false;
             if ($this->kelas_id && $this->hari) {
-                $overlap = Jadwal::where('kelas_id', $this->kelas_id)->where('hari', $this->hari);
+                $overlap = Jadwal::where('kelas_id', $this->kelas_id)
+                    ->where('hari', $this->hari)
+                    ->where('tahun_ajaran_id', $this->filterTahunAjaran);
                 if ($this->isEdit) {
                     $overlap->where('id', '!=', $this->jadwalId);
                 }
@@ -272,7 +285,8 @@ class JadwalPelajaranIndex extends Component
         $takenRuanganIds = [];
 
         if ($this->hari && $this->jam_mulai && $this->jam_selesai) {
-            $overlapQuery = Jadwal::where('hari', $this->hari);
+            $overlapQuery = Jadwal::where('hari', $this->hari)
+                ->where('tahun_ajaran_id', $this->filterTahunAjaran);
             if ($this->isEdit) {
                 $overlapQuery->where('id', '!=', $this->jadwalId);
             }
@@ -300,6 +314,7 @@ class JadwalPelajaranIndex extends Component
         }
 
         return view('livewire.admin.kbm.jadwal-pelajaran-index', [
+            'listTahunAjaran' => TahunAjaran::orderBy('tahun', 'desc')->orderBy('semester')->get(),
             'matrix' => $matrix,
             'hariMinggu' => $hariMinggu,
             'dataKelas' => $kelases,

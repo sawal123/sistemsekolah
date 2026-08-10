@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Models\Nilai;
+use App\Models\Siswa;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -11,11 +12,13 @@ class FormatNilaiImport implements ToCollection, WithHeadingRow
 {
     protected $mapel_id;
     protected $tahun_ajaran_id;
+    protected $kelas_id;
 
-    public function __construct($mapel_id, $tahun_ajaran_id)
+    public function __construct($mapel_id, $tahun_ajaran_id, $kelas_id = null)
     {
         $this->mapel_id = $mapel_id;
         $this->tahun_ajaran_id = $tahun_ajaran_id;
+        $this->kelas_id = $kelas_id;
     }
 
     public function collection(Collection $rows)
@@ -24,6 +27,9 @@ class FormatNilaiImport implements ToCollection, WithHeadingRow
             // Kolom diubah otomatis oleh paket menjadi snake_case
             $siswaId = $row['id_siswa'] ?? null;
             if (!$siswaId) continue;
+            if ($this->kelas_id && ! Siswa::whereKey($siswaId)->inKelasPadaTahunAjaran($this->kelas_id, $this->tahun_ajaran_id)->exists()) {
+                continue;
+            }
 
             $n = Nilai::firstOrNew([
                 'siswa_id' => $siswaId,

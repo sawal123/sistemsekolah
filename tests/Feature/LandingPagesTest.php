@@ -25,24 +25,26 @@ class LandingPagesTest extends TestCase
 
     public function test_public_landing_pages_are_accessible(): void
     {
-        foreach ([
-            '/tentang',
-            '/akademik/ipa',
-            '/akademik/ips',
-            '/akademik/bahasa',
-            '/akademik/kurikulum',
-            '/kepegawaian/guru',
-            '/kepegawaian/tata-usaha',
-            '/kepegawaian/struktur-organisasi',
-            '/fasilitas-sekolah',
-            '/blog',
-            '/ppdb',
-            '/ppdb/syarat',
-            '/ppdb/jalur',
-            '/ppdb/biaya',
-            '/ppdb/daftar',
-            '/kontak',
-        ] as $uri) {
+        foreach (
+            [
+                '/tentang',
+                '/akademik/ipa',
+                '/akademik/ips',
+                '/akademik/bahasa',
+                '/akademik/kurikulum',
+                '/kepegawaian/guru',
+                '/kepegawaian/tata-usaha',
+                '/kepegawaian/struktur-organisasi',
+                '/fasilitas-sekolah',
+                '/blog',
+                '/ppdb',
+                '/ppdb/syarat',
+                '/ppdb/jalur',
+                '/ppdb/biaya',
+                '/ppdb/daftar',
+                '/kontak',
+            ] as $uri
+        ) {
             $this->get($uri)->assertOk();
         }
     }
@@ -84,12 +86,14 @@ class LandingPagesTest extends TestCase
         $activeYear = TahunAjaran::create([
             'tahun' => '2026/2027',
             'semester' => 'Ganjil',
+            'status' => 'Aktif',
             'is_active' => true,
         ]);
 
         $oldYear = TahunAjaran::create([
             'tahun' => '2025/2026',
             'semester' => 'Genap',
+            'status' => 'Ditutup',
             'is_active' => false,
         ]);
 
@@ -137,6 +141,7 @@ class LandingPagesTest extends TestCase
         $academicYear = TahunAjaran::create([
             'tahun' => '2026/2027',
             'semester' => 'Ganjil',
+            'status' => 'Aktif',
             'is_active' => true,
         ]);
 
@@ -179,8 +184,8 @@ class LandingPagesTest extends TestCase
     public function test_smk_fee_can_be_different_by_major_and_academic_year(): void
     {
         $rpl = Jurusan::create(['kode' => 'RPL', 'nama' => 'Rekayasa Perangkat Lunak', 'is_active' => true]);
-        $yearOne = TahunAjaran::create(['tahun' => '2026/2027', 'semester' => 'Ganjil', 'is_active' => true]);
-        $yearTwo = TahunAjaran::create(['tahun' => '2027/2028', 'semester' => 'Ganjil', 'is_active' => false]);
+        $yearOne = TahunAjaran::create(['tahun' => '2026/2027', 'semester' => 'Ganjil', 'status' => 'Aktif', 'is_active' => true]);
+        $yearTwo = TahunAjaran::create(['tahun' => '2027/2028', 'semester' => 'Ganjil', 'status' => 'Draft', 'is_active' => false]);
 
         foreach ([[$yearOne, 550000], [$yearTwo, 625000]] as [$year, $nominal]) {
             Livewire::test(MasterSppIndex::class)

@@ -6,10 +6,15 @@ use App\Models\Jurusan;
 use App\Models\PendaftaranMuridBaru;
 use App\Models\PpdbGelombang;
 use App\Models\PpdbGelombangRiwayat;
+use App\Models\Siswa;
+use App\Models\TahunAjaran;
+use App\Models\User;
 use App\Services\AddressGeocodingService;
 use App\Services\PpdbDocumentExtractionService;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
@@ -215,17 +220,17 @@ class PendaftaranMuridBaruIndex extends Component
         $query = PendaftaranMuridBaru::with(['gelombang', 'jurusan'])
             ->when($this->search !== '', function ($q) {
                 $q->where(function ($sub) {
-                    $sub->where('nama_lengkap', 'like', '%'.$this->search.'%')
-                        ->orWhere('nisn', 'like', '%'.$this->search.'%')
-                        ->orWhere('nik', 'like', '%'.$this->search.'%')
-                        ->orWhere('sekolah_asal', 'like', '%'.$this->search.'%');
+                    $sub->where('nama_lengkap', 'like', '%' . $this->search . '%')
+                        ->orWhere('nisn', 'like', '%' . $this->search . '%')
+                        ->orWhere('nik', 'like', '%' . $this->search . '%')
+                        ->orWhere('sekolah_asal', 'like', '%' . $this->search . '%');
                 });
             })
             ->when($this->filterStatus !== '', function ($q) {
                 $q->where('status', $this->filterStatus);
             })
             ->when($this->filterTahunPendaftaran !== '', function ($q) {
-                $q->whereHas('gelombang', fn ($gelombang) => $gelombang->where('tahun_pendaftaran', $this->filterTahunPendaftaran));
+                $q->whereHas('gelombang', fn($gelombang) => $gelombang->where('tahun_pendaftaran', $this->filterTahunPendaftaran));
             })
             ->when($this->filterGelombangId !== '', function ($q) {
                 $q->where('ppdb_gelombang_id', $this->filterGelombangId);
@@ -236,7 +241,7 @@ class PendaftaranMuridBaruIndex extends Component
             ->distinct()
             ->orderByDesc('tahun_pendaftaran')
             ->pluck('tahun_pendaftaran', 'tahun_pendaftaran')
-            ->mapWithKeys(fn ($value, $key) => [(string) $key => (string) $value])
+            ->mapWithKeys(fn($value, $key) => [(string) $key => (string) $value])
             ->toArray();
 
         $gelombangs = PpdbGelombang::withCount('pendaftarans')
@@ -246,12 +251,12 @@ class PendaftaranMuridBaruIndex extends Component
             ->get();
 
         $filteredGelombangOptions = $gelombangs
-            ->when($this->filterTahunPendaftaran !== '', fn ($items) => $items->where('tahun_pendaftaran', (int) $this->filterTahunPendaftaran))
-            ->mapWithKeys(fn ($item) => [(string) $item->id => $item->tahun_pendaftaran.' - '.$item->nama_gelombang])
+            ->when($this->filterTahunPendaftaran !== '', fn($items) => $items->where('tahun_pendaftaran', (int) $this->filterTahunPendaftaran))
+            ->mapWithKeys(fn($item) => [(string) $item->id => $item->tahun_pendaftaran . ' - ' . $item->nama_gelombang])
             ->toArray();
 
         $gelombangOptions = $gelombangs
-            ->mapWithKeys(fn ($item) => [(string) $item->id => $item->tahun_pendaftaran.' - '.$item->nama_gelombang.' ('.$item->status.')'])
+            ->mapWithKeys(fn($item) => [(string) $item->id => $item->tahun_pendaftaran . ' - ' . $item->nama_gelombang . ' (' . $item->status . ')'])
             ->toArray();
 
         return view('livewire.admin.ppdb.pendaftaran-murid-baru-index', [
@@ -302,17 +307,68 @@ class PendaftaranMuridBaruIndex extends Component
     public function resetForm(): void
     {
         $this->reset([
-            'editId', 'ppdb_gelombang_id', 'nama_lengkap', 'nisn', 'nik', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin',
-            'agama', 'no_hp', 'email', 'alamat', 'rt', 'rw', 'dusun', 'kelurahan', 'kecamatan',
-            'kota_kabupaten', 'provinsi', 'no_kk', 'tanggal_terbit_kk', 'koordinat_rumah',
-            'sekolah_asal', 'npsn_sekolah_asal', 'tahun_lulus', 'nilai_semester_1', 'nilai_semester_2',
-            'nilai_semester_3', 'nilai_semester_4', 'nilai_semester_5', 'nama_prestasi',
-            'tingkat_prestasi', 'tahun_prestasi', 'penyelenggara_prestasi', 'nama_ayah', 'nik_ayah',
-            'pekerjaan_ayah', 'nama_ibu', 'nik_ibu', 'pekerjaan_ibu', 'nama_wali', 'nik_wali',
-            'pekerjaan_wali', 'penghasilan_ortu', 'no_telp_ortu', 'sekolah_pilihan_1',
-            'jenjang_pilihan', 'jurusan_id', 'jurusan_pilihan_1', 'sekolah_pilihan_2', 'jurusan_pilihan_2', 'catatan',
-            'ijazah_skl', 'kartu_keluarga', 'akta_kelahiran', 'ktp_ayah', 'ktp_ibu', 'buku_rapor',
-            'pas_foto', 'dokumen_gabungan', 'aiExtractedFields', 'aiLastDocument',
+            'editId',
+            'ppdb_gelombang_id',
+            'nama_lengkap',
+            'nisn',
+            'nik',
+            'tempat_lahir',
+            'tanggal_lahir',
+            'jenis_kelamin',
+            'agama',
+            'no_hp',
+            'email',
+            'alamat',
+            'rt',
+            'rw',
+            'dusun',
+            'kelurahan',
+            'kecamatan',
+            'kota_kabupaten',
+            'provinsi',
+            'no_kk',
+            'tanggal_terbit_kk',
+            'koordinat_rumah',
+            'sekolah_asal',
+            'npsn_sekolah_asal',
+            'tahun_lulus',
+            'nilai_semester_1',
+            'nilai_semester_2',
+            'nilai_semester_3',
+            'nilai_semester_4',
+            'nilai_semester_5',
+            'nama_prestasi',
+            'tingkat_prestasi',
+            'tahun_prestasi',
+            'penyelenggara_prestasi',
+            'nama_ayah',
+            'nik_ayah',
+            'pekerjaan_ayah',
+            'nama_ibu',
+            'nik_ibu',
+            'pekerjaan_ibu',
+            'nama_wali',
+            'nik_wali',
+            'pekerjaan_wali',
+            'penghasilan_ortu',
+            'no_telp_ortu',
+            'sekolah_pilihan_1',
+            'jenjang_pilihan',
+            'jurusan_id',
+            'jurusan_pilihan_1',
+            'sekolah_pilihan_2',
+            'jurusan_pilihan_2',
+            'catatan',
+            'ijazah_skl',
+            'kartu_keluarga',
+            'akta_kelahiran',
+            'ktp_ayah',
+            'ktp_ibu',
+            'buku_rapor',
+            'pas_foto',
+            'dokumen_gabungan',
+            'aiExtractedFields',
+            'aiLastDocument',
         ]);
 
         $this->document_upload_mode = 'terpisah';
@@ -393,7 +449,7 @@ class PendaftaranMuridBaruIndex extends Component
     public function saveGelombang(): void
     {
         $this->validate([
-            'gelombang_tahun_pendaftaran' => 'required|integer|min:2000|max:'.(now()->year + 5),
+            'gelombang_tahun_pendaftaran' => 'required|integer|min:2000|max:' . (now()->year + 5),
             'gelombang_nama' => 'required|string|max:100',
             'gelombang_tanggal_mulai' => 'nullable|date',
             'gelombang_tanggal_selesai' => 'nullable|date|after_or_equal:gelombang_tanggal_mulai',
@@ -403,7 +459,7 @@ class PendaftaranMuridBaruIndex extends Component
 
         $duplicateExists = PpdbGelombang::where('tahun_pendaftaran', $this->gelombang_tahun_pendaftaran)
             ->where('nama_gelombang', $this->gelombang_nama)
-            ->when($this->gelombangEditId, fn ($query) => $query->where('id', '!=', $this->gelombangEditId))
+            ->when($this->gelombangEditId, fn($query) => $query->where('id', '!=', $this->gelombangEditId))
             ->exists();
 
         if ($duplicateExists) {
@@ -475,7 +531,7 @@ class PendaftaranMuridBaruIndex extends Component
             $filled = $this->applyExtractedData($data, $field);
             $coordinateFilled = $this->fillCoordinateFromKkAddress($field, $geocoder);
 
-            $this->aiExtractedFields = array_values(array_filter(array_keys($data), fn ($key) => filled($data[$key] ?? null)));
+            $this->aiExtractedFields = array_values(array_filter(array_keys($data), fn($key) => filled($data[$key] ?? null)));
             $this->aiLastDocument = $this->documentLabel($field);
 
             $message = $filled > 0
@@ -487,14 +543,14 @@ class PendaftaranMuridBaruIndex extends Component
             }
 
             if (filled($data['catatan_ai'] ?? '')) {
-                $this->catatan = trim($this->catatan."\nCatatan AI ({$this->aiLastDocument}): ".$data['catatan_ai']);
+                $this->catatan = trim($this->catatan . "\nCatatan AI ({$this->aiLastDocument}): " . $data['catatan_ai']);
             }
 
             $this->dispatch('notify', ['type' => 'success', 'message' => $message]);
         } catch (\Throwable $e) {
             $this->dispatch('notify', [
                 'type' => 'error',
-                'message' => 'Gagal membaca dokumen dengan AI: '.$e->getMessage(),
+                'message' => 'Gagal membaca dokumen dengan AI: ' . $e->getMessage(),
             ]);
         }
     }
@@ -574,13 +630,13 @@ class PendaftaranMuridBaruIndex extends Component
 
     private function rules(): array
     {
-        $id = $this->editId ? ','.$this->editId : '';
+        $id = $this->editId ? ',' . $this->editId : '';
 
         return [
             'nama_lengkap' => 'required|string|max:255',
             'ppdb_gelombang_id' => 'nullable|exists:ppdb_gelombangs,id',
-            'nisn' => 'nullable|string|max:20|unique:pendaftaran_murid_barus,nisn'.$id,
-            'nik' => 'nullable|string|max:20|unique:pendaftaran_murid_barus,nik'.$id,
+            'nisn' => 'nullable|string|max:20|unique:pendaftaran_murid_barus,nisn' . $id,
+            'nik' => 'nullable|string|max:20|unique:pendaftaran_murid_barus,nik' . $id,
             'tempat_lahir' => 'nullable|string|max:100',
             'tanggal_lahir' => 'nullable|date',
             'jenis_kelamin' => 'nullable|in:Laki-Laki,Perempuan',
@@ -600,7 +656,7 @@ class PendaftaranMuridBaruIndex extends Component
             'koordinat_rumah' => 'nullable|string|max:100',
             'sekolah_asal' => 'nullable|string|max:150',
             'npsn_sekolah_asal' => 'nullable|string|max:20',
-            'tahun_lulus' => 'nullable|integer|min:2000|max:'.(now()->year + 1),
+            'tahun_lulus' => 'nullable|integer|min:2000|max:' . (now()->year + 1),
             'nilai_semester_1' => 'nullable|numeric|min:0|max:100',
             'nilai_semester_2' => 'nullable|numeric|min:0|max:100',
             'nilai_semester_3' => 'nullable|numeric|min:0|max:100',
@@ -608,7 +664,7 @@ class PendaftaranMuridBaruIndex extends Component
             'nilai_semester_5' => 'nullable|numeric|min:0|max:100',
             'nama_prestasi' => 'nullable|string|max:150',
             'tingkat_prestasi' => 'nullable|string|max:100',
-            'tahun_prestasi' => 'nullable|integer|min:2000|max:'.(now()->year + 1),
+            'tahun_prestasi' => 'nullable|integer|min:2000|max:' . (now()->year + 1),
             'penyelenggara_prestasi' => 'nullable|string|max:150',
             'nama_ayah' => 'nullable|string|max:150',
             'nik_ayah' => 'nullable|string|max:20',
@@ -628,7 +684,7 @@ class PendaftaranMuridBaruIndex extends Component
             'sekolah_pilihan_2' => 'nullable|string|max:150',
             'jurusan_pilihan_2' => 'nullable|string|max:100',
             'document_upload_mode' => 'required|in:terpisah',
-            'status' => 'required|in:Baru,Diperiksa,Lengkap,Diterima,Ditolak',
+            'status' => 'required|in:Baru,Diperiksa,Lengkap,Diterima,Ditolak,Daftar Ulang,Aktif',
             'catatan' => 'nullable|string|max:1000',
             'ijazah_skl' => 'nullable|file|mimes:pdf,jpg,jpeg|max:5120',
             'kartu_keluarga' => 'nullable|file|mimes:pdf,jpg,jpeg|max:5120',
@@ -644,13 +700,49 @@ class PendaftaranMuridBaruIndex extends Component
     private function formFields(): array
     {
         return [
-            'nama_lengkap', 'nisn', 'nik', 'tempat_lahir', 'jenis_kelamin', 'agama', 'no_hp', 'email',
-            'alamat', 'rt', 'rw', 'dusun', 'kelurahan', 'kecamatan', 'kota_kabupaten', 'provinsi',
-            'no_kk', 'tanggal_terbit_kk', 'koordinat_rumah', 'sekolah_asal', 'npsn_sekolah_asal',
-            'tahun_lulus', 'nama_prestasi', 'tingkat_prestasi', 'tahun_prestasi', 'penyelenggara_prestasi',
-            'nama_ayah', 'nik_ayah', 'pekerjaan_ayah', 'nama_ibu', 'nik_ibu', 'pekerjaan_ibu',
-            'nama_wali', 'nik_wali', 'pekerjaan_wali', 'penghasilan_ortu', 'no_telp_ortu',
-            'sekolah_pilihan_1', 'jenjang_pilihan', 'jurusan_id', 'jurusan_pilihan_1', 'sekolah_pilihan_2', 'jurusan_pilihan_2',
+            'nama_lengkap',
+            'nisn',
+            'nik',
+            'tempat_lahir',
+            'jenis_kelamin',
+            'agama',
+            'no_hp',
+            'email',
+            'alamat',
+            'rt',
+            'rw',
+            'dusun',
+            'kelurahan',
+            'kecamatan',
+            'kota_kabupaten',
+            'provinsi',
+            'no_kk',
+            'tanggal_terbit_kk',
+            'koordinat_rumah',
+            'sekolah_asal',
+            'npsn_sekolah_asal',
+            'tahun_lulus',
+            'nama_prestasi',
+            'tingkat_prestasi',
+            'tahun_prestasi',
+            'penyelenggara_prestasi',
+            'nama_ayah',
+            'nik_ayah',
+            'pekerjaan_ayah',
+            'nama_ibu',
+            'nik_ibu',
+            'pekerjaan_ibu',
+            'nama_wali',
+            'nik_wali',
+            'pekerjaan_wali',
+            'penghasilan_ortu',
+            'no_telp_ortu',
+            'sekolah_pilihan_1',
+            'jenjang_pilihan',
+            'jurusan_id',
+            'jurusan_pilihan_1',
+            'sekolah_pilihan_2',
+            'jurusan_pilihan_2',
         ];
     }
 
@@ -696,10 +788,33 @@ class PendaftaranMuridBaruIndex extends Component
     private function applyExtractedData(array $data, string $sourceField): int
     {
         $fillableFields = [
-            'nama_lengkap', 'nisn', 'nik', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'agama',
-            'alamat', 'rt', 'rw', 'dusun', 'kelurahan', 'kecamatan', 'kota_kabupaten', 'provinsi',
-            'no_kk', 'sekolah_asal', 'npsn_sekolah_asal', 'tahun_lulus', 'nama_ayah', 'nik_ayah',
-            'pekerjaan_ayah', 'nama_ibu', 'nik_ibu', 'pekerjaan_ibu', 'nama_wali', 'nik_wali',
+            'nama_lengkap',
+            'nisn',
+            'nik',
+            'tempat_lahir',
+            'tanggal_lahir',
+            'jenis_kelamin',
+            'agama',
+            'alamat',
+            'rt',
+            'rw',
+            'dusun',
+            'kelurahan',
+            'kecamatan',
+            'kota_kabupaten',
+            'provinsi',
+            'no_kk',
+            'sekolah_asal',
+            'npsn_sekolah_asal',
+            'tahun_lulus',
+            'nama_ayah',
+            'nik_ayah',
+            'pekerjaan_ayah',
+            'nama_ibu',
+            'nik_ibu',
+            'pekerjaan_ibu',
+            'nama_wali',
+            'nik_wali',
             'pekerjaan_wali',
         ];
 
@@ -708,9 +823,15 @@ class PendaftaranMuridBaruIndex extends Component
             ? ['nama_lengkap', 'nisn', 'nik', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'agama', 'sekolah_asal', 'npsn_sekolah_asal', 'tahun_lulus']
             : [];
         $parentFields = [
-            'nama_ayah', 'nik_ayah', 'pekerjaan_ayah',
-            'nama_ibu', 'nik_ibu', 'pekerjaan_ibu',
-            'nama_wali', 'nik_wali', 'pekerjaan_wali',
+            'nama_ayah',
+            'nik_ayah',
+            'pekerjaan_ayah',
+            'nama_ibu',
+            'nik_ibu',
+            'pekerjaan_ibu',
+            'nama_wali',
+            'nik_wali',
+            'pekerjaan_wali',
         ];
         $canFillParentFromKk = $sourceField === 'kartu_keluarga' && filled($this->nama_lengkap);
 
@@ -898,6 +1019,120 @@ class PendaftaranMuridBaruIndex extends Component
             'Lengkap' => 'Lengkap',
             'Diterima' => 'Diterima',
             'Ditolak' => 'Ditolak',
+            'Daftar Ulang' => 'Daftar Ulang',
+            'Aktif' => 'Aktif',
         ];
+    }
+
+    /**
+     * Konversi pendaftar PPDB berstatus "Diterima" menjadi Siswa aktif.
+     * Membuat User, Siswa, dan memasukkan ke Rombel tahun ajaran aktif.
+     */
+    public function konversiKeSiswa(int $id): void
+    {
+        $ppdb = PendaftaranMuridBaru::with('gelombang')->findOrFail($id);
+
+        if ($ppdb->status !== 'Diterima') {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Hanya pendaftar dengan status "Diterima" yang dapat dikonversi menjadi siswa.',
+            ]);
+
+            return;
+        }
+
+        // Cek apakah NISN sudah terdaftar sebagai siswa
+        if ($ppdb->nisn && Siswa::where('nisn', $ppdb->nisn)->exists()) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => "NISN {$ppdb->nisn} sudah terdaftar sebagai siswa aktif.",
+            ]);
+
+            return;
+        }
+
+        $tahunAjaranAktif = TahunAjaran::where('is_active', true)->first();
+
+        DB::transaction(function () use ($ppdb, $tahunAjaranAktif) {
+            // 1. Generate NIS (selalu auto-generate, tidak dari NISN)
+            $lastNis = Siswa::whereNotNull('nis')
+                ->where('nis', 'like', now()->format('Y') . '%')
+                ->orderBy('nis', 'desc')
+                ->value('nis');
+            $nis = $lastNis
+                ? (string) ((int) $lastNis + 1)
+                : now()->format('Y') . '001';
+
+            // 2. Buat User — cegah hijack akun existing
+            $baseEmail = $ppdb->email ?: strtolower(Str::slug($ppdb->nama_lengkap, '')) . $nis . '@sekolah.sch.id';
+
+            // Cek apakah email sudah dipakai oleh orang LAIN (siapa pun)
+            $existingUser = User::where('email', $baseEmail)->first();
+            if ($existingUser) {
+                // Cek apakah user ini sudah terhubung ke siswa yang SAMA (misal konversi ulang)
+                $existingSiswa = Siswa::where('user_id', $existingUser->id)->first();
+                $isSiswaSama = $existingSiswa && $ppdb->nisn && $existingSiswa->nisn === $ppdb->nisn;
+
+                if (! $isSiswaSama) {
+                    // Email dipakai orang lain — buat email unik baru
+                    $baseEmail = strtolower(Str::slug($ppdb->nama_lengkap, '')) . $nis . '@sekolah.sch.id';
+                }
+            }
+
+            $password = $ppdb->tanggal_lahir
+                ? Carbon::parse($ppdb->tanggal_lahir)->format('dmY')
+                : 'siswa123';
+
+            $user = User::firstOrCreate(
+                ['email' => $baseEmail],
+                [
+                    'name' => $ppdb->nama_lengkap,
+                    'password' => Hash::make($password),
+                ]
+            );
+
+            if (! $user->hasRole('siswa')) {
+                $user->assignRole('siswa');
+            }
+
+            // 3. Buat Siswa — NISN hanya diisi jika ada, JANGAN diisi dengan NIS
+            $jenjang = $ppdb->jenjang_pilihan ?: 'SMP';
+            $jurusanId = $ppdb->jurusan_id;
+
+            $siswaKey = $ppdb->nisn
+                ? ['nisn' => $ppdb->nisn]
+                : ['user_id' => $user->id];
+
+            $siswa = Siswa::updateOrCreate(
+                $siswaKey,
+                [
+                    'user_id' => $user->id,
+                    'nisn' => $ppdb->nisn ?: null, // NISN hanya diisi jika ada dari PPDB
+                    'nis' => $nis,
+                    'jenjang' => $jenjang,
+                    'jurusan_id' => $jurusanId,
+                    'kelas_id' => null,
+                    'tempat_lahir' => $ppdb->tempat_lahir,
+                    'tanggal_lahir' => $ppdb->tanggal_lahir,
+                    'agama' => $ppdb->agama,
+                    'jenis_kelamin' => $ppdb->jenis_kelamin,
+                    'alamat' => $ppdb->alamat,
+                    'nama_ayah' => $ppdb->nama_ayah,
+                    'nama_ibu' => $ppdb->nama_ibu,
+                    'pekerjaan_ayah' => $ppdb->pekerjaan_ayah,
+                    'pekerjaan_ibu' => $ppdb->pekerjaan_ibu,
+                    'no_telp_ortu' => $ppdb->no_telp_ortu,
+                    'status' => 'Aktif',
+                ]
+            );
+
+            // 4. Update status PPDB
+            $ppdb->update(['status' => 'Aktif']);
+        });
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "{$ppdb->nama_lengkap} berhasil dikonversi menjadi siswa aktif. Silakan tempatkan ke kelas melalui menu Data Siswa.",
+        ]);
     }
 }

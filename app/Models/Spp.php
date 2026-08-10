@@ -39,6 +39,14 @@ class Spp extends Model
         return $this->hasMany(PembayaranSpp::class);
     }
 
+    /**
+     * Tagihan yang dihasilkan dari template SPP ini.
+     */
+    public function tagihans()
+    {
+        return $this->hasMany(Tagihan::class);
+    }
+
     // ── Scopes ────────────────────────────────────────────────
 
     public function scopeForJenjang($query, string $jenjang)
@@ -66,7 +74,7 @@ class Spp extends Model
     public function scopeApplicableTo($query, string $jenjang, ?int $jurusanId = null)
     {
         return $query
-            ->where(fn ($q) => $q->where('jenjang', $jenjang)->orWhere('jenjang', 'Semua'))
+            ->where(fn($q) => $q->where('jenjang', $jenjang)->orWhere('jenjang', 'Semua'))
             ->where(function ($q) use ($jenjang, $jurusanId) {
                 if ($jenjang === 'SMK' && $jurusanId) {
                     $q->whereNull('jurusan_id')->orWhere('jurusan_id', $jurusanId);

@@ -3,11 +3,15 @@
 namespace App\Livewire\Admin\Civitas;
 
 use App\Models\Kelas;
+use App\Models\AnggotaRombel;
+use App\Models\Rombel;
 use App\Models\Setting;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
@@ -110,9 +114,26 @@ class DataSiswaIndex extends Component
     {
         $this->resetValidation();
         $this->reset([
-            'editId', 'name', 'email', 'password', 'nisn', 'nis', 'jenjang', 'kelas_id',
-            'tempat_lahir', 'tanggal_lahir', 'agama', 'alamat', 'foto', 'existingFoto',
-            'nama_ayah', 'nama_ibu', 'pekerjaan_ayah', 'pekerjaan_ibu', 'no_telp_ortu', 'status',
+            'editId',
+            'name',
+            'email',
+            'password',
+            'nisn',
+            'nis',
+            'jenjang',
+            'kelas_id',
+            'tempat_lahir',
+            'tanggal_lahir',
+            'agama',
+            'alamat',
+            'foto',
+            'existingFoto',
+            'nama_ayah',
+            'nama_ibu',
+            'pekerjaan_ayah',
+            'pekerjaan_ibu',
+            'no_telp_ortu',
+            'status',
         ]);
         $this->foto = null; // Explicitly clear file instance
         $this->isModalOpen = true;
@@ -138,7 +159,7 @@ class DataSiswaIndex extends Component
         $settings = Setting::pluck('value', 'key')->toArray();
 
         // Use storage_path for absolute internal path to file
-        $logoPath = storage_path('app/public/'.($settings['app_logo'] ?? 'branding/logo.png'));
+        $logoPath = storage_path('app/public/' . ($settings['app_logo'] ?? 'branding/logo.png'));
 
         // Safety check if logo doesn't exist
         $logo = file_exists($logoPath) ? $logoPath : null;
@@ -151,26 +172,34 @@ class DataSiswaIndex extends Component
 
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();
-        }, 'Profil-Siswa-'.$siswa->nis.'.pdf');
+        }, 'Profil-Siswa-' . $siswa->nis . '.pdf');
     }
 
     public function save()
     {
         $this->validate([
             'name' => 'required|string|max:255',
-            'email' => 'nullable|email|unique:users,email,'.($this->editId ? Siswa::find($this->editId)->user_id : ''),
-            'nisn' => 'required|string|unique:siswas,nisn,'.$this->editId,
-            'nis' => 'required|string|unique:siswas,nis,'.$this->editId,
+            'email' => 'nullable|email|unique:users,email,' . ($this->editId ? Siswa::find($this->editId)->user_id : ''),
+            'nisn' => 'required|string|unique:siswas,nisn,' . $this->editId,
+            'nis' => 'required|string|unique:siswas,nis,' . $this->editId,
             'jenjang' => 'required|in:SMP,SMA,SMK',
             'kelas_id' => 'required|exists:kelas,id',
             'status' => 'required|in:Aktif,Lulus,Pindah,Dikeluarkan',
             'foto' => 'nullable|image|max:1024',
         ]);
 
+        // Validasi kecocokan jenjang kelas SEBELUM membuat User (cegah orphan)
+        $kelas = Kelas::findOrFail($this->kelas_id);
+        if ($kelas->jenjang !== $this->jenjang) {
+            $this->addError('kelas_id', 'Kelas tidak sesuai dengan jenjang yang dipilih.');
+
+            return;
+        }
+
         // 1. Process User Account
         $finalEmail = $this->email;
         if (! $finalEmail) {
-            $finalEmail = $this->nis.'@sekolah.sch.id';
+            $finalEmail = $this->nis . '@sekolah.sch.id';
         }
 
         $finalPassword = $this->password;
@@ -182,72 +211,112 @@ class DataSiswaIndex extends Component
             }
         }
 
-        if ($this->editId) {
-            $siswa = Siswa::findOrFail($this->editId);
-            $user = $siswa->user;
-            $user->update([
-                'name' => $this->name,
-                'email' => $finalEmail,
-            ]);
-            if ($this->password) {
-                $user->update(['password' => Hash::make($this->password)]);
+        // Bungkus pembuatan User + Siswa + Rombel dalam transaksi
+        DB::transaction(function () use ($kelas, $finalEmail, $finalPassword) {
+            if ($this->editId) {
+                $siswa = Siswa::findOrFail($this->editId);
+                $user = $siswa->user;
+                $user->update([
+                    'name' => $this->name,
+                    'email' => $finalEmail,
+                ]);
+                if ($this->password) {
+                    $user->update(['password' => Hash::make($this->password)]);
+                }
+            } else {
+                $user = User::create([
+                    'name' => $this->name,
+                    'email' => $finalEmail,
+                    'password' => Hash::make($finalPassword),
+                ]);
+                $user->assignRole('siswa');
             }
-        } else {
-            $user = User::create([
-                'name' => $this->name,
-                'email' => $finalEmail,
-                'password' => Hash::make($finalPassword),
-            ]);
-            $user->assignRole('siswa');
-        }
 
-        // 2. Process Photo
-        $fotoPath = $this->existingFoto;
-        if ($this->foto) {
-            if ($this->existingFoto) {
-                Storage::disk('public')->delete($this->existingFoto);
+            // 2. Process Photo
+            $fotoPath = $this->existingFoto;
+            if ($this->foto) {
+                if ($this->existingFoto) {
+                    Storage::disk('public')->delete($this->existingFoto);
+                }
+                $fotoPath = $this->foto->store('students/avatars', 'public');
             }
-            $fotoPath = $this->foto->store('students/avatars', 'public');
-        }
 
-        // 3. Process Siswa Data
-        $kelas = Kelas::findOrFail($this->kelas_id);
-        if ($kelas->jenjang !== $this->jenjang) {
-            $this->addError('kelas_id', 'Kelas tidak sesuai dengan jenjang yang dipilih.');
+            // 3. Process Siswa Data
+            $siswaData = [
+                'user_id' => $user->id,
+                'kelas_id' => $this->kelas_id,
+                'nisn' => $this->nisn,
+                'nis' => $this->nis,
+                'jenjang' => $this->jenjang,
+                'jurusan_id' => $kelas->jurusan_id,
+                'tempat_lahir' => $this->tempat_lahir,
+                'tanggal_lahir' => $this->tanggal_lahir,
+                'agama' => $this->agama,
+                'alamat' => $this->alamat,
+                'foto' => $fotoPath,
+                'nama_ayah' => $this->nama_ayah,
+                'nama_ibu' => $this->nama_ibu,
+                'pekerjaan_ayah' => $this->pekerjaan_ayah,
+                'pekerjaan_ibu' => $this->pekerjaan_ibu,
+                'no_telp_ortu' => $this->no_telp_ortu,
+                'status' => $this->status,
+            ];
 
-            return;
-        }
-
-        $siswaData = [
-            'user_id' => $user->id,
-            'kelas_id' => $this->kelas_id,
-            'nisn' => $this->nisn,
-            'nis' => $this->nis,
-            'jenjang' => $this->jenjang,
-            'jurusan_id' => $kelas->jurusan_id,
-            'tempat_lahir' => $this->tempat_lahir,
-            'tanggal_lahir' => $this->tanggal_lahir,
-            'agama' => $this->agama,
-            'alamat' => $this->alamat,
-            'foto' => $fotoPath,
-            'nama_ayah' => $this->nama_ayah,
-            'nama_ibu' => $this->nama_ibu,
-            'pekerjaan_ayah' => $this->pekerjaan_ayah,
-            'pekerjaan_ibu' => $this->pekerjaan_ibu,
-            'no_telp_ortu' => $this->no_telp_ortu,
-            'status' => $this->status,
-        ];
-
-        // Automation for Graduation
-        if ($this->status === 'Lulus') {
-            $siswaData['tahun_lulus'] = now()->year;
-            // Also assign alumni role to user
-            if (! $user->hasRole('alumni')) {
-                $user->assignRole('alumni');
+            // Automation for Graduation
+            if ($this->status === 'Lulus') {
+                $siswaData['tahun_lulus'] = now()->year;
+                if (! $user->hasRole('alumni')) {
+                    $user->assignRole('alumni');
+                }
             }
-        }
 
-        Siswa::updateOrCreate(['id' => $this->editId], $siswaData);
+            $siswa = Siswa::updateOrCreate(['id' => $this->editId], $siswaData);
+            $tahunAjaranAktif = TahunAjaran::where('is_active', true)->first();
+
+            if ($tahunAjaranAktif) {
+                $rombel = Rombel::firstOrCreate(
+                    [
+                        'kelas_id' => $this->kelas_id,
+                        'tahun_ajaran_id' => $tahunAjaranAktif->id,
+                    ],
+                    [
+                        'wali_kelas_id' => $kelas->wali_kelas_id,
+                        'status' => 'Aktif',
+                    ]
+                );
+
+                AnggotaRombel::where('siswa_id', $siswa->id)
+                    ->whereHas('rombel', fn($q) => $q->where('tahun_ajaran_id', $tahunAjaranAktif->id))
+                    ->where('rombel_id', '!=', $rombel->id)
+                    ->update([
+                        'status' => 'Pindah',
+                        'tanggal_keluar' => now()->toDateString(),
+                    ]);
+
+                $existingAnggota = AnggotaRombel::where('siswa_id', $siswa->id)
+                    ->where('rombel_id', $rombel->id)
+                    ->first();
+
+                if ($existingAnggota) {
+                    $existingAnggota->update([
+                        'status' => $this->status,
+                        'tanggal_keluar' => in_array($this->status, ['Lulus', 'Pindah', 'Dikeluarkan'], true)
+                            ? now()->toDateString()
+                            : null,
+                    ]);
+                } else {
+                    AnggotaRombel::create([
+                        'siswa_id' => $siswa->id,
+                        'rombel_id' => $rombel->id,
+                        'status' => $this->status,
+                        'tanggal_masuk' => now()->toDateString(),
+                        'tanggal_keluar' => in_array($this->status, ['Lulus', 'Pindah', 'Dikeluarkan'], true)
+                            ? now()->toDateString()
+                            : null,
+                    ]);
+                }
+            }
+        });
 
         $this->dispatch('notify', [
             'type' => 'success',
@@ -309,10 +378,10 @@ class DataSiswaIndex extends Component
     {
         $query = Siswa::with(['user', 'kelas', 'jurusan'])
             ->when($this->search, function ($q) {
-                $q->where('nis', 'like', '%'.$this->search.'%')
-                    ->orWhere('nisn', 'like', '%'.$this->search.'%')
+                $q->where('nis', 'like', '%' . $this->search . '%')
+                    ->orWhere('nisn', 'like', '%' . $this->search . '%')
                     ->orWhereHas('user', function ($qu) {
-                        $qu->where('name', 'like', '%'.$this->search.'%');
+                        $qu->where('name', 'like', '%' . $this->search . '%');
                     });
             })
             ->when($this->filterJenjang, function ($q) {

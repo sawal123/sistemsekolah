@@ -23,10 +23,10 @@ class ManajemenNilaiIndex extends Component
     // Filter State
     #[Url]
     public $filterTahunAjaran;
-    
+
     #[Url]
     public $filterKelas;
-    
+
     #[Url]
     public $filterMapel;
 
@@ -35,13 +35,13 @@ class ManajemenNilaiIndex extends Component
     public $n_pts = [];
     public $n_pas = [];
     public $n_remedial = [];
-    
+
     // Upload State
     public $fileExcel;
 
     // Tabs
     public $tab = 'spreadsheet'; // spreadsheet, pengaturan
-    
+
     // Setting Mapping
     public $mapel_kkm = 75;
     public $mapel_bobot_harian = 40;
@@ -57,8 +57,10 @@ class ManajemenNilaiIndex extends Component
         }
 
         // Set default filter if Guru dan URL kosong
-        if(auth()->user()->hasRole('guru') && auth()->user()->guru) {
-            $j = Jadwal::where('guru_id', auth()->user()->guru->id)->first();
+        if (auth()->user()->hasRole('guru') && auth()->user()->guru) {
+            $j = Jadwal::where('guru_id', auth()->user()->guru->id)
+                ->when($this->filterTahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $this->filterTahunAjaran))
+                ->first();
             if ($j && !$this->filterKelas && !$this->filterMapel) {
                 $this->filterKelas = $j->kelas_id;
                 $this->filterMapel = $j->mapel_id;
@@ -81,6 +83,11 @@ class ManajemenNilaiIndex extends Component
     public function updatedFilterKelas()
     {
         $this->filterMapel = '';
+        $this->loadData();
+    }
+
+    public function updatedFilterTahunAjaran()
+    {
         $this->loadData();
     }
 
@@ -120,13 +127,13 @@ class ManajemenNilaiIndex extends Component
         $this->n_remedial = [];
 
         if ($this->filterKelas && $this->filterMapel && $this->filterTahunAjaran) {
-            $siswas = Siswa::where('kelas_id', $this->filterKelas)->pluck('id');
+            $siswas = Siswa::aktifDiKelasPadaTahunAjaran($this->filterKelas, $this->filterTahunAjaran)->pluck('id');
             $nilais = Nilai::where('mapel_id', $this->filterMapel)
-                           ->where('tahun_ajaran_id', $this->filterTahunAjaran)
-                           ->whereIn('siswa_id', $siswas)
-                           ->get()
-                           ->keyBy('siswa_id');
-            
+                ->where('tahun_ajaran_id', $this->filterTahunAjaran)
+                ->whereIn('siswa_id', $siswas)
+                ->get()
+                ->keyBy('siswa_id');
+
             foreach ($siswas as $siswaId) {
                 $n = $nilais->get($siswaId);
                 $this->n_harian[$siswaId] = $n ? ($n->nilai_harian ?? []) : [];
@@ -140,7 +147,7 @@ class ManajemenNilaiIndex extends Component
     private function saveScore($siswaId, $field, $value, $harianKey = null)
     {
         if (!$this->filterKelas || !$this->filterMapel || !$this->filterTahunAjaran) return;
-        
+
         // Cek gembok Rapor
         $rapor = \App\Models\Rapor::where([
             'siswa_id' => $siswaId,
@@ -167,7 +174,7 @@ class ManajemenNilaiIndex extends Component
         } else {
             $nilai->{$field} = ($value !== '' && $value !== null) ? (float)$value : null;
         }
-        
+
         $nilai->save();
         $this->dispatch('notify', title: 'Tersimpan', message: 'Perubahan nilai berhasil disimpan.', type: 'success');
     }
@@ -202,9 +209,9 @@ class ManajemenNilaiIndex extends Component
             $this->dispatch('notify', title: 'Gagal', message: 'Harap pilih Kelas dan Mata Pelajaran terlebih dahulu.', type: 'danger');
             return;
         }
-        
+
         return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\FormatNilaiExport($this->filterKelas, $this->filterMapel, $this->filterTahunAjaran), 
+            new \App\Exports\FormatNilaiExport($this->filterKelas, $this->filterMapel, $this->filterTahunAjaran),
             'Format_Nilai_' . date('Ymd_His') . '.xlsx'
         );
     }
@@ -214,26 +221,29 @@ class ManajemenNilaiIndex extends Component
         $this->validate([
             'fileExcel' => 'required|mimes:xlsx,xls|max:5120', // maks 5MB
         ]);
-        
+
         \Maatwebsite\Excel\Facades\Excel::import(
-            new \App\Imports\FormatNilaiImport($this->filterMapel, $this->filterTahunAjaran), 
+            new \App\Imports\FormatNilaiImport($this->filterMapel, $this->filterTahunAjaran, $this->filterKelas),
             $this->fileExcel->getRealPath()
         );
-        
+
         $this->fileExcel = null;
         $this->dispatch('close-modal', 'upload-modal');
         $this->dispatch('notify', title: 'Berhasil', message: 'Data nilai telah diimpor massal ke database.', type: 'success');
-        
+
         $this->loadData();
     }
 
     public function render()
     {
         $user = auth()->user();
-        
+
         // Authorization Logic
         if ($user->hasRole('guru') && $user->guru) {
-            $jadwals = Jadwal::where('guru_id', $user->guru->id)->with(['kelas', 'mapel'])->get();
+            $jadwals = Jadwal::where('guru_id', $user->guru->id)
+                ->when($this->filterTahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $this->filterTahunAjaran))
+                ->with(['kelas', 'mapel'])
+                ->get();
             $listKelas = $jadwals->pluck('kelas')->unique('id');
             // Menampilkan mapel yang diajar oleh guru TSB di KELAS tsb.
             $listMapel = $jadwals->where('kelas_id', $this->filterKelas)->pluck('mapel')->unique('id');
@@ -241,7 +251,7 @@ class ManajemenNilaiIndex extends Component
             $listKelas = Kelas::orderBy('jenjang')->orderBy('nama_kelas')->get();
             $listMapel = Mapel::orderBy('nama_mapel')->get();
         }
-        
+
         $listTahunAjaran = TahunAjaran::orderBy('tahun', 'desc')->orderBy('semester')->get();
 
         $siswas = [];
@@ -249,18 +259,19 @@ class ManajemenNilaiIndex extends Component
         $mapelSetting = null;
 
         if ($this->filterKelas) {
-            $siswas = Siswa::with('user')->where('kelas_id', $this->filterKelas)
-                           ->get()
-                           ->sortBy('user.name')
-                           ->values(); // Reset array index to 0, 1, 2...
-            
+            $siswas = Siswa::with('user')
+                ->aktifDiKelasPadaTahunAjaran($this->filterKelas, $this->filterTahunAjaran)
+                ->get()
+                ->sortBy('user.name')
+                ->values(); // Reset array index to 0, 1, 2...
+
             if ($this->filterMapel) {
                 $nilaisRender = Nilai::with('mapel')->where('mapel_id', $this->filterMapel)
-                                   ->where('tahun_ajaran_id', $this->filterTahunAjaran)
-                                   ->whereIn('siswa_id', $siswas->pluck('id'))
-                                   ->get()
-                                   ->keyBy('siswa_id');
-                                   
+                    ->where('tahun_ajaran_id', $this->filterTahunAjaran)
+                    ->whereIn('siswa_id', $siswas->pluck('id'))
+                    ->get()
+                    ->keyBy('siswa_id');
+
                 $mapelSetting = Mapel::find($this->filterMapel);
             }
         }

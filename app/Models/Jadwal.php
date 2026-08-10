@@ -3,14 +3,22 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Jadwal extends Model
 {
+    use SoftDeletes;
+
     protected $guarded = ['id'];
 
     public function kelas()
     {
         return $this->belongsTo(Kelas::class)->withTrashed();
+    }
+
+    public function tahunAjaran()
+    {
+        return $this->belongsTo(TahunAjaran::class);
     }
 
     public function mapel()

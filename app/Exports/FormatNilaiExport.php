@@ -32,7 +32,7 @@ class FormatNilaiExport implements FromCollection, WithHeadings, WithMapping, Wi
     public function collection()
     {
         return Siswa::with('user')
-            ->where('kelas_id', $this->kelas_id)
+            ->inKelasPadaTahunAjaran($this->kelas_id, $this->tahun_ajaran_id)
             ->get()
             ->sortBy('user.name')
             ->map(function ($siswa) {
