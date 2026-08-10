@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Absensi;
 use App\Models\AnggotaRombel;
 use App\Models\Kelas;
 use App\Models\PembayaranSpp;
@@ -466,5 +467,150 @@ class DashboardBugRelasi3Test extends TestCase
         $julTagihan = Tagihan::where('siswa_id', $siswa->id)->where('bulan', 7)->first();
         $this->assertNotNull($julTagihan);
         $this->assertEquals(500000, (float) $julTagihan->nominal);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  Test: Mutasi kelas tengah bulan (absensi)
+    // ═══════════════════════════════════════════════════════════
+
+    public function test_in_kelas_pada_rentang_tanggal_overlap(): void
+    {
+        $kelas = Kelas::create(['nama_kelas' => 'VII A', 'jenjang' => 'SMP']);
+        $ta = TahunAjaran::create(['tahun' => '2026/2027', 'semester' => 'Ganjil', 'status' => 'Aktif', 'is_active' => true]);
+        $rombel = Rombel::create(['kelas_id' => $kelas->id, 'tahun_ajaran_id' => $ta->id, 'status' => 'Aktif']);
+
+        $user = User::create(['name' => 'Budi', 'email' => 'budi2@test.com', 'password' => 'p']);
+        $siswa = Siswa::create(['user_id' => $user->id, 'kelas_id' => $kelas->id, 'nisn' => '0099', 'nis' => 'S099', 'jenjang' => 'SMP', 'status' => 'Aktif']);
+        // Masuk awal bulan, pindah keluar pertengahan bulan (overlap bulan tersebut)
+        AnggotaRombel::create([
+            'siswa_id' => $siswa->id,
+            'rombel_id' => $rombel->id,
+            'status' => 'Pindah',
+            'tanggal_masuk' => '2026-08-01',
+            'tanggal_keluar' => '2026-08-15',
+        ]);
+
+        // Overlap bulan Agustus (1–31) → Budi masuk roster
+        $result = Siswa::inKelasPadaRentangTanggal($kelas->id, '2026-08-01', '2026-08-31')->get();
+        $this->assertCount(1, $result);
+
+        // Bulan September → tidak overlap → tidak muncul
+        $result = Siswa::inKelasPadaRentangTanggal($kelas->id, '2026-09-01', '2026-09-30')->get();
+        $this->assertCount(0, $result);
+    }
+
+    public function test_rekap_absensi_mutasi_tengah_bulan_validasi_per_tanggal(): void
+    {
+        $kelas = Kelas::create(['nama_kelas' => 'VII A', 'jenjang' => 'SMP']);
+        $ta = TahunAjaran::create(['tahun' => '2026/2027', 'semester' => 'Ganjil', 'status' => 'Aktif', 'is_active' => true]);
+        $rombel = Rombel::create(['kelas_id' => $kelas->id, 'tahun_ajaran_id' => $ta->id, 'status' => 'Aktif']);
+
+        $user = User::create(['name' => 'Budi', 'email' => 'budi3@test.com', 'password' => 'p']);
+        $siswa = Siswa::create(['user_id' => $user->id, 'kelas_id' => $kelas->id, 'nisn' => '0097', 'nis' => 'S097', 'jenjang' => 'SMP', 'status' => 'Pindah']);
+        AnggotaRombel::create([
+            'siswa_id' => $siswa->id,
+            'rombel_id' => $rombel->id,
+            'status' => 'Pindah',
+            'tanggal_masuk' => '2026-08-01',
+            'tanggal_keluar' => '2026-08-15',
+        ]);
+
+        // Absensi valid (saat masih di kelas) & invalid (setelah pindah)
+        Absensi::create(['siswa_id' => $siswa->id, 'tanggal' => '2026-08-10', 'status' => 'hadir']);
+        Absensi::create(['siswa_id' => $siswa->id, 'tanggal' => '2026-08-20', 'status' => 'alpa']);
+
+        $component = new \App\Livewire\Admin\Kbm\RekapAbsensiIndex();
+        $component->filterKelas = $kelas->id;
+        $component->filterBulan = '08';
+        $component->filterTahun = '2026';
+        $component->loadData();
+
+        // Absensi 10-08 (dalam rentang membership) → tampil
+        $this->assertArrayHasKey($siswa->id, $component->absensiData);
+        $this->assertEquals('hadir', $component->absensiData[$siswa->id]['2026-08-10']);
+
+        // Absensi 20-08 (setelah tanggal_keluar) → TIDAK tampil
+        $this->assertArrayNotHasKey('2026-08-20', $component->absensiData[$siswa->id] ?? []);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  Test: Rollback aktivasi saat proses gagal
+    // ═══════════════════════════════════════════════════════════
+
+    public function test_salin_rombel_rollback_saat_gagal(): void
+    {
+        $taGanjil = TahunAjaran::create(['tahun' => '2026/2027', 'semester' => 'Ganjil', 'status' => 'Aktif', 'is_active' => true]);
+        $taGenap = TahunAjaran::create(['tahun' => '2026/2027', 'semester' => 'Genap', 'status' => 'Draft', 'is_active' => false]);
+
+        $kelas = Kelas::create(['nama_kelas' => 'VII A', 'jenjang' => 'SMP']);
+        $rombelGanjil = Rombel::create(['kelas_id' => $kelas->id, 'tahun_ajaran_id' => $taGanjil->id, 'status' => 'Aktif']);
+
+        $user = User::create(['name' => 'Siswa', 'email' => 'roll@test.com', 'password' => 'p']);
+        $siswa = Siswa::create(['user_id' => $user->id, 'kelas_id' => $kelas->id, 'nisn' => '0096', 'nis' => 'S096', 'jenjang' => 'SMP', 'status' => 'Aktif']);
+        AnggotaRombel::create(['siswa_id' => $siswa->id, 'rombel_id' => $rombelGanjil->id, 'status' => 'Aktif']);
+
+        // Paksa kegagalan di tengah transaksi (insert anggota_rombels selalu gagal)
+        \Illuminate\Support\Facades\DB::statement("CREATE TRIGGER fail_salin BEFORE INSERT ON anggota_rombels BEGIN SELECT RAISE(ABORT, 'forced failure'); END;");
+
+        try {
+            $component = new \App\Livewire\Admin\DataMaster\TahunAjaranIndex();
+            $component->salinTargetTahunAjaranId = $taGenap->id;
+            try {
+                $component->salinRombelDariSemesterSebelumnya();
+                $this->fail('Harusnya throw karena trigger memaksa kegagalan.');
+            } catch (\Throwable $e) {
+                // expected
+            }
+        } finally {
+            \Illuminate\Support\Facades\DB::statement('DROP TRIGGER IF EXISTS fail_salin');
+        }
+
+        // Rollback: Genap TIDAK aktif, Ganjil tetap aktif, rombel Genap tidak dibuat
+        $this->assertFalse(TahunAjaran::find($taGenap->id)->is_active);
+        $this->assertTrue(TahunAjaran::find($taGanjil->id)->is_active);
+        $this->assertFalse(Rombel::where('kelas_id', $kelas->id)->where('tahun_ajaran_id', $taGenap->id)->exists());
+    }
+
+    public function test_kenaikan_kelas_rollback_saat_gagal(): void
+    {
+        $taLama = TahunAjaran::create(['tahun' => '2026/2027', 'semester' => 'Ganjil', 'status' => 'Aktif', 'is_active' => true]);
+        $taBaru = TahunAjaran::create(['tahun' => '2027/2028', 'semester' => 'Ganjil', 'status' => 'Draft', 'is_active' => false]);
+        $kelas8 = Kelas::create(['nama_kelas' => 'VIII A', 'jenjang' => 'SMP']);
+        $kelas9 = Kelas::create(['nama_kelas' => 'IX A', 'jenjang' => 'SMP']);
+
+        $user = User::create(['name' => 'Siswa', 'email' => 'kena@test.com', 'password' => 'p']);
+        $siswa = Siswa::create(['user_id' => $user->id, 'kelas_id' => $kelas8->id, 'nisn' => '0095', 'nis' => 'S095', 'jenjang' => 'SMP', 'status' => 'Aktif']);
+
+        \Illuminate\Support\Facades\DB::statement("CREATE TRIGGER fail_kenaikan BEFORE INSERT ON anggota_rombels BEGIN SELECT RAISE(ABORT, 'forced failure'); END;");
+
+        try {
+            $component = new \App\Livewire\Admin\DataMaster\TahunAjaranIndex();
+            $component->targetTahunAjaranId = $taBaru->id;
+            $component->kenaikanPreview = [
+                [
+                    'kelas_asal' => 'VIII A',
+                    'kelas_tujuan' => 'IX A',
+                    'kelas_tujuan_id' => $kelas9->id,
+                    'is_lulus' => false,
+                    'is_error' => false,
+                    'jumlah_siswa' => 1,
+                    'siswa' => [['id' => $siswa->id, 'nama' => 'Siswa']],
+                ],
+            ];
+            try {
+                $component->executeKenaikanKelas();
+                $this->fail('Harusnya throw karena trigger memaksa kegagalan.');
+            } catch (\Throwable $e) {
+                // expected
+            }
+        } finally {
+            \Illuminate\Support\Facades\DB::statement('DROP TRIGGER IF EXISTS fail_kenaikan');
+        }
+
+        // Rollback: TA baru TIDAK aktif, TA lama tetap aktif, siswa TIDAK pindah
+        $this->assertFalse(TahunAjaran::find($taBaru->id)->is_active);
+        $this->assertTrue(TahunAjaran::find($taLama->id)->is_active);
+        $this->assertEquals($kelas8->id, Siswa::find($siswa->id)->kelas_id);
+        $this->assertFalse(Rombel::where('kelas_id', $kelas9->id)->where('tahun_ajaran_id', $taBaru->id)->exists());
     }
 }

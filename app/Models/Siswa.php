@@ -142,6 +142,36 @@ class Siswa extends Model
         });
     }
 
+    /**
+     * Scope: siswa yang menjadi anggota kelas pada RENTANG tanggal (overlap).
+     * Membership overlap: tanggal_masuk <= selesai AND (tanggal_keluar IS NULL OR tanggal_keluar >= mulai).
+     * `tanggal_masuk` null dianggap sudah di kelas sejak awal (data legacy).
+     * Cocok untuk: roster bulanan, rekap absensi per bulan.
+     */
+    public function scopeInKelasPadaRentangTanggal($query, $kelasId, $mulai, $selesai)
+    {
+        if (! $kelasId || ! $mulai || ! $selesai) {
+            return $query;
+        }
+
+        $mulaiStr = \Carbon\Carbon::parse($mulai)->toDateString();
+        $selesaiStr = \Carbon\Carbon::parse($selesai)->toDateString();
+
+        return $query->whereHas('anggotaRombels', function ($q) use ($kelasId, $mulaiStr, $selesaiStr) {
+            $q->where(function ($masuk) use ($selesaiStr) {
+                $masuk->whereNull('tanggal_masuk')
+                    ->orWhere('tanggal_masuk', '<=', $selesaiStr);
+            })
+                ->where(function ($keluar) use ($mulaiStr) {
+                    $keluar->whereNull('tanggal_keluar')
+                        ->orWhere('tanggal_keluar', '>=', $mulaiStr);
+                })
+                ->whereHas('rombel', function ($r) use ($kelasId) {
+                    $r->where('kelas_id', $kelasId);
+                });
+        });
+    }
+
     public function kelasPadaTahunAjaran($tahunAjaranId): ?Kelas
     {
         if (! $tahunAjaranId) {

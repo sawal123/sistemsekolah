@@ -336,13 +336,14 @@ class TahunAjaranIndex extends Component
                         ->update(['kelas_id' => $rombelLama->kelas_id]);
                 }
             }
-        });
 
-        // Aktivasi atomik: rombel selesai disalin → baru nonaktifkan lama + aktifkan target
-        TahunAjaran::where('id', '!=', $targetTa->id)
-            ->where('is_active', true)
-            ->update(['is_active' => false, 'status' => 'Ditutup']);
-        $targetTa->update(['is_active' => true, 'status' => 'Aktif']);
+            // Aktivasi atomik DALAM transaksi yang sama:
+            // tutup periode lama + aktifkan target. Gagal → rollback semua.
+            TahunAjaran::where('id', '!=', $targetTa->id)
+                ->where('is_active', true)
+                ->update(['is_active' => false, 'status' => 'Ditutup']);
+            $targetTa->update(['is_active' => true, 'status' => 'Aktif']);
+        });
 
         $this->showSalinRombelModal = false;
         $this->salinTargetTahunAjaranId = null;
@@ -510,13 +511,14 @@ class TahunAjaranIndex extends Component
                     ]);
                 }
             }
-        });
 
-        // Aktifkan tahun ajaran target, nonaktifkan yang lain
-        TahunAjaran::where('id', '!=', $targetTa->id)
-            ->where('is_active', true)
-            ->update(['is_active' => false, 'status' => 'Ditutup']);
-        $targetTa->update(['is_active' => true, 'status' => 'Aktif']);
+            // Aktivasi atomik DALAM transaksi yang sama.
+            // Gagal di tengah → semua (rombel baru, siswa dipindah, status TA) rollback.
+            TahunAjaran::where('id', '!=', $targetTa->id)
+                ->where('is_active', true)
+                ->update(['is_active' => false, 'status' => 'Ditutup']);
+            $targetTa->update(['is_active' => true, 'status' => 'Aktif']);
+        });
 
         $this->showKenaikanModal = false;
         $this->kenaikanPreview = [];

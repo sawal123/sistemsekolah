@@ -63,17 +63,39 @@ class RekapAbsensiIndex extends Component
         if ($this->filterKelas && $this->filterBulan && $this->filterTahun) {
             $startDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1)->startOfMonth();
             $endDate = $startDate->copy()->endOfMonth();
-            // Referensi pertengahan bulan untuk menangkap mutasi masuk/keluar
-            $midDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 15);
-            $tahunAjaranId = TahunAjaran::forDate($startDate)?->id;
-            $siswaIds = Siswa::inKelasPadaTanggal($this->filterKelas, $midDate->format('Y-m-d'))->pluck('id');
 
-            $absensis = Absensi::whereIn('siswa_id', $siswaIds)
+            // Roster bulanan = siswa yang membership-nya OVERLAP rentang bulan
+            $siswas = Siswa::with(['anggotaRombels' => fn($q) => $q->whereHas('rombel', fn($r) => $r->where('kelas_id', $this->filterKelas))])
+                ->inKelasPadaRentangTanggal($this->filterKelas, $startDate->format('Y-m-d'), $endDate->format('Y-m-d'))
+                ->get();
+
+            // Peta membership per siswa utk kelas ini: [siswa_id => [masuk, keluar]]
+            $mapMembership = [];
+            foreach ($siswas as $s) {
+                $a = $s->anggotaRombels->first();
+                if ($a) {
+                    $mapMembership[$s->id] = [
+                        $a->tanggal_masuk ? $a->tanggal_masuk->format('Y-m-d') : null,
+                        $a->tanggal_keluar ? $a->tanggal_keluar->format('Y-m-d') : null,
+                    ];
+                }
+            }
+
+            $absensis = Absensi::whereIn('siswa_id', $siswas->pluck('id'))
                 ->whereBetween('tanggal', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
                 ->get();
 
             foreach ($absensis as $ab) {
-                $this->absensiData[$ab->siswa_id][$ab->tanggal->format('Y-m-d')] = $ab->status;
+                $tgl = $ab->tanggal->format('Y-m-d');
+                // Validasi: siswa harus menjadi anggota kelas pada tanggal tsb
+                if (! isset($mapMembership[$ab->siswa_id])) {
+                    continue;
+                }
+                [$masuk, $keluar] = $mapMembership[$ab->siswa_id];
+                if (($masuk !== null && $tgl < $masuk) || ($keluar !== null && $tgl > $keluar)) {
+                    continue;
+                }
+                $this->absensiData[$ab->siswa_id][$tgl] = $ab->status;
             }
         }
     }
@@ -162,10 +184,11 @@ class RekapAbsensiIndex extends Component
 
             $base64Image = base64_encode($imageData);
 
-            // 1. Ekstrak Daftar Siswa target
-            $midDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 15);
+            // 1. Ekstrak Daftar Siswa target (overlap rentang bulan)
+            $startDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1)->startOfMonth();
+            $endDate = $startDate->copy()->endOfMonth();
             $siswas = Siswa::with('user')
-                ->inKelasPadaTanggal($this->filterKelas, $midDate->format('Y-m-d'))
+                ->inKelasPadaRentangTanggal($this->filterKelas, $startDate->format('Y-m-d'), $endDate->format('Y-m-d'))
                 ->get()
                 ->sortBy('user.name')
                 ->values();
@@ -279,9 +302,10 @@ class RekapAbsensiIndex extends Component
         $hariEfektif = 0;
 
         if ($this->filterKelas && $this->filterBulan && $this->filterTahun) {
-            $midDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 15);
+            $startDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1)->startOfMonth();
+            $endDate = $startDate->copy()->endOfMonth();
             $siswas = Siswa::with('user')
-                ->inKelasPadaTanggal($this->filterKelas, $midDate->format('Y-m-d'))
+                ->inKelasPadaRentangTanggal($this->filterKelas, $startDate->format('Y-m-d'), $endDate->format('Y-m-d'))
                 ->get()
                 ->sortBy('user.name')
                 ->values();
