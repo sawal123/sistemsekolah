@@ -114,7 +114,7 @@ class TahunAjaranIndex extends Component
             $taAktif = TahunAjaran::where('is_active', true)->first();
             $bedaTahun = $taAktif && explode('/', $item->tahun)[0] !== explode('/', $taAktif->tahun)[0];
 
-            if ($bedaTahun && $item->status === 'Draft') {
+            if ($bedaTahun) {
                 // Tahun ajaran baru → arahkan ke Kenaikan Kelas, bukan aktivasi langsung
                 $this->dispatch('notify', [
                     'type' => 'warning',
@@ -124,12 +124,7 @@ class TahunAjaranIndex extends Component
                 return;
             }
 
-            // Nonaktifkan periode lain: set status Ditutup + is_active false
-            TahunAjaran::where('id', '!=', $id)
-                ->where('is_active', true)
-                ->update(['is_active' => false, 'status' => 'Ditutup']);
-
-            // Cek salin rombel DULU — jangan aktifkan sebelum rombel siap
+            // Cek salin rombel DULU — jangan nonaktifkan periode lama sebelum rombel siap
             $semesterSebelumnya = $item->semester === 'Ganjil' ? 'Genap' : 'Ganjil';
             $taSebelumnya = TahunAjaran::where('tahun', $item->tahun)
                 ->where('semester', $semesterSebelumnya)
@@ -138,14 +133,17 @@ class TahunAjaranIndex extends Component
             $hasRombelSendiri = Rombel::where('tahun_ajaran_id', $item->id)->exists();
 
             if (! $hasRombelSendiri && $hasRombelSebelumnya) {
-                // JANGAN aktifkan dulu — tawarkan salin rombel
+                // Periode lama TETAP aktif sampai salin rombel berhasil
                 $this->salinTargetTahunAjaranId = $item->id;
-                $this->salinRombelMessage = "Semester {$item->semester} {$item->tahun} belum memiliki data rombel. Salin rombel dari semester {$semesterSebelumnya}?";
+                $this->salinRombelMessage = "Semester {$item->semester} {$item->tahun} belum memiliki data rombel. Salin rombel dari semester {$semesterSebelumnya}? Periode lama akan tetap aktif sampai proses ini selesai.";
                 $this->showSalinRombelModal = true;
                 $this->dispatch('open-modal', 'salin-rombel-modal');
-                $msg = 'Periode lain dinonaktifkan. Silakan pilih tindakan untuk mengisi rombel semester ini.';
+                $msg = 'Tunggu — selesaikan penyalinan rombel sebelum periode baru diaktifkan.';
             } else {
-                // Sudah punya rombel atau tidak ada sumber → langsung aktifkan
+                // Sudah punya rombel atau tidak ada sumber → aman aktivasi atomik
+                TahunAjaran::where('id', '!=', $id)
+                    ->where('is_active', true)
+                    ->update(['is_active' => false, 'status' => 'Ditutup']);
                 $item->update(['is_active' => true, 'status' => 'Aktif']);
                 $msg = 'Status Tahun Ajaran diaktifkan!';
             }
@@ -340,7 +338,10 @@ class TahunAjaranIndex extends Component
             }
         });
 
-        // Aktifkan tahun ajaran target setelah rombel berhasil disalin
+        // Aktivasi atomik: rombel selesai disalin → baru nonaktifkan lama + aktifkan target
+        TahunAjaran::where('id', '!=', $targetTa->id)
+            ->where('is_active', true)
+            ->update(['is_active' => false, 'status' => 'Ditutup']);
         $targetTa->update(['is_active' => true, 'status' => 'Aktif']);
 
         $this->showSalinRombelModal = false;
@@ -354,17 +355,15 @@ class TahunAjaranIndex extends Component
 
     public function tolakSalinRombel(): void
     {
-        // Tetap aktifkan walaupun tidak salin rombel
-        if ($this->salinTargetTahunAjaranId) {
-            $ta = TahunAjaran::find($this->salinTargetTahunAjaranId);
-            if ($ta && ! $ta->is_active) {
-                $ta->update(['is_active' => true, 'status' => 'Aktif']);
-            }
-        }
-
+        // JANGAN aktifkan target — cegah bypass workflow.
+        // Periode lama tetap aktif; target tetap Draft sampai salin rombel dijalankan.
         $this->showSalinRombelModal = false;
         $this->salinTargetTahunAjaranId = null;
         $this->dispatch('close-modal', 'salin-rombel-modal');
+        $this->dispatch('notify', [
+            'type' => 'info',
+            'message' => 'Penyalinan rombel dibatalkan. Periode baru belum diaktifkan — jalankan kembali aktivasi untuk menyalin rombel.',
+        ]);
     }
 
     // ══════════════════════════════════════════════════════════

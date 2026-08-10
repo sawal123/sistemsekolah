@@ -63,8 +63,10 @@ class RekapAbsensiIndex extends Component
         if ($this->filterKelas && $this->filterBulan && $this->filterTahun) {
             $startDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1)->startOfMonth();
             $endDate = $startDate->copy()->endOfMonth();
+            // Referensi pertengahan bulan untuk menangkap mutasi masuk/keluar
+            $midDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 15);
             $tahunAjaranId = TahunAjaran::forDate($startDate)?->id;
-            $siswaIds = Siswa::aktifDiKelasPadaTahunAjaran($this->filterKelas, $tahunAjaranId)->pluck('id');
+            $siswaIds = Siswa::inKelasPadaTanggal($this->filterKelas, $midDate->format('Y-m-d'))->pluck('id');
 
             $absensis = Absensi::whereIn('siswa_id', $siswaIds)
                 ->whereBetween('tanggal', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
@@ -161,9 +163,9 @@ class RekapAbsensiIndex extends Component
             $base64Image = base64_encode($imageData);
 
             // 1. Ekstrak Daftar Siswa target
-            $tahunAjaranId = TahunAjaran::forDate(Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1))?->id;
+            $midDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 15);
             $siswas = Siswa::with('user')
-                ->aktifDiKelasPadaTahunAjaran($this->filterKelas, $tahunAjaranId)
+                ->inKelasPadaTanggal($this->filterKelas, $midDate->format('Y-m-d'))
                 ->get()
                 ->sortBy('user.name')
                 ->values();
@@ -277,9 +279,9 @@ class RekapAbsensiIndex extends Component
         $hariEfektif = 0;
 
         if ($this->filterKelas && $this->filterBulan && $this->filterTahun) {
-            $tahunAjaranId = TahunAjaran::forDate(Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1))?->id;
+            $midDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 15);
             $siswas = Siswa::with('user')
-                ->aktifDiKelasPadaTahunAjaran($this->filterKelas, $tahunAjaranId)
+                ->inKelasPadaTanggal($this->filterKelas, $midDate->format('Y-m-d'))
                 ->get()
                 ->sortBy('user.name')
                 ->values();

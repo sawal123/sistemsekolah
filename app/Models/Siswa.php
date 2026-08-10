@@ -114,7 +114,9 @@ class Siswa extends Model
 
     /**
      * Scope: siswa yang berada di kelas pada TANGGAL tertentu.
-     * Berdasarkan: tanggal_masuk <= tanggal AND (tanggal_keluar IS NULL OR tanggal_keluar >= tanggal).
+     * Berdasarkan: (tanggal_masuk IS NULL OR tanggal_masuk <= tanggal)
+     *              AND (tanggal_keluar IS NULL OR tanggal_keluar >= tanggal).
+     * `tanggal_masuk` null dianggap sudah di kelas sejak awal (data legacy).
      * Cocok untuk: rekap absensi harian, laporan per tanggal.
      */
     public function scopeInKelasPadaTanggal($query, $kelasId, $tanggal)
@@ -126,13 +128,16 @@ class Siswa extends Model
         $tanggalStr = \Carbon\Carbon::parse($tanggal)->toDateString();
 
         return $query->whereHas('anggotaRombels', function ($q) use ($kelasId, $tanggalStr) {
-            $q->where('tanggal_masuk', '<=', $tanggalStr)
-                ->where(function ($sub) use ($tanggalStr) {
-                    $sub->whereNull('tanggal_keluar')
-                        ->orWhere('tanggal_keluar', '>=', $tanggalStr);
-                })
-                ->whereHas('rombel', function ($r) use ($kelasId) {
-                    $r->where('kelas_id', $kelasId);
+            $q->where(function ($masuk) use ($tanggalStr) {
+                $masuk->whereNull('tanggal_masuk')
+                    ->orWhere('tanggal_masuk', '<=', $tanggalStr);
+            })
+            ->where(function ($sub) use ($tanggalStr) {
+                $sub->whereNull('tanggal_keluar')
+                    ->orWhere('tanggal_keluar', '>=', $tanggalStr);
+            })
+            ->whereHas('rombel', function ($r) use ($kelasId) {
+                $r->where('kelas_id', $kelasId);
                 });
         });
     }
