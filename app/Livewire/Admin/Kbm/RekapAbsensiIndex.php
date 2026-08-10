@@ -100,8 +100,8 @@ class RekapAbsensiIndex extends Component
         // inKelasPadaTanggal mencocokkan ke SEMUA interval membership (bukan hanya yang pertama).
         $isAnggota = $this->filterKelas
             && Siswa::whereKey($siswaId)
-                ->inKelasPadaTanggal($this->filterKelas, $tanggal)
-                ->exists();
+            ->inKelasPadaTanggal($this->filterKelas, $tanggal)
+            ->exists();
 
         if (! $isAnggota) {
             $this->dispatch('notify', title: 'Aksi Ditolak', message: 'Siswa bukan anggota kelas ini pada tanggal tersebut (belum masuk / sudah pindah).', type: 'danger');

@@ -265,19 +265,19 @@ class TransaksiPembayaranIndex extends Component
 
         $sekaliSpps = $taIds
             ? Spp::whereIn('tahun_ajaran_id', $taIds)
-                ->active()
-                ->applicableTo($jenjang, $jurusanId)
-                ->where('kategori', '!=', 'SPP Bulanan')
-                ->orderBy('kategori')
-                ->orderByRaw('jurusan_id IS NULL')
-                ->get()
-                ->sortBy([
-                    // Periode aktif diutamakan → kategori sama hanya muncul 1×, dari periode benar
-                    fn($s) => $s->tahun_ajaran_id === $taAktifId ? 0 : 1,
-                    fn($s) => -1 * (int) $s->id,
-                ])
-                ->unique('kategori')
-                ->values()
+            ->active()
+            ->applicableTo($jenjang, $jurusanId)
+            ->where('kategori', '!=', 'SPP Bulanan')
+            ->orderBy('kategori')
+            ->orderByRaw('jurusan_id IS NULL')
+            ->get()
+            ->sortBy([
+                // Periode aktif diutamakan → kategori sama hanya muncul 1×, dari periode benar
+                fn($s) => $s->tahun_ajaran_id === $taAktifId ? 0 : 1,
+                fn($s) => -1 * (int) $s->id,
+            ])
+            ->unique('kategori')
+            ->values()
             : collect();
 
         foreach ($sekaliSpps as $spp) {
