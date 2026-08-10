@@ -262,42 +262,50 @@
                 </div>
             </div>
 
-            @if (!empty($kenaikanPreview))
-                <div class="overflow-x-auto max-h-96 mb-4">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-indigo-500/5">
-                            <tr>
-                                <th class="px-3 py-2 text-xs font-bold txt-muted">Kelas Asal</th>
-                                <th class="px-3 py-2 text-xs font-bold txt-muted text-center">→</th>
-                                <th class="px-3 py-2 text-xs font-bold txt-muted">Kelas Tujuan</th>
-                                <th class="px-3 py-2 text-xs font-bold txt-muted text-center">Siswa</th>
+            @php $hasPreview = !empty($kenaikanPreview); @endphp
+            <?php if ($hasPreview): ?>
+            <div class="overflow-x-auto max-h-96 mb-4">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-indigo-500/5">
+                        <tr>
+                            <th class="px-3 py-2 text-xs font-bold txt-muted">Kelas Asal</th>
+                            <th class="px-3 py-2 text-xs font-bold txt-muted text-center">→</th>
+                            <th class="px-3 py-2 text-xs font-bold txt-muted">Kelas Tujuan</th>
+                            <th class="px-3 py-2 text-xs font-bold txt-muted text-center">Siswa</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-indigo-500/10">
+                        @foreach ($kenaikanPreview as $row)
+                            <tr
+                                class="{{ $row['is_lulus'] ? 'opacity-50' : '' }} {{ $row['is_error'] ? 'bg-red-500/10' : '' }}">
+                                <td class="px-3 py-2 font-semibold txt-primary">{{ $row['kelas_asal'] }}</td>
+                                <td class="px-3 py-2 text-center txt-muted">→</td>
+                                <td class="px-3 py-2 font-semibold txt-primary">
+                                    <?php if ($row['is_error']): ?>
+                                    ⚠️ Tidak ditemukan
+                                    <?php elseif ($row['is_lulus']): ?>
+                                    🎓 Lulus
+                                    <?php else: ?>
+                                    {{ $row['kelas_tujuan'] }}
+                                    <?php endif; ?>
+                                </td>
+                                <td class="px-3 py-2 text-center txt-primary font-bold">{{ $row['jumlah_siswa'] }}
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody class="divide-y divide-indigo-500/10">
-                            @foreach ($kenaikanPreview as $row)
-                                <tr @class(['opacity-50' => $row['is_lulus']])>
-                                    <td class="px-3 py-2 font-semibold txt-primary">{{ $row['kelas_asal'] }}</td>
-                                    <td class="px-3 py-2 text-center txt-muted">→</td>
-                                    <td class="px-3 py-2 font-semibold txt-primary">
-                                        {{ $row['is_lulus'] ? '🎓 Lulus' : $row['kelas_tujuan'] }}
-                                    </td>
-                                    <td class="px-3 py-2 text-center txt-primary font-bold">{{ $row['jumlah_siswa'] }}
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <p class="text-sm txt-muted text-center py-8">Tidak ada data rombel untuk dipratinjau.</p>
-            @endif
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <?php else: ?>
+            <p class="text-sm txt-muted text-center py-8">Tidak ada data rombel untuk dipratinjau.</p>
+            <?php endif; ?>
 
             <div class="flex justify-end gap-3 border-t border-indigo-500/10 pt-4">
                 <x-ui.button wire:click="batalKenaikanKelas" variant="secondary">
                     Batal
                 </x-ui.button>
                 <x-ui.button wire:click="executeKenaikanKelas" variant="primary"
-                    {{ empty($kenaikanPreview) ? 'disabled' : '' }}>
+                    {{ empty($kenaikanPreview) || collect($kenaikanPreview)->where('is_error', true)->isNotEmpty() ? 'disabled' : '' }}>
                     Jalankan Kenaikan Kelas
                 </x-ui.button>
             </div>

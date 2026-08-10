@@ -17,6 +17,7 @@ return new class extends Migration
             $table->smallInteger('tahun');                 // Tahun tagihan (contoh: 2026)
             $table->tinyInteger('bulan')->nullable();      // 1-12, null = tagihan non-bulanan
             $table->decimal('nominal', 12, 2);             // Total nominal tagihan
+            $table->decimal('potongan', 12, 2)->default(0); // Diskon/beasiswa
             $table->date('jatuh_tempo')->nullable();       // Tanggal jatuh tempo
             $table->enum('status', ['Belum Lunas', 'Lunas Sebagian', 'Lunas', 'Dibatalkan'])
                 ->default('Belum Lunas');

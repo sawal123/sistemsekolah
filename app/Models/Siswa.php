@@ -102,15 +102,14 @@ class Siswa extends Model
             return $query->where('kelas_id', $kelasId);
         }
 
-        return $query->where('status', 'Aktif')
-            ->whereHas('anggotaRombels', function ($q) use ($kelasId, $tahunAjaranId) {
-                $q->where('status', 'Aktif')
-                    ->whereNull('tanggal_keluar')
-                    ->whereHas('rombel', function ($r) use ($kelasId, $tahunAjaranId) {
-                        $r->where('kelas_id', $kelasId)
-                            ->where('tahun_ajaran_id', $tahunAjaranId);
-                    });
-            });
+        return $query->whereHas('anggotaRombels', function ($q) use ($kelasId, $tahunAjaranId) {
+            $q->where('status', 'Aktif')
+                ->whereNull('tanggal_keluar')
+                ->whereHas('rombel', function ($r) use ($kelasId, $tahunAjaranId) {
+                    $r->where('kelas_id', $kelasId)
+                        ->where('tahun_ajaran_id', $tahunAjaranId);
+                });
+        });
     }
 
     /**
@@ -127,8 +126,7 @@ class Siswa extends Model
         $tanggalStr = \Carbon\Carbon::parse($tanggal)->toDateString();
 
         return $query->whereHas('anggotaRombels', function ($q) use ($kelasId, $tanggalStr) {
-            $q->where('status', 'Aktif')
-                ->where('tanggal_masuk', '<=', $tanggalStr)
+            $q->where('tanggal_masuk', '<=', $tanggalStr)
                 ->where(function ($sub) use ($tanggalStr) {
                     $sub->whereNull('tanggal_keluar')
                         ->orWhere('tanggal_keluar', '>=', $tanggalStr);

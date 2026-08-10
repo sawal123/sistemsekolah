@@ -130,11 +130,9 @@ class Tagihan extends Model
      */
     public function refreshStatus(): void
     {
-        $terbayar = $this->total_terbayar;
-
-        if ($terbayar >= $this->nominal) {
+        if ($this->sisa_tagihan <= 0) {
             $this->update(['status' => 'Lunas']);
-        } elseif ($terbayar > 0) {
+        } elseif ($this->total_terbayar > 0) {
             $this->update(['status' => 'Lunas Sebagian']);
         } else {
             $this->update(['status' => 'Belum Lunas']);

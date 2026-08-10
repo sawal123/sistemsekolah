@@ -129,9 +129,7 @@ class TahunAjaranIndex extends Component
                 ->where('is_active', true)
                 ->update(['is_active' => false, 'status' => 'Ditutup']);
 
-            $item->update(['is_active' => true, 'status' => 'Aktif']);
-
-            // Cek tawarkan salin rombel (dalam tahun yang sama)
+            // Cek salin rombel DULU — jangan aktifkan sebelum rombel siap
             $semesterSebelumnya = $item->semester === 'Ganjil' ? 'Genap' : 'Ganjil';
             $taSebelumnya = TahunAjaran::where('tahun', $item->tahun)
                 ->where('semester', $semesterSebelumnya)
@@ -140,12 +138,15 @@ class TahunAjaranIndex extends Component
             $hasRombelSendiri = Rombel::where('tahun_ajaran_id', $item->id)->exists();
 
             if (! $hasRombelSendiri && $hasRombelSebelumnya) {
+                // JANGAN aktifkan dulu — tawarkan salin rombel
                 $this->salinTargetTahunAjaranId = $item->id;
-                $this->salinRombelMessage = "Semester {$item->semester} {$item->tahun} telah diaktifkan, tetapi belum memiliki data rombel. Salin rombel dari semester {$semesterSebelumnya}?";
+                $this->salinRombelMessage = "Semester {$item->semester} {$item->tahun} belum memiliki data rombel. Salin rombel dari semester {$semesterSebelumnya}?";
                 $this->showSalinRombelModal = true;
                 $this->dispatch('open-modal', 'salin-rombel-modal');
-                $msg = 'Status Tahun Ajaran diaktifkan! Anda dapat menyalin rombel dari semester sebelumnya.';
+                $msg = 'Periode lain dinonaktifkan. Silakan pilih tindakan untuk mengisi rombel semester ini.';
             } else {
+                // Sudah punya rombel atau tidak ada sumber → langsung aktifkan
+                $item->update(['is_active' => true, 'status' => 'Aktif']);
                 $msg = 'Status Tahun Ajaran diaktifkan!';
             }
         } else {
@@ -339,17 +340,28 @@ class TahunAjaranIndex extends Component
             }
         });
 
+        // Aktifkan tahun ajaran target setelah rombel berhasil disalin
+        $targetTa->update(['is_active' => true, 'status' => 'Aktif']);
+
         $this->showSalinRombelModal = false;
         $this->salinTargetTahunAjaranId = null;
         $this->dispatch('close-modal', 'salin-rombel-modal');
         $this->dispatch('notify', [
             'type' => 'success',
-            'message' => "{$rombelsSumber->count()} rombel berhasil disalin ke {$targetTa->semester} {$targetTa->tahun}.",
+            'message' => "{$rombelsSumber->count()} rombel berhasil disalin ke {$targetTa->semester} {$targetTa->tahun}. Periode telah diaktifkan.",
         ]);
     }
 
     public function tolakSalinRombel(): void
     {
+        // Tetap aktifkan walaupun tidak salin rombel
+        if ($this->salinTargetTahunAjaranId) {
+            $ta = TahunAjaran::find($this->salinTargetTahunAjaranId);
+            if ($ta && ! $ta->is_active) {
+                $ta->update(['is_active' => true, 'status' => 'Aktif']);
+            }
+        }
+
         $this->showSalinRombelModal = false;
         $this->salinTargetTahunAjaranId = null;
         $this->dispatch('close-modal', 'salin-rombel-modal');
@@ -412,8 +424,9 @@ class TahunAjaranIndex extends Component
                 continue;
             }
 
-            // Tentukan kelas tujuan berdasarkan jenjang dan angka
-            $kelasTujuan = $this->cariKelasTujuan($kelasAsal, $semuaKelas);
+            $result = $this->cariKelasTujuan($kelasAsal, $semuaKelas);
+            $kelasTujuan = $result['kelas'];
+            $disposition = $result['disposition'];
 
             $this->kenaikanPreview[] = [
                 'rombel_id' => $rombel->id,
@@ -421,7 +434,8 @@ class TahunAjaranIndex extends Component
                 'jenjang' => $kelasAsal->jenjang,
                 'kelas_tujuan' => $kelasTujuan?->nama_kelas,
                 'kelas_tujuan_id' => $kelasTujuan?->id,
-                'is_lulus' => $kelasTujuan === null,
+                'is_lulus' => $disposition === 'lulus',
+                'is_error' => $disposition === 'tidak_ditemukan',
                 'jumlah_siswa' => $rombel->anggotaRombels->count(),
                 'siswa' => $rombel->anggotaRombels->map(fn($a) => [
                     'id' => $a->siswa_id,
@@ -440,15 +454,29 @@ class TahunAjaranIndex extends Component
             return;
         }
 
+        // Blok jika ada kelas yang tujuannya tidak ditemukan
+        $errors = collect($this->kenaikanPreview)->where('is_error', true);
+        if ($errors->isNotEmpty()) {
+            $namaKelas = $errors->pluck('kelas_asal')->join(', ');
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => "Kelas tujuan untuk {$namaKelas} tidak ditemukan. Pastikan kelas tujuan sudah dibuat di Data Master Kelas sebelum menjalankan kenaikan.",
+            ]);
+
+            return;
+        }
+
         $targetTa = TahunAjaran::findOrFail($this->targetTahunAjaranId);
 
         DB::transaction(function () use ($targetTa) {
             foreach ($this->kenaikanPreview as $item) {
-                if ($item['is_lulus'] || ! $item['kelas_tujuan_id']) {
-                    // Siswa lulus — update status
+                if ($item['is_error']) {
+                    continue; // sudah divalidasi di atas, tapi jaga-jaga
+                }
+
+                if ($item['is_lulus']) {
                     Siswa::whereIn('id', collect($item['siswa'])->pluck('id'))
                         ->update(['status' => 'Lulus', 'tahun_lulus' => now()->year]);
-
                     continue;
                 }
 
@@ -510,17 +538,12 @@ class TahunAjaranIndex extends Component
     }
 
     /**
-     * Cari kelas tujuan kenaikan berdasarkan kelas asal.
-     * Parse level (VII/7/X/10) dan suffix (A, RPL 1, IPS 2) secara eksplisit.
-     * SMP: VII→VIII, VIII→IX, IX→null (lulus)
-     * SMA/SMK: X→XI, XI→XII, XII→null (lulus)
+     * Cari kelas tujuan kenaikan. Return ['kelas' => ?Kelas, 'disposition' => 'ok'|'lulus'|'tidak_ditemukan']
      */
-    private function cariKelasTujuan(Kelas $kelasAsal, $semuaKelas): ?Kelas
+    private function cariKelasTujuan(Kelas $kelasAsal, $semuaKelas): array
     {
         $nama = $kelasAsal->nama_kelas;
-        $jenjang = $kelasAsal->jenjang;
 
-        // Roman ↔ Numeric mapping
         $romanToNum = ['VII' => 7, 'VIII' => 8, 'IX' => 9, 'X' => 10, 'XI' => 11, 'XII' => 12];
         $numToRoman = [7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 11 => 'XI', 12 => 'XII'];
 
@@ -528,11 +551,9 @@ class TahunAjaranIndex extends Component
         $suffix = '';
         $isRoman = false;
 
-        // Coba match Roman numerals (urutan descending panjang dulu: VIII, VII, III...)
         $romanSorted = ['VIII', 'VII', 'XII', 'XI', 'IX', 'X'];
         foreach ($romanSorted as $roman) {
             if (str_starts_with($nama, $roman)) {
-                // Pastikan bukan partial match (VIII vs VII)
                 $afterRoman = substr($nama, strlen($roman));
                 if ($afterRoman === '' || ctype_space($afterRoman[0]) || ctype_digit($afterRoman[0])) {
                     $level = $romanToNum[$roman];
@@ -543,7 +564,6 @@ class TahunAjaranIndex extends Component
             }
         }
 
-        // Jika tidak match Roman, coba numeric
         if ($level === null) {
             $numericSorted = ['12', '11', '10', '9', '8', '7'];
             foreach ($numericSorted as $num) {
@@ -559,29 +579,31 @@ class TahunAjaranIndex extends Component
         }
 
         if ($level === null) {
-            return null; // Tidak bisa diparse
+            return ['kelas' => null, 'disposition' => 'tidak_ditemukan'];
         }
 
-        // Mapping kenaikan
         $nextLevel = match ($level) {
             7 => 8,
             8 => 9,
-            9 => null,       // SMP
+            9 => null,
             10 => 11,
             11 => 12,
-            12 => null,    // SMA/SMK
+            12 => null,
             default => null,
         };
 
         if ($nextLevel === null) {
-            return null; // Lulus
+            return ['kelas' => null, 'disposition' => 'lulus'];
         }
 
-        // Rekonstruksi nama kelas tujuan
         $nextName = $isRoman
             ? ($numToRoman[$nextLevel] ?? (string) $nextLevel) . $suffix
             : (string) $nextLevel . $suffix;
 
-        return $semuaKelas->firstWhere('nama_kelas', $nextName);
+        $kelasTujuan = $semuaKelas->firstWhere('nama_kelas', $nextName);
+
+        return $kelasTujuan
+            ? ['kelas' => $kelasTujuan, 'disposition' => 'ok']
+            : ['kelas' => null, 'disposition' => 'tidak_ditemukan'];
     }
 }

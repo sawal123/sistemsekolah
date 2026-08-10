@@ -147,19 +147,46 @@ class TransaksiPembayaranIndex extends Component
 
         $jenjang = $this->selectedSiswaData['jenjang'] ?? null;
         $jurusanId = $this->selectedSiswaData['jurusan_id'] ?? null;
-        $tahunAjaran = TahunAjaran::where('is_active', true)->first();
 
-        $spps = Spp::when($tahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaran->id))
-            ->active()
-            ->applicableTo($jenjang, $jurusanId)
-            ->orderBy('kategori')
-            ->orderByRaw('jurusan_id IS NULL')
-            ->get()
-            ->unique('kategori');
+        // Ambil SPP yang berlaku per bulan via forDate()
+        $sppsByMonth = [];
+        for ($b = 1; $b <= 12; $b++) {
+            $tgl = Carbon::create($this->selectedTahun, $b, 1);
+            $taBulan = TahunAjaran::forDate($tgl);
+            if ($taBulan) {
+                $key = $taBulan->id;
+                if (! isset($sppsByMonth[$key])) {
+                    $sppsByMonth[$key] = Spp::where('tahun_ajaran_id', $taBulan->id)
+                        ->active()
+                        ->applicableTo($jenjang, $jurusanId)
+                        ->orderBy('kategori')
+                        ->orderByRaw('jurusan_id IS NULL')
+                        ->get()
+                        ->unique('kategori');
+                }
+            }
+        }
+
+        // Fallback ke TA aktif jika tidak ada
+        if (empty($sppsByMonth)) {
+            $tahunAjaran = TahunAjaran::where('is_active', true)->first();
+            if ($tahunAjaran) {
+                $sppsByMonth[$tahunAjaran->id] = Spp::where('tahun_ajaran_id', $tahunAjaran->id)
+                    ->active()
+                    ->applicableTo($jenjang, $jurusanId)
+                    ->orderBy('kategori')
+                    ->orderByRaw('jurusan_id IS NULL')
+                    ->get()
+                    ->unique('kategori');
+            }
+        }
 
         $matrix = [];
 
-        foreach ($spps as $spp) {
+        // Kumpulkan semua SPP unik dari semua bulan
+        $allSpps = collect($sppsByMonth)->flatten(1)->unique('id');
+
+        foreach ($allSpps as $spp) {
             if ($spp->kategori === 'SPP Bulanan') {
                 // ── Tagihan Bulanan: generate tagihan per bulan jika belum ada
                 $bulans = [];

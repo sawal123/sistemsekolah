@@ -293,19 +293,28 @@ class DataSiswaIndex extends Component
                         'tanggal_keluar' => now()->toDateString(),
                     ]);
 
-                AnggotaRombel::updateOrCreate(
-                    [
+                $existingAnggota = AnggotaRombel::where('siswa_id', $siswa->id)
+                    ->where('rombel_id', $rombel->id)
+                    ->first();
+
+                if ($existingAnggota) {
+                    $existingAnggota->update([
+                        'status' => $this->status,
+                        'tanggal_keluar' => in_array($this->status, ['Lulus', 'Pindah', 'Dikeluarkan'], true)
+                            ? now()->toDateString()
+                            : null,
+                    ]);
+                } else {
+                    AnggotaRombel::create([
                         'siswa_id' => $siswa->id,
                         'rombel_id' => $rombel->id,
-                    ],
-                    [
                         'status' => $this->status,
                         'tanggal_masuk' => now()->toDateString(),
                         'tanggal_keluar' => in_array($this->status, ['Lulus', 'Pindah', 'Dikeluarkan'], true)
                             ? now()->toDateString()
                             : null,
-                    ]
-                );
+                    ]);
+                }
             }
         });
 
