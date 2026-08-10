@@ -534,6 +534,58 @@ class DashboardBugRelasi3Test extends TestCase
     }
 
     // ═══════════════════════════════════════════════════════════
+    //  Test: scanAbsensi memvalidasi membership per tanggal
+    // ═══════════════════════════════════════════════════════════
+
+    public function test_scan_absensi_menolak_membership_diluar_tanggal(): void
+    {
+        if (! function_exists('imagecreatefrompng')) {
+            $this->markTestSkipped('Ekstensi GD tidak tersedia.');
+        }
+
+        $kelas = Kelas::create(['nama_kelas' => 'VII A', 'jenjang' => 'SMP']);
+        $ta = TahunAjaran::create(['tahun' => '2026/2027', 'semester' => 'Ganjil', 'status' => 'Aktif', 'is_active' => true]);
+        $rombel = Rombel::create(['kelas_id' => $kelas->id, 'tahun_ajaran_id' => $ta->id, 'status' => 'Aktif']);
+
+        $user = User::create(['name' => 'Budi', 'email' => 'budi4@test.com', 'password' => 'p']);
+        $siswa = Siswa::create(['user_id' => $user->id, 'kelas_id' => $kelas->id, 'nisn' => '0094', 'nis' => 'S094', 'jenjang' => 'SMP', 'status' => 'Pindah']);
+        // Pindah tengah bulan: masuk 01-08, keluar 15-08
+        AnggotaRombel::create([
+            'siswa_id' => $siswa->id,
+            'rombel_id' => $rombel->id,
+            'status' => 'Pindah',
+            'tanggal_masuk' => '2026-08-01',
+            'tanggal_keluar' => '2026-08-15',
+        ]);
+
+        // Autentikasi admin agar mount() tidak null-guard auth()->user()
+        $admin = User::create(['name' => 'Admin', 'email' => 'admin@test.com', 'password' => 'p']);
+        \Livewire\Livewire::actingAs($admin);
+
+        // Mock AI scanner: absen 10-08 (valid, masih anggota) & 20-08 (invalid, sudah keluar)
+        \Mockery::mock('alias:App\Services\GeminiAiScanner', function ($mock) use ($siswa) {
+            $mock->shouldReceive('scanAbsenMatriks')->once()->andReturn([
+                $siswa->id => [
+                    ['tanggal' => '2026-08-10', 'status' => 'hadir'],
+                    ['tanggal' => '2026-08-20', 'status' => 'alpa'],
+                ],
+            ]);
+        });
+
+        $component = \Livewire\Livewire::test(\App\Livewire\Admin\Kbm\RekapAbsensiIndex::class);
+        $component->set('filterKelas', $kelas->id);
+        $component->set('filterBulan', '08');
+        $component->set('filterTahun', '2026');
+        $component->set('fotoKertas', \Illuminate\Http\UploadedFile::fake()->image('absen.png'));
+        $component->call('scanAbsensi');
+
+        // 10-08 (masih anggota kelas) → disimpan
+        $this->assertTrue(Absensi::where('siswa_id', $siswa->id)->whereDate('tanggal', '2026-08-10')->where('status', 'hadir')->exists());
+        // 20-08 (sudah keluar dari kelas) → ditolak
+        $this->assertFalse(Absensi::where('siswa_id', $siswa->id)->whereDate('tanggal', '2026-08-20')->exists());
+    }
+
+    // ═══════════════════════════════════════════════════════════
     //  Test: Rollback aktivasi saat proses gagal
     // ═══════════════════════════════════════════════════════════
 

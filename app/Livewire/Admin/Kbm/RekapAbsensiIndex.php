@@ -187,11 +187,27 @@ class RekapAbsensiIndex extends Component
             // 1. Ekstrak Daftar Siswa target (overlap rentang bulan)
             $startDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1)->startOfMonth();
             $endDate = $startDate->copy()->endOfMonth();
-            $siswas = Siswa::with('user')
+            $siswas = Siswa::with([
+                'user',
+                'anggotaRombels' => fn($q) => $q->whereHas('rombel', fn($r) => $r->where('kelas_id', $this->filterKelas)),
+            ])
                 ->inKelasPadaRentangTanggal($this->filterKelas, $startDate->format('Y-m-d'), $endDate->format('Y-m-d'))
                 ->get()
                 ->sortBy('user.name')
                 ->values();
+
+            // Peta membership per siswa utk kelas ini: [siswa_id => [masuk, keluar]]
+            $mapMembership = [];
+            foreach ($siswas as $s) {
+                $a = $s->anggotaRombels->first();
+                if ($a) {
+                    $mapMembership[$s->id] = [
+                        $a->tanggal_masuk ? $a->tanggal_masuk->format('Y-m-d') : null,
+                        $a->tanggal_keluar ? $a->tanggal_keluar->format('Y-m-d') : null,
+                    ];
+                }
+            }
+
             $daftarSiswaTarget = [];
             foreach ($siswas as $idx => $s) {
                 // Memberitahu AI struktur No.Urut => [ID, NAMA]
@@ -235,13 +251,25 @@ class RekapAbsensiIndex extends Component
 
                     if ($tanggal && $status) {
                         // Anti-Bypass: Meskipun AI ngaco, backend tetap mem-blokir hari libur
-                        if (!in_array($tanggal, $tanggalLibur)) {
-                            Absensi::updateOrCreate(
-                                ['siswa_id' => $siswaId, 'tanggal' => $tanggal],
-                                ['status' => $status]
-                            );
-                            $countUpdate++;
+                        if (in_array($tanggal, $tanggalLibur)) {
+                            continue;
                         }
+
+                        // Validasi keanggotaan: siswa harus menjadi anggota filterKelas pada tanggal tsb
+                        if (! isset($mapMembership[$siswaId])) {
+                            continue;
+                        }
+                        [$masuk, $keluar] = $mapMembership[$siswaId];
+                        if (($masuk !== null && $tanggal < $masuk) || ($keluar !== null && $tanggal > $keluar)) {
+                            // Belum masuk / sudah keluar dari kelas pada tanggal ini → tolak
+                            continue;
+                        }
+
+                        Absensi::updateOrCreate(
+                            ['siswa_id' => $siswaId, 'tanggal' => $tanggal],
+                            ['status' => $status]
+                        );
+                        $countUpdate++;
                     }
                 }
             }
