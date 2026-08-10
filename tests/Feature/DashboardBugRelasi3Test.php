@@ -413,15 +413,21 @@ class DashboardBugRelasi3Test extends TestCase
     {
         // 2025/2026 Genap = Jan–Jun 2026 (tarif 400k)
         $taGenap = TahunAjaran::create([
-            'tahun' => '2025/2026', 'semester' => 'Genap',
-            'tanggal_mulai' => '2026-01-05', 'tanggal_selesai' => '2026-06-30',
-            'status' => 'Ditutup', 'is_active' => false,
+            'tahun' => '2025/2026',
+            'semester' => 'Genap',
+            'tanggal_mulai' => '2026-01-05',
+            'tanggal_selesai' => '2026-06-30',
+            'status' => 'Ditutup',
+            'is_active' => false,
         ]);
         // 2026/2027 Ganjil = Jul–Des 2026 (tarif 500k)
         $taGanjil = TahunAjaran::create([
-            'tahun' => '2026/2027', 'semester' => 'Ganjil',
-            'tanggal_mulai' => '2026-07-01', 'tanggal_selesai' => '2026-12-31',
-            'status' => 'Aktif', 'is_active' => true,
+            'tahun' => '2026/2027',
+            'semester' => 'Ganjil',
+            'tanggal_mulai' => '2026-07-01',
+            'tanggal_selesai' => '2026-12-31',
+            'status' => 'Aktif',
+            'is_active' => true,
         ]);
 
         $sppGenap = Spp::create(['tahun_ajaran_id' => $taGenap->id, 'jenjang' => 'SMP', 'kategori' => 'SPP Bulanan', 'nominal' => 400000, 'is_active' => true]);

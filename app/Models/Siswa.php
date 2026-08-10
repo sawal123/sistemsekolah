@@ -132,12 +132,12 @@ class Siswa extends Model
                 $masuk->whereNull('tanggal_masuk')
                     ->orWhere('tanggal_masuk', '<=', $tanggalStr);
             })
-            ->where(function ($sub) use ($tanggalStr) {
-                $sub->whereNull('tanggal_keluar')
-                    ->orWhere('tanggal_keluar', '>=', $tanggalStr);
-            })
-            ->whereHas('rombel', function ($r) use ($kelasId) {
-                $r->where('kelas_id', $kelasId);
+                ->where(function ($sub) use ($tanggalStr) {
+                    $sub->whereNull('tanggal_keluar')
+                        ->orWhere('tanggal_keluar', '>=', $tanggalStr);
+                })
+                ->whereHas('rombel', function ($r) use ($kelasId) {
+                    $r->where('kelas_id', $kelasId);
                 });
         });
     }

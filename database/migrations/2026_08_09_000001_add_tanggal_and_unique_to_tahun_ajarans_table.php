@@ -18,7 +18,7 @@ return new class extends Migration
             ->get();
 
         if ($duplicates->isNotEmpty()) {
-            $lines = $duplicates->map(fn ($d) => "  - {$d->tahun} {$d->semester}: {$d->jumlah} record")->join("\n");
+            $lines = $duplicates->map(fn($d) => "  - {$d->tahun} {$d->semester}: {$d->jumlah} record")->join("\n");
 
             throw new \RuntimeException(
                 "⚠️  Ditemukan duplikat periode akademik di database production:\n\n"

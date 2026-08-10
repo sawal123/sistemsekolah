@@ -221,7 +221,7 @@ class TransaksiPembayaranIndex extends Component
 
         // Isi bulan yang bukan milik SPP tsb dengan placeholder non-payable
         // (view menampilkan grid 12 bulan per kartu)
-        $placeholder = static fn () => [
+        $placeholder = static fn() => [
             'tagihan_id' => null,
             'lunas' => true,
             'sebagian' => false,
@@ -258,13 +258,13 @@ class TransaksiPembayaranIndex extends Component
         $taIds = collect($sppPerBulan)->unique()->values()->all();
         $sekaliSpps = $taIds
             ? Spp::whereIn('tahun_ajaran_id', $taIds)
-                ->active()
-                ->applicableTo($jenjang, $jurusanId)
-                ->where('kategori', '!=', 'SPP Bulanan')
-                ->orderBy('kategori')
-                ->orderByRaw('jurusan_id IS NULL')
-                ->get()
-                ->unique('kategori')
+            ->active()
+            ->applicableTo($jenjang, $jurusanId)
+            ->where('kategori', '!=', 'SPP Bulanan')
+            ->orderBy('kategori')
+            ->orderByRaw('jurusan_id IS NULL')
+            ->get()
+            ->unique('kategori')
             : collect();
 
         foreach ($sekaliSpps as $spp) {
