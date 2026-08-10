@@ -69,17 +69,9 @@ class RekapAbsensiIndex extends Component
                 ->inKelasPadaRentangTanggal($this->filterKelas, $startDate->format('Y-m-d'), $endDate->format('Y-m-d'))
                 ->get();
 
-            // Peta membership per siswa utk kelas ini: [siswa_id => [masuk, keluar]]
-            $mapMembership = [];
-            foreach ($siswas as $s) {
-                $a = $s->anggotaRombels->first();
-                if ($a) {
-                    $mapMembership[$s->id] = [
-                        $a->tanggal_masuk ? $a->tanggal_masuk->format('Y-m-d') : null,
-                        $a->tanggal_keluar ? $a->tanggal_keluar->format('Y-m-d') : null,
-                    ];
-                }
-            }
+            // Peta SEMUA interval membership per siswa utk kelas ini:
+            // [siswa_id => [[masuk, keluar], [masuk, keluar], ...]]
+            $mapIntervals = $this->buildMembershipIntervalsMap($siswas);
 
             $absensis = Absensi::whereIn('siswa_id', $siswas->pluck('id'))
                 ->whereBetween('tanggal', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
@@ -88,11 +80,8 @@ class RekapAbsensiIndex extends Component
             foreach ($absensis as $ab) {
                 $tgl = $ab->tanggal->format('Y-m-d');
                 // Validasi: siswa harus menjadi anggota kelas pada tanggal tsb
-                if (! isset($mapMembership[$ab->siswa_id])) {
-                    continue;
-                }
-                [$masuk, $keluar] = $mapMembership[$ab->siswa_id];
-                if (($masuk !== null && $tgl < $masuk) || ($keluar !== null && $tgl > $keluar)) {
+                // (dicocokkan ke interval membership mana pun, bukan hanya yang pertama)
+                if (! $this->isDalamInterval($mapIntervals[$ab->siswa_id] ?? [], $tgl)) {
                     continue;
                 }
                 $this->absensiData[$ab->siswa_id][$tgl] = $ab->status;
@@ -104,6 +93,18 @@ class RekapAbsensiIndex extends Component
     {
         if (KalenderAkademik::isHariLibur($tanggal)) {
             $this->dispatch('notify', title: 'Aksi Ditolak', message: 'Tidak dapat mengisi absensi pada Hari Libur / Minggu.', type: 'danger');
+            return;
+        }
+
+        // Validasi keanggotaan: siswa harus menjadi anggota filterKelas pada tanggal tsb.
+        // inKelasPadaTanggal mencocokkan ke SEMUA interval membership (bukan hanya yang pertama).
+        $isAnggota = $this->filterKelas
+            && Siswa::whereKey($siswaId)
+                ->inKelasPadaTanggal($this->filterKelas, $tanggal)
+                ->exists();
+
+        if (! $isAnggota) {
+            $this->dispatch('notify', title: 'Aksi Ditolak', message: 'Siswa bukan anggota kelas ini pada tanggal tersebut (belum masuk / sudah pindah).', type: 'danger');
             return;
         }
 
@@ -196,17 +197,9 @@ class RekapAbsensiIndex extends Component
                 ->sortBy('user.name')
                 ->values();
 
-            // Peta membership per siswa utk kelas ini: [siswa_id => [masuk, keluar]]
-            $mapMembership = [];
-            foreach ($siswas as $s) {
-                $a = $s->anggotaRombels->first();
-                if ($a) {
-                    $mapMembership[$s->id] = [
-                        $a->tanggal_masuk ? $a->tanggal_masuk->format('Y-m-d') : null,
-                        $a->tanggal_keluar ? $a->tanggal_keluar->format('Y-m-d') : null,
-                    ];
-                }
-            }
+            // Peta SEMUA interval membership per siswa utk kelas ini:
+            // [siswa_id => [[masuk, keluar], [masuk, keluar], ...]]
+            $mapIntervals = $this->buildMembershipIntervalsMap($siswas);
 
             $daftarSiswaTarget = [];
             foreach ($siswas as $idx => $s) {
@@ -256,12 +249,8 @@ class RekapAbsensiIndex extends Component
                         }
 
                         // Validasi keanggotaan: siswa harus menjadi anggota filterKelas pada tanggal tsb
-                        if (! isset($mapMembership[$siswaId])) {
-                            continue;
-                        }
-                        [$masuk, $keluar] = $mapMembership[$siswaId];
-                        if (($masuk !== null && $tanggal < $masuk) || ($keluar !== null && $tanggal > $keluar)) {
-                            // Belum masuk / sudah keluar dari kelas pada tanggal ini → tolak
+                        // (dicocokkan ke interval membership mana pun, bukan hanya yang pertama)
+                        if (! $this->isDalamInterval($mapIntervals[$siswaId] ?? [], $tanggal)) {
                             continue;
                         }
 
@@ -358,5 +347,43 @@ class RekapAbsensiIndex extends Component
         }
 
         return view('livewire.admin.kbm.rekap-absensi-index', compact('listKelas', 'siswas', 'kalender', 'hariEfektif'));
+    }
+
+    /**
+     * Bangun peta SEMUA interval membership per siswa untuk filterKelas.
+     * Return: [siswa_id => [[masuk, keluar], [masuk, keluar], ...]]
+     * mendukung siswa yang pernah masuk kelas yang sama lebih dari satu kali.
+     */
+    private function buildMembershipIntervalsMap($siswas): array
+    {
+        $map = [];
+        foreach ($siswas as $s) {
+            foreach ($s->anggotaRombels as $a) {
+                if ((int) $a->rombel?->kelas_id !== (int) $this->filterKelas) {
+                    continue;
+                }
+                $map[$s->id][] = [
+                    $a->tanggal_masuk ? $a->tanggal_masuk->format('Y-m-d') : null,
+                    $a->tanggal_keluar ? $a->tanggal_keluar->format('Y-m-d') : null,
+                ];
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * Cek apakah $tgl berada dalam salah satu interval [masuk, keluar].
+     * null pada masuk = sejak awal; null pada keluar = masih aktif.
+     */
+    private function isDalamInterval(array $intervals, string $tgl): bool
+    {
+        foreach ($intervals as [$masuk, $keluar]) {
+            if (($masuk === null || $tgl >= $masuk) && ($keluar === null || $tgl <= $keluar)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

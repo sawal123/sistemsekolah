@@ -534,6 +534,101 @@ class DashboardBugRelasi3Test extends TestCase
     }
 
     // ═══════════════════════════════════════════════════════════
+    //  Test: updateAbsensi manual — validasi membership per tanggal
+    // ═══════════════════════════════════════════════════════════
+
+    private function makeAbsensiKelasDanSiswa(?string $masuk = null, ?string $keluar = null): array
+    {
+        $kelas = Kelas::create(['nama_kelas' => 'VII A', 'jenjang' => 'SMP']);
+        $ta = TahunAjaran::create(['tahun' => '2026/2027', 'semester' => 'Ganjil', 'status' => 'Aktif', 'is_active' => true]);
+        $rombel = Rombel::create(['kelas_id' => $kelas->id, 'tahun_ajaran_id' => $ta->id, 'status' => 'Aktif']);
+
+        $user = User::create(['name' => 'Budi', 'email' => 'budi@test.com', 'password' => 'p']);
+        $siswa = Siswa::create(['user_id' => $user->id, 'kelas_id' => $kelas->id, 'nisn' => '0100', 'nis' => 'S100', 'jenjang' => 'SMP', 'status' => 'Aktif']);
+        AnggotaRombel::create([
+            'siswa_id' => $siswa->id,
+            'rombel_id' => $rombel->id,
+            'status' => 'Aktif',
+            'tanggal_masuk' => $masuk,
+            'tanggal_keluar' => $keluar,
+        ]);
+
+        return [$kelas, $siswa];
+    }
+
+    public function test_update_absensi_manual_sebelum_masuk_ditolak(): void
+    {
+        // Siswa baru masuk 10-08, input absen 05-08 → ditolak
+        [$kelas, $siswa] = $this->makeAbsensiKelasDanSiswa('2026-08-10', null);
+
+        $component = new \App\Livewire\Admin\Kbm\RekapAbsensiIndex();
+        $component->filterKelas = $kelas->id;
+        $component->updateAbsensi($siswa->id, '2026-08-05', 'hadir');
+
+        $this->assertFalse(Absensi::where('siswa_id', $siswa->id)->whereDate('tanggal', '2026-08-05')->exists());
+    }
+
+    public function test_update_absensi_manual_setelah_keluar_ditolak(): void
+    {
+        // Siswa keluar 15-08, input absen 20-08 → ditolak
+        [$kelas, $siswa] = $this->makeAbsensiKelasDanSiswa('2026-08-01', '2026-08-15');
+
+        $component = new \App\Livewire\Admin\Kbm\RekapAbsensiIndex();
+        $component->filterKelas = $kelas->id;
+        $component->updateAbsensi($siswa->id, '2026-08-20', 'hadir');
+
+        $this->assertFalse(Absensi::where('siswa_id', $siswa->id)->whereDate('tanggal', '2026-08-20')->exists());
+    }
+
+    public function test_update_absensi_manual_saat_membership_aktif_diterima(): void
+    {
+        // Siswa aktif (tanpa tanggal_keluar), input absen 10-08 → diterima
+        [$kelas, $siswa] = $this->makeAbsensiKelasDanSiswa('2026-08-01', null);
+
+        $component = new \App\Livewire\Admin\Kbm\RekapAbsensiIndex();
+        $component->filterKelas = $kelas->id;
+        $component->updateAbsensi($siswa->id, '2026-08-10', 'hadir');
+
+        $this->assertTrue(Absensi::where('siswa_id', $siswa->id)->whereDate('tanggal', '2026-08-10')->where('status', 'hadir')->exists());
+    }
+
+    public function test_update_absensi_multi_interval_kelas_sama(): void
+    {
+        // Siswa pernah di VII A dua kali (dua rombel / dua TA berbeda)
+        $kelas = Kelas::create(['nama_kelas' => 'VII A', 'jenjang' => 'SMP']);
+        $taGanjil = TahunAjaran::create(['tahun' => '2026/2027', 'semester' => 'Ganjil', 'status' => 'Ditutup', 'is_active' => false]);
+        $taGenap = TahunAjaran::create(['tahun' => '2026/2027', 'semester' => 'Genap', 'status' => 'Aktif', 'is_active' => true]);
+
+        $rombelGanjil = Rombel::create(['kelas_id' => $kelas->id, 'tahun_ajaran_id' => $taGanjil->id, 'status' => 'Ditutup']);
+        $rombelGenap = Rombel::create(['kelas_id' => $kelas->id, 'tahun_ajaran_id' => $taGenap->id, 'status' => 'Aktif']);
+
+        $user = User::create(['name' => 'Budi', 'email' => 'budi2@test.com', 'password' => 'p']);
+        $siswa = Siswa::create(['user_id' => $user->id, 'kelas_id' => $kelas->id, 'nisn' => '0101', 'nis' => 'S101', 'jenjang' => 'SMP', 'status' => 'Aktif']);
+
+        // Interval 1 (Ganjil): 01-08 s/d 15-08
+        AnggotaRombel::create([
+            'siswa_id' => $siswa->id, 'rombel_id' => $rombelGanjil->id,
+            'status' => 'Pindah', 'tanggal_masuk' => '2026-08-01', 'tanggal_keluar' => '2026-08-15',
+        ]);
+        // Interval 2 (Genap): 05-01-2027 s/d 15-06-2027
+        AnggotaRombel::create([
+            'siswa_id' => $siswa->id, 'rombel_id' => $rombelGenap->id,
+            'status' => 'Aktif', 'tanggal_masuk' => '2027-01-05', 'tanggal_keluar' => '2027-06-15',
+        ]);
+
+        $component = new \App\Livewire\Admin\Kbm\RekapAbsensiIndex();
+        $component->filterKelas = $kelas->id;
+
+        // Antara dua interval (10-2026) → ditolak
+        $component->updateAbsensi($siswa->id, '2026-10-01', 'hadir');
+        $this->assertFalse(Absensi::where('siswa_id', $siswa->id)->whereDate('tanggal', '2026-10-01')->exists());
+
+        // Dalam interval 2 (02-2027) → diterima
+        $component->updateAbsensi($siswa->id, '2027-02-10', 'hadir');
+        $this->assertTrue(Absensi::where('siswa_id', $siswa->id)->whereDate('tanggal', '2027-02-10')->where('status', 'hadir')->exists());
+    }
+
+    // ═══════════════════════════════════════════════════════════
     //  Test: scanAbsensi memvalidasi membership per tanggal
     // ═══════════════════════════════════════════════════════════
 
