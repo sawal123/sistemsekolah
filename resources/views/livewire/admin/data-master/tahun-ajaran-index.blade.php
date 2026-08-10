@@ -263,7 +263,7 @@
             </div>
 
             @php $hasPreview = !empty($kenaikanPreview); @endphp
-            <?php if ($hasPreview): ?>
+            @if ($hasPreview)
             <div class="overflow-x-auto max-h-96 mb-4">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-indigo-500/5">
@@ -281,13 +281,13 @@
                                 <td class="px-3 py-2 font-semibold txt-primary">{{ $row['kelas_asal'] }}</td>
                                 <td class="px-3 py-2 text-center txt-muted">→</td>
                                 <td class="px-3 py-2 font-semibold txt-primary">
-                                    <?php if ($row['is_error']): ?>
+                                    @if ($row['is_error'])
                                     ⚠️ Tidak ditemukan
-                                    <?php elseif ($row['is_lulus']): ?>
+                                    @elseif ($row['is_lulus'])
                                     🎓 Lulus
-                                    <?php else: ?>
+                                    @else
                                     {{ $row['kelas_tujuan'] }}
-                                    <?php endif; ?>
+                                    @endif
                                 </td>
                                 <td class="px-3 py-2 text-center txt-primary font-bold">{{ $row['jumlah_siswa'] }}
                                 </td>
@@ -296,18 +296,24 @@
                     </tbody>
                 </table>
             </div>
-            <?php else: ?>
+            @else
             <p class="text-sm txt-muted text-center py-8">Tidak ada data rombel untuk dipratinjau.</p>
-            <?php endif; ?>
+            @endif
 
+            @php($kenaikanDisabled = empty($kenaikanPreview) || collect($kenaikanPreview)->where('is_error', true)->isNotEmpty())
             <div class="flex justify-end gap-3 border-t border-indigo-500/10 pt-4">
                 <x-ui.button wire:click="batalKenaikanKelas" variant="secondary">
                     Batal
                 </x-ui.button>
-                <x-ui.button wire:click="executeKenaikanKelas" variant="primary"
-                    {{ empty($kenaikanPreview) || collect($kenaikanPreview)->where('is_error', true)->isNotEmpty() ? 'disabled' : '' }}>
-                    Jalankan Kenaikan Kelas
-                </x-ui.button>
+                @if ($kenaikanDisabled)
+                    <x-ui.button wire:click="executeKenaikanKelas" variant="primary" disabled>
+                        Jalankan Kenaikan Kelas
+                    </x-ui.button>
+                @else
+                    <x-ui.button wire:click="executeKenaikanKelas" variant="primary">
+                        Jalankan Kenaikan Kelas
+                    </x-ui.button>
+                @endif
             </div>
         </div>
     </x-ui.modal>
