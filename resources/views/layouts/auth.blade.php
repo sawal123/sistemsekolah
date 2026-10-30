@@ -1,35 +1,31 @@
 <!DOCTYPE html>
-<html lang="id">
-
+<html lang="id" class="scroll-smooth">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login — SMA Nusantara</title>
-    <meta name="description" content="Login ke panel admin SMA Nusantara" />
+    <title>{{ $title ?? 'Login Portal Sivitas Akademika' }} — Nama Sekolah</title>
+    <meta name="description" content="Halaman masuk Portal Sistem Informasi Akademik terpadu untuk guru, siswa, orang tua, dan staf administrasi Nama Sekolah." />
+    <meta name="theme-color" content="#0F172A" />
 
-    @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @else
-        <script src="https://cdn.tailwindcss.com"></script>
-    @endif
+    <link rel="icon" type="image/svg+xml" href="{{ asset('assets/images/logo-sekolah.svg') }}" />
 
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet" />
+    <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
 
+    <!-- Tailwind CSS v4 -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
+    <!-- Custom Design System Styles -->
+    <link rel="stylesheet" href="{{ asset('assets/css/custom.css') }}" />
 
     @livewireStyles
 </head>
-
-<body class="auth-body">
-    <!-- Floating orbs -->
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
-
+<body class="bg-[#F8FAFC] text-[#0F172A] antialiased min-h-screen flex flex-col">
     {{ $slot }}
 
+    <script src="{{ asset('assets/js/main.js') }}"></script>
     @livewireScripts
 </body>
-
 </html>

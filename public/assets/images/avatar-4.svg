@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+      <rect width="120" height="120" rx="60" fill="#0369A1"/>
+      <circle cx="60" cy="46" r="20" fill="#E0E7FF" fill-opacity="0.25"/>
+      <path d="M24 106C28 84 42 74 60 74C78 74 92 84 96 106" fill="#E0E7FF" fill-opacity="0.25"/>
+      <text x="60" y="68" text-anchor="middle" fill="#FFFFFF" font-family="Plus Jakarta Sans, sans-serif" font-weight="700" font-size="34">DW</text>
+    </svg>
