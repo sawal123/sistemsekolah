@@ -1,0 +1,128 @@
+/* ==========================================================================
+   SISTEM SEKOLAH — PREMIUM INSTITUTIONAL DESIGN SYSTEM (Tailwind CSS v4 Ready)
+   Brand Palette:
+   - Navy Blue: #0F172A
+   - Royal Blue: #2563EB
+   - Sky Blue: #0EA5E9
+   - Neutral White: #FFFFFF
+   - Light Gray: #F8FAFC
+   - Slate Gray: #64748B
+   - Accent Gold: #F59E0B
+   ========================================================================== */
+
+:root {
+  --color-navy: #0F172A;
+  --color-royal: #2563EB;
+  --color-sky: #0EA5E9;
+  --color-light: #F8FAFC;
+  --color-slate: #64748B;
+  --color-gold: #F59E0B;
+  --font-heading: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-family: var(--font-body);
+  color: var(--color-navy);
+  background-color: var(--color-light);
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Sticky Header Scroll State */
+#site-header.is-scrolled {
+  background-color: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08);
+  border-bottom-color: rgba(226, 232, 240, 0.9);
+}
+
+/* Accessible Focus Ring */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-royal);
+  outline-offset: 2px;
+}
+
+/* Card & Micro-Interactions */
+.card-elevated {
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 220ms ease;
+}
+.card-elevated:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px -8px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(37, 99, 235, 0.05);
+  border-color: rgba(37, 99, 235, 0.28);
+}
+
+/* Hero Slider Transitions */
+.hero-slide {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 600ms ease-in-out, visibility 600ms ease-in-out;
+}
+.hero-slide.active {
+  opacity: 1;
+  visibility: visible;
+  z-index: 10;
+}
+
+/* Dropdown Menu Transitions */
+.nav-dropdown-menu {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition: opacity 180ms ease, transform 180ms ease, visibility 180ms;
+}
+.nav-dropdown:hover .nav-dropdown-menu,
+.nav-dropdown.open .nav-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* Body Lock for Mobile Menu & Lightbox */
+body.overflow-hidden-lock {
+  overflow: hidden;
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login Portal Sivitas Akademika — Nama Sekolah</title>
+  <meta name="description" content="Halaman masuk Portal Sistem Informasi Akademik terpadu untuk guru, siswa, orang tua, dan staf administrasi Nama Sekolah." />
+  <meta name="theme-color" content="#0F172A" />
+  <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+  <!-- Tailwind CSS v4 Browser CDN (Compatible with Laravel Vite Tailwind v4 setup) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <!-- Custom Design System Styles -->
+  <link rel="stylesheet" href="assets/css/custom.css" />
+</head>
+<body class="bg-[#F8FAFC] text-[#0F172A] antialiased min-h-screen flex flex-col">
+  <!-- Standalone Modern Split Layout for Login Portal -->
+  <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 min-h-screen">
+    <!-- Left Visual & Brand Column (Desktop Split) -->
+    <div class="hidden lg:flex lg:col-span-6 relative bg-[#0F172A] text-white p-12 xl:p-16 flex-col justify-between overflow-hidden">
+      <img src="assets/images/hero-campus.jpg" alt="Kampus Nama Sekolah" class="absolute inset-0 w-full h-full object-cover opacity-25" />
+      <div class="absolute inset-0 bg-gradient-to-br from-[#0F172A] via-[#0F172A]/90 to-[#1E3A8A]/80"></div>
+
+      <div class="relative z-10 flex items-center justify-between">
+        <a href="index.html" class="flex items-center gap-3.5 group">
+          <img src="assets/images/logo-sekolah.svg" alt="Logo Nama Sekolah" class="w-11 h-11 rounded-xl" />
+          <div>
+            <span class="block font-heading font-bold text-xl text-white">Nama Sekolah</span>
+            <span class="block text-xs text-slate-300">Portal Sistem Informasi Sekolah</span>
+          </div>
+        </a>
+        <a href="index.html" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 border border-white/15 transition-colors">
+          &larr; Kembali ke Beranda
+        </a>
+      </div>
+
+      <div class="relative z-10 max-w-lg space-y-5 my-auto">
+        <span class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-[#0EA5E9] border border-sky-400/30">
+          Ekosistem Akademik Digital Terintegrasi
+        </span>
+        <h1 class="font-heading text-3xl xl:text-4xl font-extrabold text-white leading-tight">
+          Satu Akses untuk Pembelajaran, E-Rapor, Presensi, dan Layanan Akademik.
+        </h1>
+        <p class="text-sm text-slate-300 leading-relaxed">
+          Portal ini dirancang untuk mempermudah kolaborasi antara pendidik, peserta didik, orang tua/wali, serta tenaga administrasi sekolah secara aman dan terstruktur.
+        </p>
+        <div class="grid grid-cols-3 gap-3 pt-2 text-xs">
+          <div class="p-3.5 rounded-xl bg-white/5 border border-white/10">
+            <strong class="block text-white font-semibold">E-Learning</strong>
+            <span class="text-slate-400">Materi &amp; tugas kelas</span>
+          </div>
+          <div class="p-3.5 rounded-xl bg-white/5 border border-white/10">
+            <strong class="block text-white font-semibold">E-Rapor</strong>
+            <span class="text-slate-400">Capaian hasil belajar</span>
+          </div>
+          <div class="p-3.5 rounded-xl bg-white/5 border border-white/10">
+            <strong class="block text-white font-semibold">SIAKAD</strong>
+            <span class="text-slate-400">Jadwal &amp; presensi</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative z-10 text-xs text-slate-400 flex items-center justify-between">
+        <span>&copy; 2026 Nama Sekolah</span>
+        <span>Siap diintegrasikan dengan Laravel 13 Auth / Livewire 4</span>
+      </div>
+    </div>
+
+    <!-- Right Form Column -->
+    <div class="lg:col-span-6 flex flex-col justify-center p-6 sm:p-12 xl:p-16 bg-white">
+      <div class="max-w-md w-full mx-auto space-y-7">
+        <!-- Mobile Top Bar -->
+        <div class="flex lg:hidden items-center justify-between pb-4 border-b border-slate-200">
+          <a href="index.html" class="flex items-center gap-2.5">
+            <img src="assets/images/logo-sekolah.svg" alt="Logo Nama Sekolah" class="w-9 h-9 rounded-lg" />
+            <span class="font-heading font-bold text-base text-[#0F172A]">Nama Sekolah</span>
+          </a>
+          <a href="index.html" class="text-xs font-semibold text-[#2563EB] hover:underline">&larr; Beranda Publik</a>
+        </div>
+
+        <div>
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-[#2563EB] mb-2">
+            Autentikasi Sivitas (UI Demo)
+          </span>
+          <h2 class="font-heading text-2xl sm:text-3xl font-bold text-[#0F172A]">Masuk ke Portal Sekolah</h2>
+          <p class="text-xs sm:text-sm text-[#64748B] mt-1.5">
+            Masukkan NIP/NISN atau alamat email institusi beserta kata sandi Anda.
+          </p>
+        </div>
+
+        <!-- Alerts -->
+        <div id="login-alert-error" class="hidden p-4 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700">
+          Mohon masukkan email/username dan kata sandi minimal 6 karakter.
+        </div>
+        <div id="login-alert-success" class="hidden p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 space-y-1">
+          <strong class="font-bold block text-sm">✓ Validasi Form Login Berhasil (Mode Pratinjau Statis)</strong>
+          <span>Halaman ini merupakan antarmuka frontend statis dan siap dihubungkan ke rute autentikasi Laravel.</span>
+        </div>
+
+        <!-- Login Form -->
+        <form id="login-form" class="space-y-5" novalidate>
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label for="login-identity" class="block text-xs font-semibold text-[#0F172A]">Email / NIP / NISN</label>
+              <button id="login-fill-demo" type="button" class="text-xs font-semibold text-[#2563EB] hover:underline">
+                Isi Akun Demo
+              </button>
+            </div>
+            <input id="login-identity" name="identity" type="text" required autocomplete="username" placeholder="guru.demo@namasekolah.sch.id" class="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm focus:border-[#2563EB]" />
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label for="login-password" class="block text-xs font-semibold text-[#0F172A]">Kata Sandi</label>
+              <button type="button" data-copy-link="Simulasi: Tautan pemulihan kata sandi akan dikirim ke email terdaftar." class="text-xs font-medium text-[#64748B] hover:text-[#2563EB]">
+                Lupa kata sandi?
+              </button>
+            </div>
+            <div class="relative">
+              <input id="login-password" name="password" type="password" required autocomplete="current-password" placeholder="Masukkan kata sandi" class="w-full pl-4 pr-24 py-3 rounded-xl border border-slate-300 text-sm focus:border-[#2563EB]" />
+              <button type="button" data-toggle-password="login-password" aria-label="Tampilkan kata sandi" class="absolute right-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg text-xs font-semibold text-[#64748B] hover:text-[#0F172A] bg-slate-100">
+                <span data-pass-label>Tampilkan</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <label class="inline-flex items-center gap-2 text-xs text-[#64748B] cursor-pointer">
+              <input type="checkbox" name="remember" class="rounded border-slate-300 text-[#2563EB] focus:ring-[#2563EB]" />
+              <span>Ingat perangkat ini</span>
+            </label>
+            <span class="text-xs text-slate-400">Koneksi Terenkripsi</span>
+          </div>
+
+          <button id="login-submit-btn" type="submit" class="w-full py-3.5 px-5 rounded-xl text-sm font-semibold text-white bg-[#0F172A] hover:bg-[#2563EB] transition-colors shadow-sm">
+            Masuk ke Portal Akademik
+          </button>
+        </form>
+
+        <div class="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#64748B]">
+          <span>Calon peserta didik baru? <a href="ppdb.html" class="font-semibold text-[#2563EB] hover:underline">Daftar PPDB Online</a></span>
+          <a href="kontak.html" class="hover:text-[#0F172A]">Bantuan Teknis IT</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast for Forgot Password demo -->
+  <div id="action-toast" class="fixed bottom-6 left-6 z-50 bg-[#0F172A] text-white px-4 py-3 rounded-xl shadow-xl border border-slate-700 text-sm font-medium flex items-center gap-2.5 opacity-0 pointer-events-none translate-y-4 transition-all duration-300" role="status" aria-live="polite">
+    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+    <span id="action-toast-text">Info layanan portal</span>
+  </div>
+  <script src="assets/js/main.js"></script>
+</body>
+</html>

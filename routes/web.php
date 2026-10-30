@@ -60,7 +60,6 @@ Route::middleware('track.website')->name('landing.')->group(function () {
 });
 
 // ─── Auth Routes ──────────────────────────────────────────────
-Route::get('/', Login::class)->name('home')->middleware('guest');
 Route::get('/login', Login::class)->name('login')->middleware('guest');
 
 Route::post('/logout', function () {
