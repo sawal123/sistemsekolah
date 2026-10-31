@@ -52,6 +52,9 @@ class BlogArtikelIndex extends Component
 
     public function setTab(string $tab): void
     {
+        if ($tab === 'taxonomy' && auth()->user()->hasRole('guru') && ! auth()->user()->hasRole('admin')) {
+            $tab = 'posts';
+        }
         $this->tab = $tab;
         $this->resetPage();
     }
@@ -60,6 +63,7 @@ class BlogArtikelIndex extends Component
     {
         $posts = Post::with(['user', 'kategori', 'tags'])
             ->withCount('comments')
+            ->when(auth()->user()->hasRole('guru') && !auth()->user()->hasRole('admin'), fn ($q) => $q->where('user_id', auth()->id()))
             ->when($this->search, fn ($q) => $q->where(function ($query) {
                 $query->where('judul', 'like', '%' . $this->search . '%')
                     ->orWhere('slug', 'like', '%' . $this->search . '%');
@@ -70,6 +74,7 @@ class BlogArtikelIndex extends Component
             ->paginate(8);
 
         $comments = PostComment::with('post')
+            ->when(auth()->user()->hasRole('guru') && !auth()->user()->hasRole('admin'), fn ($q) => $q->whereHas('post', fn ($p) => $p->where('user_id', auth()->id())))
             ->when($this->search, fn ($q) => $q->where(function ($query) {
                 $query->where('nama', 'like', '%' . $this->search . '%')
                     ->orWhere('email', 'like', '%' . $this->search . '%')
@@ -86,6 +91,7 @@ class BlogArtikelIndex extends Component
 
     public function saveTag(): void
     {
+        abort_unless(auth()->user()->hasRole('admin') || auth()->user()->hasRole('operator'), 403, 'Akses ditolak.');
         $this->validate([
             'tagName' => [
                 'required',
@@ -106,6 +112,7 @@ class BlogArtikelIndex extends Component
 
     public function editTag(int $id): void
     {
+        abort_unless(auth()->user()->hasRole('admin') || auth()->user()->hasRole('operator'), 403, 'Akses ditolak.');
         $tag = Tag::findOrFail($id);
         $this->tagEditId = $tag->id;
         $this->tagName = $tag->nama_tag;
@@ -115,6 +122,7 @@ class BlogArtikelIndex extends Component
 
     public function openTagModal(): void
     {
+        abort_unless(auth()->user()->hasRole('admin') || auth()->user()->hasRole('operator'), 403, 'Akses ditolak.');
         $this->resetTagForm();
         $this->isTagModalOpen = true;
         $this->dispatch('open-modal', 'tag-form');
@@ -122,6 +130,7 @@ class BlogArtikelIndex extends Component
 
     public function saveCategory(): void
     {
+        abort_unless(auth()->user()->hasRole('admin') || auth()->user()->hasRole('operator'), 403, 'Akses ditolak.');
         $this->validate([
             'categoryName' => [
                 'required',
@@ -145,6 +154,7 @@ class BlogArtikelIndex extends Component
 
     public function editCategory(int $id): void
     {
+        abort_unless(auth()->user()->hasRole('admin') || auth()->user()->hasRole('operator'), 403, 'Akses ditolak.');
         $category = Kategori::findOrFail($id);
         $this->categoryEditId = $category->id;
         $this->categoryName = $category->nama_kategori;
@@ -154,6 +164,7 @@ class BlogArtikelIndex extends Component
 
     public function openCategoryModal(): void
     {
+        abort_unless(auth()->user()->hasRole('admin') || auth()->user()->hasRole('operator'), 403, 'Akses ditolak.');
         $this->resetCategoryForm();
         $this->isCategoryModalOpen = true;
         $this->dispatch('open-modal', 'category-form');
@@ -178,6 +189,16 @@ class BlogArtikelIndex extends Component
     {
         if (! $this->idBeingDeleted) {
             return;
+        }
+
+        if (auth()->user()->hasRole('guru') && ! auth()->user()->hasRole('admin')) {
+            if ($this->deleteType !== 'post') {
+                abort(403, 'Akses ditolak.');
+            }
+            $targetPost = Post::findOrFail($this->idBeingDeleted);
+            if ($targetPost->user_id !== auth()->id()) {
+                abort(403, 'Anda hanya dapat menghapus artikel milik Anda sendiri.');
+            }
         }
 
         if ($this->deleteType === 'category' && Kategori::findOrFail($this->idBeingDeleted)->posts()->exists()) {

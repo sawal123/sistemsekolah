@@ -1,4 +1,5 @@
 <div x-data="{ tab: @entangle('tab') }" class="flex flex-col gap-5 h-full">
+    <x-ui.toast />
 
     {{-- Title and Tabs header --}}
     <div class="flex flex-col md:flex-row justify-between md:items-end gap-4 fu d1">
@@ -7,17 +8,26 @@
             <p class="txt-muted text-[13px] mt-1">Kelola staf, operator, dan izin akses dalam sistem.</p>
         </div>
 
-        <div class="flex p-1 glass-card rounded-xl w-max border border-indigo-500/10">
-            <button @click="tab = 'pengguna'"
-                :class="{'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold': tab === 'pengguna', 'text-gray-500 hover:text-indigo-500': tab !== 'pengguna'}"
-                class="px-5 py-2 text-[13px] rounded-lg transition-all cursor-pointer">
-                Daftar Staf
-            </button>
-            <button @click="tab = 'roles'"
-                :class="{'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold': tab === 'roles', 'text-gray-500 hover:text-indigo-500': tab !== 'roles'}"
-                class="px-5 py-2 text-[13px] rounded-lg transition-all cursor-pointer">
-                Manajemen Role
-            </button>
+        <div class="flex flex-wrap items-center gap-3">
+            <x-ui.button wire:click="openCreateUserModal" variant="primary" class="shadow-lg shadow-indigo-500/20">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                </svg>
+                Tambah Pengguna
+            </x-ui.button>
+
+            <div class="flex p-1 glass-card rounded-xl w-max border border-indigo-500/10">
+                <button @click="tab = 'pengguna'"
+                    :class="{'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold': tab === 'pengguna', 'text-gray-500 hover:text-indigo-500': tab !== 'pengguna'}"
+                    class="px-5 py-2 text-[13px] rounded-lg transition-all cursor-pointer">
+                    Daftar Staf
+                </button>
+                <button @click="tab = 'roles'"
+                    :class="{'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold': tab === 'roles', 'text-gray-500 hover:text-indigo-500': tab !== 'roles'}"
+                    class="px-5 py-2 text-[13px] rounded-lg transition-all cursor-pointer">
+                    Manajemen Role
+                </button>
+            </div>
         </div>
     </div>
 
@@ -320,6 +330,63 @@
                     Sekarang</x-ui.button>
             </div>
         </div>
+    </x-ui.modal>
+
+    {{-- Create User Modal --}}
+    <x-ui.modal name="create-user-modal" :show="$isCreateUserModalOpen" maxWidth="lg">
+        <form wire:submit="createUser" class="p-2 space-y-5">
+            <div class="border-b border-indigo-500/10 pb-3">
+                <h3 class="text-lg font-bold txt-primary">Tambah Staf / Pengguna Baru</h3>
+                <p class="text-xs txt-muted mt-0.5">Daftarkan akun staf baru, tentukan role hak akses dan jabatan.</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <x-ui.label for="newUserName" value="Nama Lengkap" />
+                    <x-ui.input wire:model="newUserName" id="newUserName" placeholder="Nama staf" class="mt-1 w-full" />
+                    @error('newUserName') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                </div>
+
+                <div>
+                    <x-ui.label for="newUserEmail" value="Alamat Email" />
+                    <x-ui.input wire:model="newUserEmail" id="newUserEmail" type="email" placeholder="email@sekolah.sch.id" class="mt-1 w-full" />
+                    @error('newUserEmail') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                </div>
+
+                <div>
+                    <x-ui.label for="newUserPassword" value="Kata Sandi (Opsional)" />
+                    <x-ui.input wire:model="newUserPassword" id="newUserPassword" type="password" placeholder="Kosongkan untuk default: password123" class="mt-1 w-full" />
+                    @error('newUserPassword') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <x-ui.label for="newUserRole" value="Role Pengguna" />
+                        <select wire:model="newUserRole" id="newUserRole" class="mt-1 w-full rounded-xl border border-indigo-500/20 bg-white/70 dark:bg-white/5 px-3 py-2 text-sm txt-primary outline-none focus:border-indigo-500">
+                            @foreach($roles as $role)
+                                <option value="{{ $role->name }}">{{ ucfirst($role->name) }}</option>
+                            @endforeach
+                        </select>
+                        @error('newUserRole') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <x-ui.label for="newUserStaffPosition" value="Jabatan Pegawai" />
+                        <select wire:model="newUserStaffPosition" id="newUserStaffPosition" class="mt-1 w-full rounded-xl border border-indigo-500/20 bg-white/70 dark:bg-white/5 px-3 py-2 text-sm txt-primary outline-none focus:border-indigo-500">
+                            @foreach($staffPositionOptions as $val => $lbl)
+                                <option value="{{ $val }}">{{ $lbl }}</option>
+                            @endforeach
+                        </select>
+                        @error('newUserStaffPosition') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-3 border-t border-indigo-500/10">
+                <x-ui.button type="button" variant="secondary" wire:click="closeCreateUserModal">Batal</x-ui.button>
+                <x-ui.button type="submit" variant="primary">Simpan Pengguna</x-ui.button>
+            </div>
+        </form>
     </x-ui.modal>
 
 </div>

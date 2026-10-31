@@ -166,16 +166,20 @@ class LaporanKeuanganIndex extends Component
             ->active()
             ->get();
 
-        $siswaAktif = Siswa::where('status', 'Aktif')->get();
-        foreach ($siswaAktif as $siswa) {
+        $siswaGroups = Siswa::where('status', 'Aktif')
+            ->selectRaw('jenjang, jurusan_id, COUNT(*) as total')
+            ->groupBy('jenjang', 'jurusan_id')
+            ->get();
+
+        foreach ($siswaGroups as $group) {
             $spp = $spps
-                ->filter(fn($tarif) => in_array($tarif->jenjang, [$siswa->jenjang, 'Semua'], true))
-                ->filter(fn($tarif) => $tarif->jurusan_id === null || $tarif->jurusan_id === $siswa->jurusan_id)
-                ->sortByDesc(fn($tarif) => ($tarif->jenjang === $siswa->jenjang ? 2 : 0) + ($tarif->jurusan_id ? 1 : 0))
+                ->filter(fn($tarif) => in_array($tarif->jenjang, [$group->jenjang, 'Semua'], true))
+                ->filter(fn($tarif) => $tarif->jurusan_id === null || $tarif->jurusan_id === $group->jurusan_id)
+                ->sortByDesc(fn($tarif) => ($tarif->jenjang === $group->jenjang ? 2 : 0) + ($tarif->jurusan_id ? 1 : 0))
                 ->first();
 
             if ($spp) {
-                $target += $spp->nominal * $bulanBerjalan;
+                $target += $spp->nominal * $bulanBerjalan * (int) $group->total;
             }
         }
 
@@ -204,8 +208,9 @@ class LaporanKeuanganIndex extends Component
             ->active()
             ->get();
 
-        // Load semua tagihan SPP Bulanan untuk tahun ini
-        $allTagihans = Tagihan::whereIn('siswa_id', $siswaAktif->pluck('id'))
+        // Load semua tagihan SPP Bulanan untuk tahun ini beserta agregasi pembayaran (cegah N+1)
+        $allTagihans = Tagihan::withSum('pembayarans', 'nominal')
+            ->whereIn('siswa_id', $siswaAktif->pluck('id'))
             ->where('tahun', $this->filterTahun)
             ->whereNotNull('bulan')
             ->whereIn('spp_id', $sppBulanan->pluck('id'))

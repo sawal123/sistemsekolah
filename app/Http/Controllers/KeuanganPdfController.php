@@ -21,6 +21,7 @@ class KeuanganPdfController extends Controller
         abort_if(empty($ids), 404, 'ID pembayaran tidak ditemukan.');
 
         $pembayarans = Pembayaran::with([
+            'tagihan' => fn ($q) => $q->withSum('pembayarans', 'nominal'),
             'tagihan.siswa.user',
             'tagihan.siswa.kelas',
             'tagihan.spp.tahunAjaran',

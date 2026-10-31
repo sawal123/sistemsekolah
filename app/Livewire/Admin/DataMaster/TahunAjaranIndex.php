@@ -322,6 +322,7 @@ class TahunAjaranIndex extends Component
                 );
 
                 // Salin anggota rombel (siswa yang masih aktif)
+                $siswaIdsToUpdate = [];
                 foreach ($rombelLama->anggotaRombels as $anggota) {
                     AnggotaRombel::firstOrCreate(
                         [
@@ -334,9 +335,12 @@ class TahunAjaranIndex extends Component
                             'tanggal_keluar' => null,
                         ]
                     );
+                    $siswaIdsToUpdate[] = $anggota->siswa_id;
+                }
 
-                    // Update kelas_id di tabel siswas untuk kelas aktif
-                    Siswa::where('id', $anggota->siswa_id)
+                // Batch update kelas_id di tabel siswas untuk kelas aktif (cegah N+1 update per siswa)
+                if (! empty($siswaIdsToUpdate)) {
+                    Siswa::whereIn('id', $siswaIdsToUpdate)
                         ->update(['kelas_id' => $rombelLama->kelas_id]);
                 }
             }
@@ -496,6 +500,7 @@ class TahunAjaranIndex extends Component
                 );
 
                 // Pindahkan siswa ke rombel baru
+                $siswaIdsToUpdate = [];
                 foreach ($item['siswa'] as $s) {
                     AnggotaRombel::firstOrCreate(
                         [
@@ -508,9 +513,12 @@ class TahunAjaranIndex extends Component
                             'tanggal_keluar' => null,
                         ]
                     );
+                    $siswaIdsToUpdate[] = $s['id'];
+                }
 
-                    // Update kelas_id di siswas
-                    Siswa::where('id', $s['id'])->update([
+                // Batch update kelas_id di siswas (cegah N+1 update per siswa)
+                if (! empty($siswaIdsToUpdate)) {
+                    Siswa::whereIn('id', $siswaIdsToUpdate)->update([
                         'kelas_id' => $item['kelas_tujuan_id'],
                     ]);
                 }

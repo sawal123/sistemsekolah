@@ -71,6 +71,7 @@ class KalenderAkademikIndex extends Component
 
     public function syncNationalHolidays()
     {
+        abort_unless(auth()->user()->hasRole('admin') || auth()->user()->hasRole('operator'), 403, 'Akses ditolak.');
         $this->isSyncing = true;
 
         try {
@@ -133,6 +134,10 @@ class KalenderAkademikIndex extends Component
 
     public function selectDate($dateStr)
     {
+        if (!auth()->user()->hasRole('admin') && !auth()->user()->hasRole('operator')) {
+            return;
+        }
+
         $existing = KalenderAkademik::where('tanggal', $dateStr)->first();
 
         if ($existing) {
@@ -151,6 +156,7 @@ class KalenderAkademikIndex extends Component
 
     public function openAddModal()
     {
+        abort_unless(auth()->user()->hasRole('admin') || auth()->user()->hasRole('operator'), 403, 'Akses ditolak.');
         $this->reset(['editId', 'tanggal', 'jenis_libur', 'keterangan', 'is_libur']);
         $this->tanggal = now()->format('Y-m-d');
         $this->dispatch('open-modal', 'calendar-modal');
@@ -158,6 +164,7 @@ class KalenderAkademikIndex extends Component
 
     public function openEditModal($id)
     {
+        abort_unless(auth()->user()->hasRole('admin') || auth()->user()->hasRole('operator'), 403, 'Akses ditolak.');
         $event = KalenderAkademik::findOrFail($id);
         $this->editId = $id;
         $this->tanggal = $event->tanggal->format('Y-m-d');
@@ -170,6 +177,7 @@ class KalenderAkademikIndex extends Component
 
     public function save()
     {
+        abort_unless(auth()->user()->hasRole('admin') || auth()->user()->hasRole('operator'), 403, 'Akses ditolak.');
         $this->validate();
 
         $data = [
@@ -199,12 +207,14 @@ class KalenderAkademikIndex extends Component
 
     public function confirmDelete($id)
     {
+        abort_unless(auth()->user()->hasRole('admin') || auth()->user()->hasRole('operator'), 403, 'Akses ditolak.');
         $this->deleteId = $id;
         $this->dispatch('open-modal', 'delete-confirm-modal');
     }
 
     public function delete($id = null)
     {
+        abort_unless(auth()->user()->hasRole('admin') || auth()->user()->hasRole('operator'), 403, 'Akses ditolak.');
         $targetId = $id ?? $this->deleteId;
         KalenderAkademik::destroy($targetId);
         $this->deleteId = null;
@@ -225,6 +235,7 @@ class KalenderAkademikIndex extends Component
 
     public function generateBulkHolidays()
     {
+        abort_unless(auth()->user()->hasRole('admin') || auth()->user()->hasRole('operator'), 403, 'Akses ditolak.');
         $this->validateOnly('bulkStartDate');
         $this->validateOnly('bulkEndDate');
         $this->validateOnly('bulkKeterangan');
@@ -270,6 +281,7 @@ class KalenderAkademikIndex extends Component
 
     public function openBulkModal()
     {
+        abort_unless(auth()->user()->hasRole('admin') || auth()->user()->hasRole('operator'), 403, 'Akses ditolak.');
         $this->bulkStartDate = Carbon::create($this->viewYear, $this->viewMonth, 1)->format('Y-m-d');
         $this->bulkEndDate = Carbon::create($this->viewYear, $this->viewMonth, 1)->endOfMonth()->format('Y-m-d');
         $this->bulkKeterangan = 'Libur Akhir Pekan';

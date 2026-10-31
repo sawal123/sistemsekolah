@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Civitas;
 
+use App\Models\Guru;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
@@ -28,7 +29,20 @@ class DataPenggunaIndex extends Component
 
     public $isResetModalOpen = false;
 
+    public $isCreateUserModalOpen = false;
+
     public $selectedUserId = null;
+
+    // Properti Pengguna Baru
+    public $newUserName = '';
+
+    public $newUserEmail = '';
+
+    public $newUserPassword = '';
+
+    public $newUserRole = 'admin';
+
+    public $newUserStaffPosition = '';
 
     // Properti Role
     public $newRoleName = '';
@@ -88,6 +102,57 @@ class DataPenggunaIndex extends Component
         $this->selectedUserId = null;
     }
 
+    public function openCreateUserModal()
+    {
+        $this->resetValidation();
+        $this->reset(['newUserName', 'newUserEmail', 'newUserPassword', 'newUserRole', 'newUserStaffPosition']);
+        $this->newUserRole = 'admin';
+        $this->isCreateUserModalOpen = true;
+    }
+
+    public function closeCreateUserModal()
+    {
+        $this->isCreateUserModalOpen = false;
+    }
+
+    public function createUser()
+    {
+        $this->validate([
+            'newUserName' => 'required|string|max:255',
+            'newUserEmail' => 'required|email|unique:users,email',
+            'newUserPassword' => 'nullable|min:6',
+            'newUserRole' => 'required|exists:roles,name',
+            'newUserStaffPosition' => 'nullable|string|max:100',
+        ]);
+
+        $password = ! empty($this->newUserPassword) ? $this->newUserPassword : 'password123';
+
+        $user = User::create([
+            'name' => $this->newUserName,
+            'email' => $this->newUserEmail,
+            'password' => Hash::make($password),
+            'is_active' => true,
+            'staff_position' => $this->newUserStaffPosition ?: null,
+        ]);
+
+        $user->assignRole($this->newUserRole);
+
+        if ($this->newUserRole === 'guru' && ! $user->guru) {
+            Guru::create([
+                'user_id' => $user->id,
+                'nip' => 'G-' . str_pad($user->id, 5, '0', STR_PAD_LEFT),
+                'jabatan' => 'Guru Tetap',
+            ]);
+        }
+
+        $this->dispatch('notify', 
+            type: 'success', 
+            message: "Pengguna {$user->name} berhasil ditambahkan dengan kata sandi: {$password}"
+        );
+
+        $this->closeCreateUserModal();
+    }
+
     public function assignRole($userId, $roleName)
     {
         if (auth()->id() === $userId) {
@@ -99,6 +164,19 @@ class DataPenggunaIndex extends Component
         $user = User::find($userId);
         if ($user) {
             $user->syncRoles([$roleName]);
+
+            if ($roleName === 'guru' && ! $user->guru) {
+                Guru::create([
+                    'user_id' => $user->id,
+                    'nip' => 'G-' . str_pad($user->id, 5, '0', STR_PAD_LEFT),
+                    'jabatan' => 'Guru Tetap',
+                ]);
+            }
+
+            $this->dispatch('notify', 
+                type: 'success', 
+                message: "Role pengguna {$user->name} berhasil diubah menjadi: " . ucfirst($roleName)
+            );
         }
     }
 
@@ -107,10 +185,10 @@ class DataPenggunaIndex extends Component
         $user = User::whereDoesntHave('siswa')->findOrFail($userId);
         $user->update(['staff_position' => $position !== '' ? $position : null]);
 
-        $this->dispatch('notify', [
-            'type' => 'success',
-            'message' => 'Jabatan pegawai berhasil diperbarui.',
-        ]);
+        $this->dispatch('notify', 
+            type: 'success', 
+            message: 'Jabatan pegawai berhasil diperbarui.'
+        );
     }
 
     public function createRole()
@@ -125,8 +203,10 @@ class DataPenggunaIndex extends Component
     {
         $role = Role::find($roleId);
         // Lindungi role krusial
-        if ($role && ! in_array($role->name, ['admin', 'operator'])) {
+        $coreRoles = ['admin', 'operator', 'guru', 'siswa', 'alumni'];
+        if ($role && ! in_array(strtolower($role->name), $coreRoles, true)) {
             $role->delete();
+            session()->flash('role_message', 'Role berhasil dihapus.');
         } else {
             $this->addError('action', 'Role dasar sistem tidak dapat dihapus.');
         }

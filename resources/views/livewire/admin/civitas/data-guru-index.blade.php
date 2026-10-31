@@ -94,7 +94,7 @@
                     <x-ui.select wire:model.live="perPage" :options="['10' => '10', '20' => '20', '50' => '50']" />
                 </div>
                 <div style="flex:1;min-width:200px;">
-                    <x-ui.search wire:model="search" placeholder="Cari Nama atau NIP..." />
+                    <x-ui.search model="search" placeholder="Cari Nama atau NIP..." />
                 </div>
                 <div style="min-width:180px;">
                     <x-ui.select wire:model.live="filterJabatan" :options="['' => 'Semua Jabatan', 'Guru Tetap' => 'Guru Tetap', 'Guru Honorer' => 'Guru Honorer', 'Wakasek' => 'Wakasek']" />
@@ -149,15 +149,33 @@
                                         style="background:rgba(139,92,246,0.12);color:#7c3aed;">{{ $item->jabatan ?: '-' }}</span>
                                 </td>
                                 <td class="px-6 py-4 text-sm txt-primary font-medium">
-                                    @if($item->kelas)
+                                    @php
+                                        $rombelAktif = $item->rombels->first();
+                                        $namaWali = $rombelAktif?->kelas?->nama_kelas ?? $item->kelas?->nama_kelas;
+                                    @endphp
+                                    @if($namaWali)
                                         <span class="badge" style="background:rgba(16,185,129,0.12);color:#059669;">Wali Kelas
-                                            {{ $item->kelas->nama_kelas ?? '' }}</span>
+                                            {{ $namaWali }}</span>
                                     @else
                                         <span style="font-size:12px;color:gray;">-</span>
                                     @endif
                                 </td>
                                 <td style="text-align:right;">
                                     <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
+                                        @if($item->user)
+                                            <button wire:click="toggleStatus({{ $item->id }})"
+                                                wire:confirm="Ubah status aktif akun guru ini?"
+                                                title="{{ $item->user->is_active ? 'Nonaktifkan (Suspend) Akun' : 'Aktifkan Akun' }}"
+                                                style="padding:6px;border-radius:6px;background:{{ $item->user->is_active ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)' }};color:{{ $item->user->is_active ? '#059669' : '#dc2626' }};border:none;cursor:pointer;">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    @if($item->user->is_active)
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    @else
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                    @endif
+                                                </svg>
+                                            </button>
+                                        @endif
                                         <button wire:click="resetPassword({{ $item->id }})"
                                             wire:confirm="Reset password menjadi ddmmyyyy dari tanggal lahir?"
                                             title="Reset Password"

@@ -15,7 +15,7 @@
             </div>
             <div style="white-space:nowrap;">
                 <p class="txt-primary font-bold text-sm leading-tight">SMA Nusantara</p>
-                <p class="txt-muted" style="font-size:11px;">Admin Panel</p>
+                <p class="txt-muted" style="font-size:11px;">{{ auth()->user()->hasRole('admin') ? 'Admin Panel' : 'Panel Guru' }}</p>
             </div>
         </div>
         <button @click="$store.sidebar.toggle()"
@@ -265,7 +265,7 @@
         </a>
         @endhasrole
 
-        @hasrole('admin|guru')
+        @hasrole('admin')
         {{-- ── Website ── --}}
         <p class="txt-muted px-3 pt-4 pb-1"
             style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
@@ -311,19 +311,21 @@
     {{-- User bottom --}}
     <div class="px-4 py-4" style="border-top:1px solid rgba(99,102,241,0.10);">
         <div style="display:flex;align-items:center;gap:10px;white-space:nowrap;">
-            <div
-                style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:12px;flex-shrink:0;">
-                {{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 2)) }}
-            </div>
-            <div style="flex:1;min-width:0;">
-                <p class="txt-primary"
-                    style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                    {{ auth()->user()->name ?? 'Admin' }}
-                </p>
-                <p class="txt-muted" style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                    {{ auth()->user()->email ?? '' }}
-                </p>
-            </div>
+            <a href="{{ route('admin.profile') }}" wire:navigate title="Buka Profil Saya" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;text-decoration:none;" class="hover:opacity-80 transition-opacity">
+                <div
+                    style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:12px;flex-shrink:0;">
+                    {{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 2)) }}
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <p class="txt-primary"
+                        style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        {{ auth()->user()->name ?? 'Pengguna' }}
+                    </p>
+                    <p class="txt-muted" style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        {{ auth()->user()->email ?? '' }}
+                    </p>
+                </div>
+            </a>
             <form method="POST" action="{{ route('logout') }}" style="flex-shrink:0;">
                 @csrf
                 <button type="submit" title="Logout"

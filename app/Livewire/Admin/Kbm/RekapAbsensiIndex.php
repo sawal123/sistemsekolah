@@ -44,21 +44,44 @@ class RekapAbsensiIndex extends Component
         if (!$this->filterTahun) $this->filterTahun = date('Y');
 
         $user = auth()->user();
-        if ($user->hasRole('guru') && $user->guru) {
+        if ($user && $user->hasRole('guru') && !$user->hasRole('admin') && $user->guru) {
             $tahunAjaranId = TahunAjaran::forDate(Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1))?->id;
             $rombelWali = Rombel::with('kelas')
                 ->where('wali_kelas_id', $user->guru->id)
                 ->when($tahunAjaranId, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaranId))
                 ->first();
-            if ($rombelWali?->kelas && !$this->filterKelas) {
-                $this->filterKelas = $rombelWali->kelas->id;
-            }
+            $this->filterKelas = $rombelWali?->kelas?->id ?? null;
         }
+    }
+
+    private function validateWaliKelasAccess(): bool
+    {
+        $user = auth()->user();
+        if (!$user || !$user->hasRole('guru') || $user->hasRole('admin')) {
+            return true;
+        }
+
+        if (!$user->guru || !$this->filterKelas) {
+            return false;
+        }
+
+        $tahunAjaranId = $this->filterBulan && $this->filterTahun
+            ? TahunAjaran::forDate(Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1))?->id
+            : null;
+
+        return Rombel::where('wali_kelas_id', $user->guru->id)
+            ->where('kelas_id', $this->filterKelas)
+            ->when($tahunAjaranId, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaranId))
+            ->exists();
     }
 
     public function loadData()
     {
         $this->absensiData = [];
+
+        if (!$this->validateWaliKelasAccess()) {
+            return;
+        }
 
         if ($this->filterKelas && $this->filterBulan && $this->filterTahun) {
             $startDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1)->startOfMonth();
@@ -91,6 +114,11 @@ class RekapAbsensiIndex extends Component
 
     public function updateAbsensi($siswaId, $tanggal, $status)
     {
+        if (! $this->validateWaliKelasAccess()) {
+            $this->dispatch('notify', title: 'Aksi Ditolak', message: 'Anda bukan wali kelas dari kelas ini pada periode yang dipilih.', type: 'danger');
+            return;
+        }
+
         if (KalenderAkademik::isHariLibur($tanggal)) {
             $this->dispatch('notify', title: 'Aksi Ditolak', message: 'Tidak dapat mengisi absensi pada Hari Libur / Minggu.', type: 'danger');
             return;
@@ -127,6 +155,11 @@ class RekapAbsensiIndex extends Component
 
     public function scanAbsensi()
     {
+        if (! $this->validateWaliKelasAccess()) {
+            $this->dispatch('notify', title: 'Aksi Ditolak', message: 'Anda bukan wali kelas dari kelas ini pada periode yang dipilih.', type: 'danger');
+            return;
+        }
+
         $this->validate([
             'fotoKertas' => 'required|image|max:8192', // Max 8MB
         ]);
@@ -210,15 +243,8 @@ class RekapAbsensiIndex extends Component
                 ];
             }
 
-            // 2. Ekstrak Daftar Libur di bulan ini
-            $tanggalLibur = [];
-            $daysInMonth = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1)->daysInMonth;
-            for ($i = 1; $i <= $daysInMonth; $i++) {
-                $dateStr = Carbon::createFromDate($this->filterTahun, $this->filterBulan, $i)->format('Y-m-d');
-                if (KalenderAkademik::isHariLibur($dateStr)) {
-                    $tanggalLibur[] = $dateStr;
-                }
-            }
+            // 2. Ekstrak Daftar Libur di bulan ini (1 query batch via getMapHariLiburBulan)
+            $tanggalLibur = array_keys(KalenderAkademik::getMapHariLiburBulan($this->filterTahun, $this->filterBulan));
 
             // 3. Panggil Gemini
             $hasilJsonArray = GeminiAiScanner::scanAbsenMatriks(
@@ -298,7 +324,9 @@ class RekapAbsensiIndex extends Component
         }
 
         $user = auth()->user();
-        if ($user->hasRole('guru') && $user->guru) {
+        $isGuru = $user && $user->hasRole('guru') && ! $user->hasRole('admin');
+
+        if ($isGuru && $user->guru) {
             $tahunAjaranId = $this->filterBulan && $this->filterTahun
                 ? TahunAjaran::forDate(Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1))?->id
                 : null;
@@ -310,6 +338,12 @@ class RekapAbsensiIndex extends Component
                 ->filter()
                 ->unique('id')
                 ->values();
+
+            if ($listKelas->isEmpty()) {
+                $this->filterKelas = null;
+            } elseif (! $this->filterKelas || $listKelas->where('id', (int) $this->filterKelas)->isEmpty()) {
+                $this->filterKelas = $listKelas->first()->id;
+            }
         } else {
             $listKelas = Kelas::orderBy('jenjang')->orderBy('nama_kelas')->get();
         }
@@ -318,7 +352,7 @@ class RekapAbsensiIndex extends Component
         $kalender = [];
         $hariEfektif = 0;
 
-        if ($this->filterKelas && $this->filterBulan && $this->filterTahun) {
+        if ($this->filterKelas && $this->filterBulan && $this->filterTahun && (! $isGuru || $this->validateWaliKelasAccess())) {
             $startDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1)->startOfMonth();
             $endDate = $startDate->copy()->endOfMonth();
             $siswas = Siswa::with('user')
@@ -328,16 +362,18 @@ class RekapAbsensiIndex extends Component
                 ->values();
 
             $daysInMonth = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1)->daysInMonth;
+            $liburMap = KalenderAkademik::getMapHariLiburBulan($this->filterTahun, $this->filterBulan);
 
-            // Build Matrix dates
+            // Build Matrix dates (tanpa N+1 query per tanggal)
             for ($i = 1; $i <= $daysInMonth; $i++) {
-                $dateStr = Carbon::createFromDate($this->filterTahun, $this->filterBulan, $i)->format('Y-m-d');
-                $isLibur = KalenderAkademik::isHariLibur($dateStr);
+                $dateObj = Carbon::createFromDate($this->filterTahun, $this->filterBulan, $i);
+                $dateStr = $dateObj->format('Y-m-d');
+                $isLibur = isset($liburMap[$dateStr]);
 
                 $kalender[$i] = [
                     'tanggal' => $dateStr,
                     'is_libur' => $isLibur,
-                    'is_minggu' => Carbon::parse($dateStr)->isSunday(),
+                    'is_minggu' => $dateObj->isSunday(),
                 ];
 
                 if (!$isLibur) {

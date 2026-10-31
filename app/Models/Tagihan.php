@@ -38,7 +38,15 @@ class Tagihan extends Model
 
     public function getTotalTerbayarAttribute(): float
     {
-        return $this->pembayarans()->sum('nominal');
+        if (array_key_exists('pembayarans_sum_nominal', $this->attributes)) {
+            return (float) ($this->attributes['pembayarans_sum_nominal'] ?? 0);
+        }
+
+        if ($this->relationLoaded('pembayarans')) {
+            return (float) $this->pembayarans->sum('nominal');
+        }
+
+        return (float) $this->pembayarans()->sum('nominal');
     }
 
     public function getSisaTagihanAttribute(): float
@@ -130,6 +138,9 @@ class Tagihan extends Model
      */
     public function refreshStatus(): void
     {
+        unset($this->attributes['pembayarans_sum_nominal']);
+        $this->unsetRelation('pembayarans');
+
         if ($this->sisa_tagihan <= 0) {
             $this->update(['status' => 'Lunas']);
         } elseif ($this->total_terbayar > 0) {
@@ -148,7 +159,11 @@ class Tagihan extends Model
         $existing = static::where('siswa_id', $siswa->id)
             ->where('spp_id', $spp->id)
             ->where('tahun', $tahun)
-            ->when($bulan, fn($q) => $q->where('bulan', $bulan))
+            ->when(
+                $bulan !== null,
+                fn($q) => $q->where('bulan', $bulan),
+                fn($q) => $q->whereNull('bulan')
+            )
             ->first();
 
         if ($existing) {

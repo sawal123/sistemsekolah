@@ -2,6 +2,8 @@
 
 use App\Livewire\Admin\Akademik\KalenderAkademikIndex;
 use App\Livewire\Admin\Alumni\JejakAlumniIndex;
+use App\Livewire\Admin\Civitas\DataGuruDetail;
+use App\Livewire\Admin\Civitas\DataGuruForm;
 use App\Livewire\Admin\Civitas\DataGuruIndex;
 use App\Livewire\Admin\Civitas\DataPenggunaIndex;
 use App\Livewire\Admin\Civitas\DataSiswaIndex;
@@ -79,6 +81,10 @@ Route::get('/unauthorized', function () {
 Route::middleware(['auth', 'role:admin|guru'])->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard');
 
+    // ─── Profil & Pengaturan Akun ───
+    Route::get('/profil', App\Livewire\Admin\Profile\ProfileIndex::class)->name('admin.profile');
+    Route::get('/pengaturan', App\Livewire\Admin\Profile\SettingsIndex::class)->name('admin.settings');
+
     // ─── KBM & Laporan ───
     Route::prefix('kbm')->name('admin.kbm.')->group(function () {
         Route::get('/jadwal-pelajaran', JadwalPelajaranIndex::class)->name('jadwal-pelajaran');
@@ -105,13 +111,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
         Route::get('/pendaftaran-murid-baru', PendaftaranMuridBaruIndex::class)->name('pendaftaran-murid-baru');
     });
 
-    // ─── Civitas Akademik ───
-    Route::prefix('civitas')->name('admin.civitas.')->group(function () {
-        Route::get('/data-guru', App\Livewire\Admin\Civitas\DataGuruIndex::class)->name('data-guru');
-        Route::get('/data-guru/create', App\Livewire\Admin\Civitas\DataGuruForm::class)->name('data-guru.create');
-        Route::get('/data-guru/{guru}/edit', App\Livewire\Admin\Civitas\DataGuruForm::class)->name('data-guru.edit');
-        Route::get('/data-guru/{guru}', App\Livewire\Admin\Civitas\DataGuruDetail::class)->name('data-guru.detail');
-    });
+    // ─── Data Master ───
     Route::prefix('data-master')->name('admin.data-master.')->group(function () {
         Route::get('/tahun-ajaran', TahunAjaranIndex::class)->name('tahun-ajaran');
         Route::get('/mata-pelajaran', MataPelajaranIndex::class)->name('mata-pelajaran');
@@ -123,6 +123,9 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::prefix('civitas')->name('admin.civitas.')->group(function () {
         Route::get('/data-siswa', DataSiswaIndex::class)->name('data-siswa');
         Route::get('/data-guru', DataGuruIndex::class)->name('data-guru');
+        Route::get('/data-guru/create', DataGuruForm::class)->name('data-guru.create');
+        Route::get('/data-guru/{guru}/edit', DataGuruForm::class)->name('data-guru.edit');
+        Route::get('/data-guru/{guru}', DataGuruDetail::class)->name('data-guru.detail');
         Route::get('/data-pengguna', DataPenggunaIndex::class)->name('data-pengguna');
     });
 

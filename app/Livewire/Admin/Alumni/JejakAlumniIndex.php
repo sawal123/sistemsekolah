@@ -151,8 +151,10 @@ class JejakAlumniIndex extends Component
         // 2. Query
         $query = KegiatanAlumni::with(['siswa.user', 'siswa.kelas'])
             ->when($this->search, function ($q) {
-                $q->whereHas('siswa.user', fn($qu) => $qu->where('name', 'like', '%'.$this->search.'%'))
-                  ->orWhere('nama_instansi', 'like', '%'.$this->search.'%');
+                $q->where(function ($sub) {
+                    $sub->whereHas('siswa.user', fn($qu) => $qu->where('name', 'like', '%'.$this->search.'%'))
+                        ->orWhere('nama_instansi', 'like', '%'.$this->search.'%');
+                });
             })
             ->when($this->filterTahun, function ($q) {
                 $q->whereHas('siswa', fn($qu) => $qu->where('tahun_lulus', $this->filterTahun));

@@ -259,6 +259,16 @@ class PendaftaranMuridBaruIndex extends Component
             ->mapWithKeys(fn($item) => [(string) $item->id => $item->tahun_pendaftaran . ' - ' . $item->nama_gelombang . ' (' . $item->status . ')'])
             ->toArray();
 
+        $statRow = (clone $query)
+            ->reorder()
+            ->selectRaw("
+                COUNT(*) as total,
+                SUM(CASE WHEN status = 'Baru' THEN 1 ELSE 0 END) as baru,
+                SUM(CASE WHEN status = 'Lengkap' THEN 1 ELSE 0 END) as lengkap,
+                SUM(CASE WHEN status = 'Diterima' THEN 1 ELSE 0 END) as diterima
+            ")
+            ->first();
+
         return view('livewire.admin.ppdb.pendaftaran-murid-baru-index', [
             'pendaftarans' => $query->latest()->paginate($this->perPage),
             'statusOptions' => $this->statusOptions(),
@@ -269,10 +279,10 @@ class PendaftaranMuridBaruIndex extends Component
             'riwayatGelombangs' => PpdbGelombangRiwayat::with(['gelombang', 'user'])->latest('terjadi_pada')->limit(8)->get(),
             'jurusans' => Jurusan::where('is_active', true)->orderBy('nama')->get(),
             'stats' => [
-                'total' => (clone $query)->count(),
-                'baru' => (clone $query)->where('status', 'Baru')->count(),
-                'lengkap' => (clone $query)->where('status', 'Lengkap')->count(),
-                'diterima' => (clone $query)->where('status', 'Diterima')->count(),
+                'total' => (int) ($statRow->total ?? 0),
+                'baru' => (int) ($statRow->baru ?? 0),
+                'lengkap' => (int) ($statRow->lengkap ?? 0),
+                'diterima' => (int) ($statRow->diterima ?? 0),
             ],
         ]);
     }

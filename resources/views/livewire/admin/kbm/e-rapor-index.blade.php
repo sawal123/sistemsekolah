@@ -30,7 +30,15 @@
         </div>
     </x-ui.card>
 
-    @if($filterKelas && count($siswas) > 0)
+    @if(auth()->user()->hasRole('guru') && !auth()->user()->hasRole('admin') && count($listKelas) === 0)
+        <div class="py-16 text-center glass-card border border-amber-500/20 rounded-2xl flex flex-col items-center">
+            <div class="h-16 w-16 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mb-3">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <h3 class="txt-primary text-base font-bold">Bukan Wali Kelas</h3>
+            <p class="txt-muted text-xs max-w-md mt-1">Anda tidak terdaftar sebagai Wali Kelas pada periode akademik ini. Pengisian kelengkapan rapor dan penguncian e-Rapor merupakan wewenang Wali Kelas.</p>
+        </div>
+    @elseif($filterKelas && count($siswas) > 0)
         <div class="glass-card shadow-2xl rounded-2xl overflow-hidden border border-white/20 dark:border-white/10">
             <div class="overflow-x-auto w-full custom-scrollbar">
                 <table class="w-full text-left border-collapse bg-white/50 dark:bg-[#0c0e1a]/50">

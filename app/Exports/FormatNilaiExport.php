@@ -31,19 +31,24 @@ class FormatNilaiExport implements FromCollection, WithHeadings, WithMapping, Wi
 
     public function collection()
     {
-        return Siswa::with('user')
+        $siswas = Siswa::with('user')
             ->inKelasPadaTahunAjaran($this->kelas_id, $this->tahun_ajaran_id)
             ->get()
             ->sortBy('user.name')
-            ->map(function ($siswa) {
-                // Attach nilai
-                $nilai = Nilai::where('siswa_id', $siswa->id)
-                              ->where('mapel_id', $this->mapel_id)
-                              ->where('tahun_ajaran_id', $this->tahun_ajaran_id)
-                              ->first();
-                $siswa->nilai = $nilai;
-                return $siswa;
-            });
+            ->values();
+
+        $nilaisBySiswa = $siswas->isNotEmpty()
+            ? Nilai::where('mapel_id', $this->mapel_id)
+                ->where('tahun_ajaran_id', $this->tahun_ajaran_id)
+                ->whereIn('siswa_id', $siswas->pluck('id'))
+                ->get()
+                ->keyBy('siswa_id')
+            : collect();
+
+        return $siswas->map(function ($siswa) use ($nilaisBySiswa) {
+            $siswa->nilai = $nilaisBySiswa->get($siswa->id);
+            return $siswa;
+        });
     }
 
     public function map($siswa): array
