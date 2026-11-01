@@ -166,15 +166,27 @@
           id="login-submit-btn"
           type="submit"
           wire:loading.attr="disabled"
-          class="w-full py-3.5 px-5 rounded-xl text-sm font-semibold text-white bg-[#0F172A] hover:bg-[#2563EB] transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-75"
+          class="w-full py-3.5 px-5 rounded-xl text-sm font-semibold text-white bg-[#0F172A] hover:bg-[#2563EB] active:bg-[#1D4ED8] transition-colors shadow-sm flex flex-row flex-nowrap items-center justify-center gap-2.5 disabled:opacity-75 disabled:cursor-not-allowed cursor-pointer"
         >
-          <span wire:loading.remove wire:target="authenticate" class="inline-flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
-            <span>Masuk ke Portal Akademik</span>
+          <!-- Normal Icon -->
+          <svg wire:loading.remove wire:target="authenticate" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+          </svg>
+
+          <!-- Loading Spinner -->
+          <svg wire:loading wire:target="authenticate" class="w-4 h-4 animate-spin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" opacity="0.4"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4a8 8 0 018 8"></path>
+          </svg>
+
+          <!-- Normal Text -->
+          <span wire:loading.remove wire:target="authenticate" class="whitespace-nowrap">
+            Masuk ke Portal Akademik
           </span>
-          <span wire:loading wire:target="authenticate" class="inline-flex items-center gap-2">
-            <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" opacity="0.4"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4a8 8 0 018 8"></path></svg>
-            <span>Memproses Autentikasi...</span>
+
+          <!-- Loading Text -->
+          <span wire:loading wire:target="authenticate" class="whitespace-nowrap">
+            Memproses Autentikasi...
           </span>
         </button>
       </form>

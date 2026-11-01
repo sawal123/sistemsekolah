@@ -126,3 +126,23 @@ body.overflow-hidden-lock {
     scroll-behavior: auto !important;
   }
 }
+
+/* Login Submit Button Alignment Safeguard */
+#login-submit-btn {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.625rem;
+}
+
+#login-submit-btn > svg {
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+#login-submit-btn > span {
+  white-space: nowrap;
+}
+
