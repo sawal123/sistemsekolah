@@ -9,6 +9,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Spatie\Permission\Models\Role;
 
 #[Layout('layouts.admin')]
 #[Title('Form Data Guru')]
@@ -30,7 +31,7 @@ class DataGuruForm extends Component
     public $foto;
     public $existing_foto;
 
-    public function mount(Guru $guru = null)
+    public function mount(?Guru $guru = null)
     {
         if ($guru && $guru->exists) {
             $this->guru = $guru;
@@ -87,6 +88,7 @@ class DataGuruForm extends Component
                 'name' => $this->nama_lengkap,
                 'email' => $email,
             ]);
+            $this->ensureGuruRole($user);
 
             $this->guru->update([
                 'nip' => $this->nip,
@@ -108,12 +110,10 @@ class DataGuruForm extends Component
                 'name' => $this->nama_lengkap,
                 'email' => $email,
                 'password' => Hash::make($password),
+                'staff_position' => null,
             ]);
 
-            // Assign Spatie Role
-            if (\Spatie\Permission\Models\Role::where('name', 'guru')->exists()) {
-                $user->assignRole('guru');
-            }
+            $this->ensureGuruRole($user);
 
             Guru::create([
                 'user_id' => $user->id,
@@ -136,5 +136,17 @@ class DataGuruForm extends Component
     public function render()
     {
         return view('livewire.admin.civitas.data-guru-form');
+    }
+
+    private function ensureGuruRole(User $user): void
+    {
+        Role::firstOrCreate([
+            'name' => 'guru',
+            'guard_name' => config('auth.defaults.guard', 'web'),
+        ]);
+
+        if (! $user->hasRole('guru')) {
+            $user->assignRole('guru');
+        }
     }
 }

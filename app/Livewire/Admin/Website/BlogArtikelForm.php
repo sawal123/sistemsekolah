@@ -40,6 +40,10 @@ class BlogArtikelForm extends Component
     public function mount(?Post $post = null): void
     {
         if ($post && $post->exists) {
+            if (auth()->user()->hasRole('guru') && ! auth()->user()->hasRole('admin')) {
+                abort_if($post->user_id !== auth()->id(), 403, 'Anda hanya dapat menyunting artikel milik Anda sendiri.');
+            }
+
             $this->post = $post->load('tags');
             $this->judul = $post->judul;
             $this->slug = $post->slug;

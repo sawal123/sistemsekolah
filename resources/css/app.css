@@ -122,6 +122,35 @@ html.dark .glass-card:hover {
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
+/* Opaque surface for all dialogs that use x-ui.modal. */
+.modal-surface {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+}
+
+html.dark .modal-surface {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+/* Form controls use a solid, visible outline in both themes. */
+input.glass,
+textarea.glass,
+select.glass,
+.form-control-surface {
+    background: #ffffff;
+    border-color: #94a3b8;
+}
+
+html.dark input.glass,
+html.dark textarea.glass,
+html.dark select.glass,
+html.dark .form-control-surface {
+    background: #0f172a;
+    border-color: #334155;
+}
+
 /* ── SIDEBAR ───────────────────────────────────────────────── */
 #sidebar {
     width: 268px;

@@ -1,23 +1,34 @@
 <div x-data="{ tab: @entangle('tab') }" class="flex flex-col gap-5 h-full">
+    <x-ui.toast />
 
     {{-- Title and Tabs header --}}
     <div class="flex flex-col md:flex-row justify-between md:items-end gap-4 fu d1">
         <div>
             <h1 class="txt-primary text-[22px] font-extrabold">Data Pengguna & Hak Akses</h1>
-            <p class="txt-muted text-[13px] mt-1">Kelola staf, operator, dan izin akses dalam sistem.</p>
+            <p class="txt-muted text-[13px] mt-1">Kelola akun staf, operator, dan izin akses dalam sistem.</p>
+            <p class="mt-2 text-xs text-indigo-600">Gunakan Tambah Staf untuk mengambil akun dari <a href="{{ route('admin.civitas.data-guru') }}" wire:navigate class="font-semibold hover:underline">Data Guru</a> atau Data Siswa tanpa membuat akun ganda.</p>
         </div>
 
-        <div class="flex p-1 glass-card rounded-xl w-max border border-indigo-500/10">
-            <button @click="tab = 'pengguna'"
-                :class="{'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold': tab === 'pengguna', 'text-gray-500 hover:text-indigo-500': tab !== 'pengguna'}"
-                class="px-5 py-2 text-[13px] rounded-lg transition-all cursor-pointer">
-                Daftar Staf
-            </button>
-            <button @click="tab = 'roles'"
-                :class="{'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold': tab === 'roles', 'text-gray-500 hover:text-indigo-500': tab !== 'roles'}"
-                class="px-5 py-2 text-[13px] rounded-lg transition-all cursor-pointer">
-                Manajemen Role
-            </button>
+        <div class="flex flex-wrap items-center gap-3">
+            <x-ui.button wire:click="openCreateUserModal" variant="primary" class="shadow-lg shadow-indigo-500/20">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                </svg>
+                Tambah Staf
+            </x-ui.button>
+
+            <div class="flex p-1 glass-card rounded-xl w-max border border-indigo-500/10">
+                <button @click="tab = 'pengguna'"
+                    :class="{'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold': tab === 'pengguna', 'text-gray-500 hover:text-indigo-500': tab !== 'pengguna'}"
+                    class="px-5 py-2 text-[13px] rounded-lg transition-all cursor-pointer">
+                    Daftar Staf
+                </button>
+                <button @click="tab = 'roles'"
+                    :class="{'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold': tab === 'roles', 'text-gray-500 hover:text-indigo-500': tab !== 'roles'}"
+                    class="px-5 py-2 text-[13px] rounded-lg transition-all cursor-pointer">
+                    Manajemen Role
+                </button>
+            </div>
         </div>
     </div>
 
@@ -51,7 +62,7 @@
                 <div class="flex gap-3 w-48">
                     @php
                         $roleOptions = ['' => 'Semua Role'];
-                        foreach ($roles as $role) {
+                        foreach ($staffRoles as $role) {
                             $roleOptions[$role->name] = ucfirst($role->name);
                         }
                     @endphp
@@ -65,7 +76,7 @@
                         <tr class="border-b border-gray-200 dark:border-white/5">
                             <th class="py-3 px-4 txt-muted text-xs font-semibold uppercase tracking-wider">Pengguna</th>
                             <th class="py-3 px-4 txt-muted text-xs font-semibold uppercase tracking-wider">Role</th>
-                            <th class="py-3 px-4 txt-muted text-xs font-semibold uppercase tracking-wider">Jabatan Pegawai</th>
+                            <th class="py-3 px-4 txt-muted text-xs font-semibold uppercase tracking-wider">Jabatan Staf</th>
                             <th class="py-3 px-4 txt-muted text-xs font-semibold uppercase tracking-wider">Status &
                                 Login</th>
                             <th class="py-3 px-4 txt-muted text-xs font-semibold uppercase tracking-wider text-right">
@@ -97,18 +108,14 @@
                                     </div>
                                 </td>
                                 <td class="py-3 px-4">
-                                    @if($user->guru)
-                                        <span class="text-xs txt-muted">Dikelola pada Data Guru</span>
-                                    @else
-                                        <select
-                                            wire:change="updateStaffPosition({{ $user->id }}, $event.target.value)"
-                                            class="w-full min-w-44 rounded-xl border border-indigo-500/15 bg-white/60 px-3 py-2 text-xs txt-primary outline-none focus:border-indigo-500"
-                                        >
-                                            @foreach($staffPositionOptions as $value => $label)
-                                                <option value="{{ $value }}" @selected($user->staff_position === $value)>{{ $label }}</option>
-                                            @endforeach
-                                        </select>
-                                    @endif
+                                    <select
+                                        wire:change="updateStaffPosition({{ $user->id }}, $event.target.value)"
+                                        class="w-full min-w-44 rounded-xl border border-indigo-500/15 bg-white/60 px-3 py-2 text-xs txt-primary outline-none focus:border-indigo-500"
+                                    >
+                                        @foreach($staffPositionOptions as $value => $label)
+                                            <option value="{{ $value }}" @selected($user->staff_position === $value)>{{ $label }}</option>
+                                        @endforeach
+                                    </select>
                                 </td>
                                 <td class="py-3 px-4">
                                     <div class="flex flex-col gap-1 items-start">
@@ -137,7 +144,7 @@
                                             <div
                                                 class="cursor-pointer  px-3 py-2 text-xs font-semibold txt-muted uppercase tracking-wider mb-1">
                                                 Ubah Role</div>
-                                            @foreach($roles as $role)
+                                            @foreach($staffRoles as $role)
                                                 <button wire:click="assignRole({{ $user->id }}, '{{ $role->name }}')"
                                                     class="cursor-pointer  block w-full px-4 py-2 text-left text-sm font-medium txt-secondary hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                                                     Jadikan {{ ucfirst($role->name) }}
@@ -320,6 +327,111 @@
                     Sekarang</x-ui.button>
             </div>
         </div>
+    </x-ui.modal>
+
+    {{-- Create User Modal --}}
+    <x-ui.modal name="create-user-modal" :show="$isCreateUserModalOpen" maxWidth="lg">
+        <form wire:submit="createUser" class="p-2 space-y-5">
+            <div class="border-b border-indigo-500/10 pb-3">
+                <h3 class="text-lg font-bold txt-primary">Tambah Staf</h3>
+                <p class="text-xs txt-muted mt-0.5">Buat akun baru atau gunakan akun Guru/Siswa yang sudah ada tanpa menduplikasi data.</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <x-ui.label for="newUserSource" value="Sumber akun" />
+                    <select wire:model.live="newUserSource" id="newUserSource" class="mt-1 w-full rounded-xl border border-indigo-500/20 bg-white/70 dark:bg-white/5 px-3 py-2 text-sm txt-primary outline-none focus:border-indigo-500">
+                        <option value="new">Buat akun staf baru</option>
+                        <option value="guru">Ambil dari Data Guru</option>
+                        <option value="siswa">Ambil dari Data Siswa</option>
+                    </select>
+                    @error('newUserSource') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                </div>
+
+                @if($newUserSource === 'new')
+                    <div>
+                        <x-ui.label for="newUserName" value="Nama Lengkap" />
+                        <x-ui.input wire:model="newUserName" id="newUserName" placeholder="Nama staf" class="mt-1 w-full" />
+                        @error('newUserName') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <x-ui.label for="newUserEmail" value="Alamat Email" />
+                        <x-ui.input wire:model="newUserEmail" id="newUserEmail" type="email" placeholder="email@sekolah.sch.id" class="mt-1 w-full" />
+                        @error('newUserEmail') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <x-ui.label for="newUserPassword" value="Kata Sandi (Opsional)" />
+                        <x-ui.input wire:model="newUserPassword" id="newUserPassword" type="password" placeholder="Kosongkan untuk default: password123" class="mt-1 w-full" />
+                        @error('newUserPassword') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                    </div>
+                @else
+                    <div>
+                        <x-ui.label for="newUserProfileSearch" :value="$newUserSource === 'guru' ? 'Cari dan pilih Guru' : 'Cari dan pilih Siswa'" />
+                        @if($selectedSourceProfile)
+                            <div class="mt-1 flex items-center justify-between gap-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-2.5">
+                                <div class="min-w-0">
+                                    <p class="truncate text-sm font-semibold txt-primary">{{ $selectedSourceProfile->user->name }}</p>
+                                    <p class="truncate text-xs txt-muted">{{ $selectedSourceProfile->user->email }}</p>
+                                </div>
+                                <button type="button" wire:click="clearSourceProfile" class="shrink-0 rounded-lg p-2 text-indigo-600 transition hover:bg-indigo-500/10" aria-label="Ganti pilihan">
+                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18" stroke-linecap="round"/></svg>
+                                </button>
+                            </div>
+                        @else
+                            <div class="relative mt-1">
+                                <x-ui.input wire:model.live.debounce.300ms="newUserProfileSearch" id="newUserProfileSearch" type="search" class="w-full" :placeholder="$newUserSource === 'guru' ? 'Ketik nama atau email guru...' : 'Ketik nama atau email siswa...'" autocomplete="off" />
+                                @if($newUserProfileSearch !== '')
+                                    <div class="absolute z-20 mt-2 max-h-56 w-full overflow-y-auto rounded-xl border border-indigo-500/20 bg-white p-1 shadow-xl dark:bg-slate-900">
+                                        <div wire:loading wire:target="newUserProfileSearch" class="px-3 py-2 text-xs txt-muted">Mencari data…</div>
+                                        <div wire:loading.remove wire:target="newUserProfileSearch">
+                                            @forelse($sourceProfiles as $profile)
+                                                <button type="button" wire:click="selectSourceProfile({{ $profile->id }})" class="block w-full rounded-lg px-3 py-2 text-left transition hover:bg-indigo-500/10">
+                                                    <span class="block truncate text-sm font-medium txt-primary">{{ $profile->user->name }}</span>
+                                                    <span class="block truncate text-xs txt-muted">{{ $profile->user->email }}</span>
+                                                </button>
+                                            @empty
+                                                <p class="px-3 py-2 text-sm txt-muted">Data tidak ditemukan.</p>
+                                            @endforelse
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
+                        <p class="mt-1 text-xs txt-muted">Ketik nama atau email, lalu klik hasil yang sesuai. Profil dan role {{ $newUserSource }} tetap dipertahankan.</p>
+                        @error('newUserProfileId') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                    </div>
+                @endif
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <x-ui.label for="newUserRole" value="Role Staf" />
+                        <select wire:model="newUserRole" id="newUserRole" class="mt-1 w-full rounded-xl border border-indigo-500/20 bg-white/70 dark:bg-white/5 px-3 py-2 text-sm txt-primary outline-none focus:border-indigo-500">
+                            @foreach($staffRoles as $role)
+                                <option value="{{ $role->name }}">{{ ucfirst($role->name) }}</option>
+                            @endforeach
+                        </select>
+                        @error('newUserRole') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <x-ui.label for="newUserStaffPosition" value="Jabatan Pegawai" />
+                        <select wire:model="newUserStaffPosition" id="newUserStaffPosition" class="mt-1 w-full rounded-xl border border-indigo-500/20 bg-white/70 dark:bg-white/5 px-3 py-2 text-sm txt-primary outline-none focus:border-indigo-500">
+                            @foreach($staffPositionOptions as $val => $lbl)
+                                <option value="{{ $val }}">{{ $lbl }}</option>
+                            @endforeach
+                        </select>
+                        @error('newUserStaffPosition') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-3 border-t border-indigo-500/10">
+                <x-ui.button type="button" variant="secondary" wire:click="closeCreateUserModal">Batal</x-ui.button>
+                <x-ui.button type="submit" variant="primary">Simpan Pengguna</x-ui.button>
+            </div>
+        </form>
     </x-ui.modal>
 
 </div>

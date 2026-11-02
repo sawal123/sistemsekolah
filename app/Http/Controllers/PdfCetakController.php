@@ -18,6 +18,20 @@ class PdfCetakController extends Controller
             abort(404, 'Tahun Ajaran tidak spesifik.');
         }
 
+        $user = auth()->user();
+        if ($user && $user->hasRole('guru') && !$user->hasRole('admin')) {
+            $isWali = false;
+            if ($user->guru) {
+                $isWali = \App\Models\Rombel::where('wali_kelas_id', $user->guru->id)
+                    ->where('tahun_ajaran_id', $taId)
+                    ->whereHas('anggotaRombels', fn ($q) => $q->where('siswa_id', $siswa_id))
+                    ->exists();
+            }
+            if (!$isWali) {
+                abort(403, 'Akses ditolak: Anda hanya dapat mencetak e-Rapor untuk siswa di kelas perwalian Anda.');
+            }
+        }
+
         $ta = TahunAjaran::find($taId);
         $siswa = Siswa::with(['user', 'kelas.wali_kelas.user'])->findOrFail($siswa_id);
         
@@ -57,12 +71,11 @@ class PdfCetakController extends Controller
         if ($rapor && $rapor->rata_rata_nilai > 0) {
             $semuaRapor = Rapor::where('kelas_id', $rapor->kelas_id)
                 ->where('tahun_ajaran_id', $taId)
-                ->with(['siswa.nilais' => fn ($query) => $query->where('tahun_ajaran_id', $taId)])
+                ->with(['siswa.nilais' => fn ($query) => $query->where('tahun_ajaran_id', $taId)->with('mapel')])
                 ->get();
             
             $rankings = [];
             foreach ($semuaRapor as $rp) {
-                // Untuk menghindari N+1 kita harus idealnya eager load tapi untk cetakan tunggal ini dimaafkan
                 $rankings[$rp->siswa_id] = $rp->rata_rata_nilai;
             }
             arsort($rankings);
@@ -89,6 +102,21 @@ class PdfCetakController extends Controller
     }
     public function cetakTemplateAbsen($kelasId, $bulan, $tahun)
     {
+        $user = auth()->user();
+        if ($user && $user->hasRole('guru') && !$user->hasRole('admin')) {
+            $tahunAjaranId = TahunAjaran::forDate(\Carbon\Carbon::createFromDate($tahun, $bulan, 1))?->id;
+            $isWali = false;
+            if ($user->guru) {
+                $isWali = \App\Models\Rombel::where('wali_kelas_id', $user->guru->id)
+                    ->where('kelas_id', $kelasId)
+                    ->when($tahunAjaranId, fn ($query) => $query->where('tahun_ajaran_id', $tahunAjaranId))
+                    ->exists();
+            }
+            if (!$isWali) {
+                abort(403, 'Akses ditolak: Anda hanya dapat mengunduh format absensi untuk kelas perwalian Anda.');
+            }
+        }
+
         $kelas = \App\Models\Kelas::with('wali_kelas.user')->findOrFail($kelasId);
         $tahunAjaranId = TahunAjaran::forDate(\Carbon\Carbon::createFromDate($tahun, $bulan, 1))?->id;
         $rombel = \App\Models\Rombel::with('waliKelas.user')
@@ -106,13 +134,15 @@ class PdfCetakController extends Controller
 
         $kalender = [];
         $daysInMonth = \Carbon\Carbon::createFromDate($tahun, $bulan, 1)->daysInMonth;
+        $liburMap = \App\Models\KalenderAkademik::getMapHariLiburBulan($tahun, $bulan);
         
         for ($i = 1; $i <= $daysInMonth; $i++) {
-            $dateStr = \Carbon\Carbon::createFromDate($tahun, $bulan, $i)->format('Y-m-d');
+            $dateObj = \Carbon\Carbon::createFromDate($tahun, $bulan, $i);
+            $dateStr = $dateObj->format('Y-m-d');
             $kalender[$i] = [
                 'tanggal' => $dateStr,
-                'is_libur' => \App\Models\KalenderAkademik::isHariLibur($dateStr),
-                'is_minggu' => \Carbon\Carbon::parse($dateStr)->isSunday(),
+                'is_libur' => isset($liburMap[$dateStr]),
+                'is_minggu' => $dateObj->isSunday(),
             ];
         }
 

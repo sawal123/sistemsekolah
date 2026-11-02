@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ $title ?? 'Beranda Resmi Institusi Pendidikan' }} — Nama Sekolah</title>
-    <meta name="description" content="Website resmi Nama Sekolah — Institusi pendidikan menengah modern dengan fokus keunggulan akademik, karakter mulia, dan kesiapan global." />
+    <meta name="csrf-token" content="{{ csrf_token() }}" />
+    <title>{{ $title ?? 'Beranda Resmi Institusi Pendidikan' }} — {{ $siteSettings->get('school_name') ?: 'Nama Sekolah' }}</title>
+    <meta name="description" content="{{ $siteSettings->get('seo_description') ?: 'Informasi resmi sekolah, program pendidikan, kegiatan, dan pendaftaran peserta didik baru.' }}" />
     <meta name="theme-color" content="#0F172A" />
 
     <link rel="icon" type="image/svg+xml" href="{{ asset('assets/images/logo-sekolah.svg') }}" />
@@ -23,11 +24,12 @@
     @livewireStyles
 </head>
 <body class="bg-[#F8FAFC] text-[#0F172A] antialiased">
-    <x-landing.navbar />
+    <x-landing.navbar :settings="$siteSettings" :open-wave="$siteOpenWave" />
 
     {{ $slot }}
 
-    <x-landing.footer />
+    <x-landing.footer :settings="$siteSettings" />
+    <x-landing.visitor-popup :popup="$visitorPopup" />
 
     <script src="{{ asset('assets/js/main.js') }}"></script>
     @livewireScripts

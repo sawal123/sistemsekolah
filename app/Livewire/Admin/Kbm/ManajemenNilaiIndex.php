@@ -80,6 +80,24 @@ class ManajemenNilaiIndex extends Component
         }
     }
 
+    private function validateGuruTeachingAccess(): bool
+    {
+        $user = auth()->user();
+        if (!$user || !$user->hasRole('guru') || $user->hasRole('admin')) {
+            return true;
+        }
+
+        if (!$user->guru || !$this->filterKelas || !$this->filterMapel) {
+            return false;
+        }
+
+        return Jadwal::where('guru_id', $user->guru->id)
+            ->where('kelas_id', $this->filterKelas)
+            ->where('mapel_id', $this->filterMapel)
+            ->when($this->filterTahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $this->filterTahunAjaran))
+            ->exists();
+    }
+
     public function updatedFilterKelas()
     {
         $this->filterMapel = '';
@@ -107,6 +125,17 @@ class ManajemenNilaiIndex extends Component
 
     public function simpanPengaturan()
     {
+        $user = auth()->user();
+        if ($user && $user->hasRole('guru') && !$user->hasRole('admin')) {
+            $teachesMapel = Jadwal::where('guru_id', $user->guru?->id)
+                ->where('mapel_id', $this->filterMapel)
+                ->exists();
+            if (!$teachesMapel) {
+                $this->dispatch('notify', title: 'Akses Ditolak', message: 'Anda tidak mengampu mata pelajaran ini.', type: 'danger');
+                return;
+            }
+        }
+
         if ($this->filterMapel) {
             $m = Mapel::find($this->filterMapel);
             $m->update([
@@ -125,6 +154,10 @@ class ManajemenNilaiIndex extends Component
         $this->n_pts = [];
         $this->n_pas = [];
         $this->n_remedial = [];
+
+        if (!$this->validateGuruTeachingAccess()) {
+            return;
+        }
 
         if ($this->filterKelas && $this->filterMapel && $this->filterTahunAjaran) {
             $siswas = Siswa::aktifDiKelasPadaTahunAjaran($this->filterKelas, $this->filterTahunAjaran)->pluck('id');
@@ -147,6 +180,11 @@ class ManajemenNilaiIndex extends Component
     private function saveScore($siswaId, $field, $value, $harianKey = null)
     {
         if (!$this->filterKelas || !$this->filterMapel || !$this->filterTahunAjaran) return;
+
+        if (!$this->validateGuruTeachingAccess()) {
+            $this->dispatch('notify', title: 'Akses Ditolak', message: 'Anda tidak memiliki jadwal mengajar di kelas dan mata pelajaran ini.', type: 'danger');
+            return;
+        }
 
         // Cek gembok Rapor
         $rapor = \App\Models\Rapor::where([
@@ -210,6 +248,11 @@ class ManajemenNilaiIndex extends Component
             return;
         }
 
+        if (!$this->validateGuruTeachingAccess()) {
+            $this->dispatch('notify', title: 'Akses Ditolak', message: 'Anda tidak memiliki jadwal mengajar di kelas dan mata pelajaran ini.', type: 'danger');
+            return;
+        }
+
         return \Maatwebsite\Excel\Facades\Excel::download(
             new \App\Exports\FormatNilaiExport($this->filterKelas, $this->filterMapel, $this->filterTahunAjaran),
             'Format_Nilai_' . date('Ymd_His') . '.xlsx'
@@ -218,6 +261,11 @@ class ManajemenNilaiIndex extends Component
 
     public function importExcel()
     {
+        if (!$this->validateGuruTeachingAccess()) {
+            $this->dispatch('notify', title: 'Akses Ditolak', message: 'Anda tidak memiliki jadwal mengajar di kelas dan mata pelajaran ini.', type: 'danger');
+            return;
+        }
+
         $this->validate([
             'fileExcel' => 'required|mimes:xlsx,xls|max:5120', // maks 5MB
         ]);
@@ -258,7 +306,7 @@ class ManajemenNilaiIndex extends Component
         $nilaisRender = collect();
         $mapelSetting = null;
 
-        if ($this->filterKelas) {
+        if ($this->filterKelas && $this->validateGuruTeachingAccess()) {
             $siswas = Siswa::with('user')
                 ->aktifDiKelasPadaTahunAjaran($this->filterKelas, $this->filterTahunAjaran)
                 ->get()

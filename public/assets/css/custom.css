@@ -57,6 +57,43 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 }
 
 /* Sticky Header Scroll State */
+.landing-nav-container {
+  max-width: 1600px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 2.5vw, 40px);
+}
+.landing-brand { flex: 0 1 260px; }
+.landing-desktop-nav { display: none; }
+.landing-mobile-nav { display: flex; }
+.landing-nav-link {
+  padding: 10px;
+  border-radius: 10px;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-navy);
+}
+.landing-nav-link:hover,
+.landing-nav-link[aria-current="page"],
+.landing-nav-link.is-active { color: var(--color-royal); background: #eff6ff; }
+.landing-nav-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background-color 180ms ease;
+}
+@media (min-width: 1440px) {
+  .landing-desktop-nav { display: flex; }
+  .landing-mobile-nav, .landing-mobile-surface { display: none; }
+}
+
 #site-header.is-scrolled {
   background-color: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(12px);
@@ -65,6 +102,27 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 }
 
 /* Accessible Focus Ring */
+.visitor-popup {
+  width: fit-content;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  color: white;
+  box-shadow: none;
+}
+.visitor-popup::backdrop { background: #0f172abf; backdrop-filter: blur(4px); }
+body:has(.visitor-popup[open]) { overflow: hidden; }
+.visitor-popup-stage { position: relative; display: flex; align-items: center; justify-content: center; }
+.visitor-popup-image-link { display: block; max-width: calc(100vw - 32px); }
+.visitor-popup-image-link img { display: block; width: auto; max-width: calc(100vw - 32px); max-height: calc(100dvh - 32px); object-fit: contain; }
+.visitor-popup-close { position: absolute; top: 12px; right: 12px; display: inline-flex; width: 40px; height: 40px; align-items: center; justify-content: center; border: 1px solid #ffffff80; border-radius: 999px; background: #0f172ab8; color: white; cursor: pointer; backdrop-filter: blur(6px); transition: background 160ms ease, transform 160ms ease; }
+.visitor-popup-close:hover { background: #0f172ae6; transform: scale(1.05); }
+.visitor-popup-close svg { width: 20px; height: 20px; }
+
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
@@ -126,3 +184,23 @@ body.overflow-hidden-lock {
     scroll-behavior: auto !important;
   }
 }
+
+/* Login Submit Button Alignment Safeguard */
+#login-submit-btn {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.625rem;
+}
+
+#login-submit-btn > svg {
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+#login-submit-btn > span {
+  white-space: nowrap;
+}
+

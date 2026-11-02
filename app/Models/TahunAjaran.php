@@ -45,15 +45,39 @@ class TahunAjaran extends Model
         return $this->hasMany(Rombel::class);
     }
 
-    public static function forDate($date): ?self
+    public static function forDate($date, ?\Illuminate\Support\Collection $preloaded = null): ?self
     {
         $date = \Carbon\Carbon::parse($date);
+        $dateStr = $date->toDateString();
+
+        if ($preloaded !== null) {
+            $byRange = $preloaded->first(function (self $ta) use ($dateStr) {
+                return $ta->tanggal_mulai !== null
+                    && $ta->tanggal_selesai !== null
+                    && $ta->tanggal_mulai->toDateString() <= $dateStr
+                    && $ta->tanggal_selesai->toDateString() >= $dateStr;
+            });
+
+            if ($byRange) {
+                return $byRange;
+            }
+
+            $tahun = $date->month >= 7
+                ? $date->year . '/' . ($date->year + 1)
+                : ($date->year - 1) . '/' . $date->year;
+            $semester = $date->month >= 7 ? 'Ganjil' : 'Genap';
+            $allowedSemesters = [$semester, strtolower($semester), $semester === 'Ganjil' ? '1' : '2'];
+
+            return $preloaded->first(function (self $ta) use ($tahun, $allowedSemesters) {
+                return $ta->tahun === $tahun && in_array((string) $ta->semester, $allowedSemesters, true);
+            });
+        }
 
         // Prioritaskan pencarian berdasarkan tanggal_mulai/tanggal_selesai jika tersedia
         $byRange = static::whereNotNull('tanggal_mulai')
             ->whereNotNull('tanggal_selesai')
-            ->where('tanggal_mulai', '<=', $date->toDateString())
-            ->where('tanggal_selesai', '>=', $date->toDateString())
+            ->where('tanggal_mulai', '<=', $dateStr)
+            ->where('tanggal_selesai', '>=', $dateStr)
             ->first();
 
         if ($byRange) {

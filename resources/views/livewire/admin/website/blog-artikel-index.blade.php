@@ -29,7 +29,9 @@
     <div class="fu d3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div class="inline-flex flex-wrap gap-2 rounded-2xl border border-indigo-500/10 bg-white/35 p-1 dark:bg-white/5 dark:border-white/10">
             <button wire:click="setTab('posts')" class="px-4 py-2 rounded-xl text-sm font-semibold transition {{ $tab === 'posts' ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/25' : 'txt-secondary hover:bg-indigo-500/10' }}">Artikel</button>
+            @hasrole('admin|operator')
             <button wire:click="setTab('taxonomy')" class="px-4 py-2 rounded-xl text-sm font-semibold transition {{ $tab === 'taxonomy' ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/25' : 'txt-secondary hover:bg-indigo-500/10' }}">Tag & Kategori</button>
+            @endhasrole
             <button wire:click="setTab('comments')" class="px-4 py-2 rounded-xl text-sm font-semibold transition {{ $tab === 'comments' ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/25' : 'txt-secondary hover:bg-indigo-500/10' }}">Komentar</button>
         </div>
 

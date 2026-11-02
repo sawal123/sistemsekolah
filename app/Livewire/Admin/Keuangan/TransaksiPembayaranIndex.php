@@ -148,25 +148,32 @@ class TransaksiPembayaranIndex extends Component
         $jenjang = $this->selectedSiswaData['jenjang'] ?? null;
         $jurusanId = $this->selectedSiswaData['jurusan_id'] ?? null;
 
-        // ── Petakan setiap bulan ke SPP yang berlaku bulan tsb (via forDate) ──
+        // ── Petakan setiap bulan ke SPP yang berlaku bulan tsb (via forDate dengan preload) ──
         $sppPerBulan = [];   // bulan => spp_id
         $sppCache = [];      // spp_id => Spp model
         $taIdsSelTahun = []; // distinct tahun_ajaran_id yang menutupi tahun terpilih
+        $sppByTaCache = [];  // tahun_ajaran_id => ?Spp (hindari query berulang untuk TA yang sama)
+        $allTahunAjarans = TahunAjaran::all();
 
         for ($b = 1; $b <= 12; $b++) {
             $tgl = Carbon::create($this->selectedTahun, $b, 1);
-            $taBulan = TahunAjaran::forDate($tgl);
+            $taBulan = TahunAjaran::forDate($tgl, $allTahunAjarans);
             if (! $taBulan) {
                 continue;
             }
             $taIdsSelTahun[$taBulan->id] = true;
-            $spp = Spp::where('tahun_ajaran_id', $taBulan->id)
-                ->active()
-                ->applicableTo($jenjang, $jurusanId)
-                ->where('kategori', 'SPP Bulanan')
-                ->orderByRaw('jurusan_id IS NULL')
-                ->orderBy('id')
-                ->first();
+
+            if (! array_key_exists($taBulan->id, $sppByTaCache)) {
+                $sppByTaCache[$taBulan->id] = Spp::where('tahun_ajaran_id', $taBulan->id)
+                    ->active()
+                    ->applicableTo($jenjang, $jurusanId)
+                    ->where('kategori', 'SPP Bulanan')
+                    ->orderByRaw('jurusan_id IS NULL')
+                    ->orderBy('id')
+                    ->first();
+            }
+
+            $spp = $sppByTaCache[$taBulan->id];
             if ($spp) {
                 $sppPerBulan[$b] = $spp->id;
                 $sppCache[$spp->id] = $spp;
@@ -196,7 +203,8 @@ class TransaksiPembayaranIndex extends Component
 
         $matrix = [];
 
-        // ── Matriks SPP Bulanan: generate tagihan hanya utk bulan milik SPP tsb ──
+        // ── Pastikan tagihan bulanan tersedia, lalu muat batch dengan eager loading ──
+        $generatedTagihanIds = [];
         $bulanMatrix = [];
         foreach ($sppPerBulan as $b => $sppId) {
             $spp = $sppCache[$sppId];
@@ -209,6 +217,24 @@ class TransaksiPembayaranIndex extends Component
 
             $jatuhTempo = Carbon::create($this->selectedTahun, $b, 10)->toDateString();
             $tagihan = Tagihan::generateDariSpp($siswa, $spp, $this->selectedTahun, $b, $jatuhTempo);
+            $generatedTagihanIds[$b] = $tagihan->id;
+        }
+
+        // Batch load seluruh tagihan bulanan beserta sum & pembayaran terakhir (cegah N+1)
+        $loadedBulananTagihans = $generatedTagihanIds
+            ? Tagihan::withSum('pembayarans', 'nominal')
+                ->with(['pembayarans' => fn($q) => $q->latest('tanggal_bayar')])
+                ->whereIn('id', array_values($generatedTagihanIds))
+                ->get()
+                ->keyBy('id')
+            : collect();
+
+        foreach ($sppPerBulan as $b => $sppId) {
+            $spp = $sppCache[$sppId];
+            $tagihan = $loadedBulananTagihans->get($generatedTagihanIds[$b]);
+            if (! $tagihan) {
+                continue;
+            }
 
             $bulanMatrix[$sppId]['bulans'][$b] = [
                 'tagihan_id' => $tagihan->id,
@@ -218,7 +244,7 @@ class TransaksiPembayaranIndex extends Component
                 'sisa' => $tagihan->sisa_tagihan,
                 'persentase' => $tagihan->persentase_terbayar,
                 'nominal' => (float) $spp->nominal,
-                'pembayaran_terakhir' => $tagihan->pembayarans()->latest()->first()?->tanggal_bayar?->format('d/m/Y'),
+                'pembayaran_terakhir' => $tagihan->pembayarans->first()?->tanggal_bayar?->format('d/m/Y'),
             ];
         }
 
@@ -280,8 +306,25 @@ class TransaksiPembayaranIndex extends Component
             ->values()
             : collect();
 
+        $sekaliTagihanMap = [];
         foreach ($sekaliSpps as $spp) {
             $tagihan = Tagihan::generateDariSpp($siswa, $spp, $this->selectedTahun);
+            $sekaliTagihanMap[$spp->id] = $tagihan->id;
+        }
+
+        $loadedSekaliTagihans = $sekaliTagihanMap
+            ? Tagihan::withSum('pembayarans', 'nominal')
+                ->with(['pembayarans' => fn($q) => $q->latest('tanggal_bayar')])
+                ->whereIn('id', array_values($sekaliTagihanMap))
+                ->get()
+                ->keyBy('id')
+            : collect();
+
+        foreach ($sekaliSpps as $spp) {
+            $tagihan = $loadedSekaliTagihans->get($sekaliTagihanMap[$spp->id] ?? null);
+            if (! $tagihan) {
+                continue;
+            }
 
             $matrix[$spp->id] = [
                 'id' => $spp->id,
@@ -294,7 +337,7 @@ class TransaksiPembayaranIndex extends Component
                 'total_terbayar' => $tagihan->total_terbayar,
                 'sisa' => $tagihan->sisa_tagihan,
                 'persentase' => $tagihan->persentase_terbayar,
-                'pembayaran_terakhir' => $tagihan->pembayarans()->latest()->first()?->tanggal_bayar?->format('d/m/Y'),
+                'pembayaran_terakhir' => $tagihan->pembayarans->first()?->tanggal_bayar?->format('d/m/Y'),
             ];
         }
 

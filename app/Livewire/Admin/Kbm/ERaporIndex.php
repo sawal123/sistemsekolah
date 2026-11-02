@@ -45,21 +45,42 @@ class ERaporIndex extends Component
         }
 
         // Jika Guru (Wali Kelas)
-        if (auth()->user()->hasRole('guru') && auth()->user()->guru) {
+        $user = auth()->user();
+        if ($user && $user->hasRole('guru') && !$user->hasRole('admin') && $user->guru) {
             $rombelWali = Rombel::with('kelas')
-                ->where('wali_kelas_id', auth()->user()->guru->id)
+                ->where('wali_kelas_id', $user->guru->id)
                 ->when($this->filterTahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $this->filterTahunAjaran))
                 ->first();
-            if ($rombelWali?->kelas && !$this->filterKelas) {
-                $this->filterKelas = $rombelWali->kelas->id;
-            }
+            $this->filterKelas = $rombelWali?->kelas?->id ?? null;
         }
+    }
+
+    private function validateWaliKelasAccess(): bool
+    {
+        $user = auth()->user();
+        if (!$user || !$user->hasRole('guru') || $user->hasRole('admin')) {
+            return true;
+        }
+
+        if (!$user->guru || !$this->filterKelas) {
+            return false;
+        }
+
+        return Rombel::where('wali_kelas_id', $user->guru->id)
+            ->where('kelas_id', $this->filterKelas)
+            ->when($this->filterTahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $this->filterTahunAjaran))
+            ->exists();
     }
 
     // Modal Ekstrakurikuler dll
     public function openEditModal($siswaId)
     {
         if (!$this->filterTahunAjaran || !$this->filterKelas) return;
+
+        if (!$this->validateWaliKelasAccess()) {
+            $this->dispatch('notify', title: 'Akses Ditolak', message: 'Anda bukan wali kelas dari kelas ini pada periode yang dipilih.', type: 'danger');
+            return;
+        }
 
         $this->editSiswaId = $siswaId;
         $rapor = Rapor::firstOrCreate([
@@ -157,6 +178,11 @@ class ERaporIndex extends Component
 
     public function simpanRapor()
     {
+        if (!$this->validateWaliKelasAccess()) {
+            $this->dispatch('notify', title: 'Akses Ditolak', message: 'Anda bukan wali kelas dari kelas ini.', type: 'danger');
+            return;
+        }
+
         $rapor = Rapor::where([
             'siswa_id' => $this->editSiswaId,
             'tahun_ajaran_id' => $this->filterTahunAjaran,
@@ -182,6 +208,11 @@ class ERaporIndex extends Component
 
     public function toggleLock($siswaId)
     {
+        if (! $this->validateWaliKelasAccess()) {
+            $this->dispatch('notify', title: 'Akses Ditolak', message: 'Anda bukan wali kelas dari kelas ini.', type: 'danger');
+            return;
+        }
+
         $rapor = Rapor::where([
             'siswa_id' => $siswaId,
             'tahun_ajaran_id' => $this->filterTahunAjaran,
@@ -197,9 +228,10 @@ class ERaporIndex extends Component
     public function render()
     {
         $user = auth()->user();
+        $isGuru = $user && $user->hasRole('guru') && ! $user->hasRole('admin');
 
         // Authorization Logic
-        if ($user->hasRole('guru') && $user->guru) {
+        if ($isGuru && $user->guru) {
             $listKelas = Rombel::with('kelas')
                 ->where('wali_kelas_id', $user->guru->id)
                 ->when($this->filterTahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $this->filterTahunAjaran))
@@ -208,6 +240,12 @@ class ERaporIndex extends Component
                 ->filter()
                 ->unique('id')
                 ->values();
+
+            if ($listKelas->isEmpty()) {
+                $this->filterKelas = null;
+            } elseif (! $this->filterKelas || $listKelas->where('id', (int) $this->filterKelas)->isEmpty()) {
+                $this->filterKelas = $listKelas->first()->id;
+            }
         } else {
             $listKelas = Kelas::orderBy('jenjang')->orderBy('nama_kelas')->get();
         }
@@ -218,11 +256,11 @@ class ERaporIndex extends Component
         $raporsMap = collect();
         $rankings = [];
 
-        if ($this->filterKelas && $this->filterTahunAjaran) {
-            // Eager load nilais to avoid N+1 inside Rapor getRataRataNilaiAttribute
+        if ($this->filterKelas && $this->filterTahunAjaran && (! $isGuru || $this->validateWaliKelasAccess())) {
+            // Eager load nilais + mapel to avoid N+1 inside Rapor getRataRataNilaiAttribute
             $taId = $this->filterTahunAjaran;
             $siswas = Siswa::with(['user', 'nilais' => function ($q) use ($taId) {
-                $q->where('tahun_ajaran_id', $taId);
+                $q->where('tahun_ajaran_id', $taId)->with('mapel');
             }])->aktifDiKelasPadaTahunAjaran($this->filterKelas, $this->filterTahunAjaran)
                 ->get()
                 ->sortBy('user.name')

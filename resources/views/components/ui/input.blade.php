@@ -2,7 +2,7 @@
 
 <input {{ $disabled ? 'disabled' : '' }} {!! $attributes->merge([
     'class' => '
- block w-full rounded-xl border-2  glass
+ block w-full rounded-xl border-2 glass form-control-surface
  focus:border-indigo-500 focus:ring-indigo-500
 //  txt-primary
    focus:outline-none

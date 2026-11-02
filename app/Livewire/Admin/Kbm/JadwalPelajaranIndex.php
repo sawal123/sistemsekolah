@@ -96,8 +96,9 @@ class JadwalPelajaranIndex extends Component
     {
         // Hitung Otomatis (Smart Time Generator)
         if ($val > 0) {
-            $slotDuration = (int) (Setting::where('key', 'durasi_jam_pelajaran')->value('value') ?? 45);
-            $startTime = Setting::where('key', 'jam_mulai_pelajaran')->value('value') ?? '07:15';
+            $jadwalSettings = Setting::whereIn('key', ['durasi_jam_pelajaran', 'jam_mulai_pelajaran'])->pluck('value', 'key');
+            $slotDuration = (int) ($jadwalSettings->get('durasi_jam_pelajaran') ?? 45);
+            $startTime = $jadwalSettings->get('jam_mulai_pelajaran') ?? '07:15';
 
             $startDelay = (int) (($val - 1) * $slotDuration);
 
@@ -122,7 +123,8 @@ class JadwalPelajaranIndex extends Component
     {
         $this->conflictErrors = [];
 
-        $baseQuery = Jadwal::where('hari', $this->hari)
+        $baseQuery = Jadwal::with(['mapel', 'kelas', 'guru.user'])
+            ->where('hari', $this->hari)
             ->where('tahun_ajaran_id', $this->filterTahunAjaran);
         if ($this->isEdit) {
             $baseQuery->where('id', '!=', $this->jadwalId);
@@ -168,6 +170,8 @@ class JadwalPelajaranIndex extends Component
 
     public function simpanJadwal()
     {
+        abort_unless(auth()->user()->hasRole('admin') || auth()->user()->hasRole('operator'), 403, 'Hanya Administrator atau Operator yang dapat mengubah jadwal pelajaran.');
+
         $this->validate();
 
         if (! $this->checkConflicts()) {
@@ -201,18 +205,21 @@ class JadwalPelajaranIndex extends Component
 
     public function openModalForCreate()
     {
+        abort_unless(auth()->user()->hasRole('admin') || auth()->user()->hasRole('operator'), 403, 'Akses ditolak.');
         $this->closeModal();
         $this->dispatch('open-modal', 'jadwal-modal');
     }
 
     public function confirmHapus($id)
     {
+        abort_unless(auth()->user()->hasRole('admin') || auth()->user()->hasRole('operator'), 403, 'Akses ditolak.');
         $this->deleteId = $id;
         $this->dispatch('open-modal', 'delete-modal');
     }
 
     public function executeHapus()
     {
+        abort_unless(auth()->user()->hasRole('admin') || auth()->user()->hasRole('operator'), 403, 'Akses ditolak.');
         if ($this->deleteId) {
             Jadwal::destroy($this->deleteId);
             $this->dispatch('notify', title: 'Dihapus', message: 'Data pelajaran dihapus.', type: 'info');
@@ -223,7 +230,12 @@ class JadwalPelajaranIndex extends Component
 
     public function render()
     {
-        $query = Jadwal::with(['kelas', 'mapel', 'guru', 'ruangan'])
+        $user = auth()->user();
+        if ($user && $user->hasRole('guru') && ! $user->hasRole('admin')) {
+            $this->filterGuru = $user->guru?->id ?? '';
+        }
+
+        $query = Jadwal::with(['kelas', 'mapel', 'guru.user', 'ruangan'])
             ->when($this->filterTahunAjaran, fn ($q) => $q->where('tahun_ajaran_id', $this->filterTahunAjaran));
 
         if ($this->filterKelas) {
@@ -250,31 +262,31 @@ class JadwalPelajaranIndex extends Component
         $gurus = Guru::with('user')->get()->sortBy('user.name');
         $ruangans = Ruangan::orderBy('nama_ruangan')->get();
 
-        // 1. GENERATE SUGGESTED SLOTS (Filter taken slots for the selected class)
-        $slotDuration = (int) (Setting::where('key', 'durasi_jam_pelajaran')->value('value') ?? 45);
-        $startTimeBase = Setting::where('key', 'jam_mulai_pelajaran')->value('value') ?? '07:15';
+        // 1. GENERATE SUGGESTED SLOTS (1 query preload di luar loop 8 jam)
+        $jadwalSettings = Setting::whereIn('key', ['durasi_jam_pelajaran', 'jam_mulai_pelajaran'])->pluck('value', 'key');
+        $slotDuration = (int) ($jadwalSettings->get('durasi_jam_pelajaran') ?? 45);
+        $startTimeBase = $jadwalSettings->get('jam_mulai_pelajaran') ?? '07:15';
+
+        $kelasHariJadwals = collect();
+        if ($this->kelas_id && $this->hari) {
+            $kelasHariJadwals = Jadwal::where('kelas_id', $this->kelas_id)
+                ->where('hari', $this->hari)
+                ->where('tahun_ajaran_id', $this->filterTahunAjaran)
+                ->when($this->isEdit, fn ($q) => $q->where('id', '!=', $this->jadwalId))
+                ->get(['jam_mulai', 'jam_selesai']);
+        }
 
         $optSaranJam = ['' => 'Pilih Jam Ke-'];
         for ($i = 1; $i <= 8; $i++) {
             $st = Carbon::createFromFormat('H:i', $startTimeBase)->addMinutes(($i - 1) * $slotDuration)->format('H:i');
             $en = Carbon::createFromFormat('H:i', $startTimeBase)->addMinutes($i * $slotDuration)->format('H:i');
 
-            $isTaken = false;
-            if ($this->kelas_id && $this->hari) {
-                $overlap = Jadwal::where('kelas_id', $this->kelas_id)
-                    ->where('hari', $this->hari)
-                    ->where('tahun_ajaran_id', $this->filterTahunAjaran);
-                if ($this->isEdit) {
-                    $overlap->where('id', '!=', $this->jadwalId);
-                }
+            $isTaken = $kelasHariJadwals->contains(function ($j) use ($st, $en) {
+                $mulai = substr((string) $j->jam_mulai, 0, 5);
+                $selesai = substr((string) $j->jam_selesai, 0, 5);
+                return $mulai < $en && $selesai > $st;
+            });
 
-                $overlap->where(function ($q) use ($st, $en) {
-                    $this->calculateOverlap($q, $st, $en);
-                });
-                if ($overlap->exists()) {
-                    $isTaken = true;
-                }
-            }
             if (! $isTaken) {
                 $optSaranJam[$i] = "Jam ke-$i ($st - $en)";
             }

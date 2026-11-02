@@ -7,6 +7,7 @@
             </h1>
             <p class="txt-muted text-[13px] mt-1">Kelola hari libur nasional, libur sekolah, dan acara operasional lainnya.</p>
         </div>
+        @hasrole('admin|operator')
         <div class="flex items-center gap-3">
             <x-ui.button wire:click="openBulkModal" variant="secondary">
                 <svg class="w-4 h-4 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -31,6 +32,7 @@
                 Tambah Hari Libur
             </x-ui.button>
         </div>
+        @endhasrole
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -163,12 +165,14 @@
                                         <p class="txt-primary font-bold">{{ $event->tanggal->translatedFormat('d M Y') }}</p>
                                         <p class="txt-muted leading-tight mt-0.5 line-clamp-1 truncate w-40">{{ $event->keterangan }}</p>
                                     </td>
+                                    @hasrole('admin|operator')
                                     <td class="py-3 px-4 text-right">
                                         <div class="flex items-center justify-end gap-1">
                                             <button wire:click="openEditModal({{ $event->id }})" class="p-1 px-2 text-indigo-500 bg-indigo-500/10 rounded-lg hover:bg-indigo-500/20 transition">Edit</button>
                                             <button wire:click="confirmDelete({{ $event->id }})" class="p-1 px-2 text-red-500 bg-red-500/10 rounded-lg hover:bg-red-500/20 transition">Hapus</button>
                                         </div>
                                     </td>
+                                    @endhasrole
                                 </tr>
                             @empty
                                 <tr>

@@ -268,6 +268,11 @@ class DataSiswaIndex extends Component
                 if (! $user->hasRole('alumni')) {
                     $user->assignRole('alumni');
                 }
+            } else {
+                $siswaData['tahun_lulus'] = null;
+                if ($user->hasRole('alumni')) {
+                    $user->removeRole('alumni');
+                }
             }
 
             $siswa = Siswa::updateOrCreate(['id' => $this->editId], $siswaData);
@@ -360,29 +365,72 @@ class DataSiswaIndex extends Component
         $this->dispatch('open-modal', 'siswa-form');
     }
 
+    public function resetPassword($siswaId)
+    {
+        $siswa = Siswa::with('user')->findOrFail($siswaId);
+        if (! $siswa->user) {
+            $this->dispatch('notify', ['type' => 'error', 'message' => 'Akun login untuk siswa ini tidak ditemukan.']);
+
+            return;
+        }
+
+        $password = $siswa->tanggal_lahir
+            ? Carbon::parse($siswa->tanggal_lahir)->format('dmY')
+            : 'siswa123';
+
+        $siswa->user->update([
+            'password' => Hash::make($password),
+        ]);
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "Kata sandi siswa {$siswa->user->name} berhasil direset menjadi: {$password}",
+        ]);
+    }
+
     public function delete($id)
     {
-        $siswa = Siswa::findOrFail($id);
-        // We'll follow "soft" approach by changing status or just deleting Siswa record.
-        // But migration has cascadeOnDelete for user_id.
-        // User said: "Use deactivation/status instead of permanent deletion."
-        // So for "Delete" button, maybe we just deactivate?
-        // Let's implement deactivation for "Delete" if preferred, or just remove Siswa but keep user.
-        // Actually, user said: "Gunakan sistem Status Dinonaktifkan atau Soft Deletes."
+        $siswa = Siswa::with('user')->findOrFail($id);
 
-        $siswa->update(['status' => 'Pindah']); // Or similar
-        $this->dispatch('notify', ['type' => 'warning', 'message' => 'Status siswa diubah menjadi Pindah (Nonaktif).']);
+        DB::transaction(function () use ($siswa) {
+            // 1. Update status siswa
+            $siswa->update(['status' => 'Pindah']);
+
+            // 2. Nonaktifkan akun login pengguna
+            if ($siswa->user) {
+                $siswa->user->update(['is_active' => false]);
+            }
+
+            // 3. Sinkronkan AnggotaRombel pada tahun ajaran aktif (Aturan Emas AGENTS.md)
+            $taAktif = TahunAjaran::where('is_active', true)->first();
+            if ($taAktif) {
+                AnggotaRombel::where('siswa_id', $siswa->id)
+                    ->whereHas('rombel', fn($q) => $q->where('tahun_ajaran_id', $taAktif->id))
+                    ->where('status', 'Aktif')
+                    ->update([
+                        'status' => 'Pindah',
+                        'tanggal_keluar' => now()->toDateString(),
+                    ]);
+            }
+        });
+
+        $this->dispatch('notify', [
+            'type' => 'warning',
+            'message' => 'Status siswa diubah menjadi Pindah, keanggotaan rombel ditutup, dan akun dinonaktifkan.',
+        ]);
     }
 
     public function render()
     {
-        $query = Siswa::with(['user', 'kelas', 'jurusan'])
+        $query = Siswa::with(['user:id,name,email,is_active', 'kelas:id,nama_kelas,jenjang,jurusan_id', 'jurusan:id,kode,nama_jurusan'])
             ->when($this->search, function ($q) {
-                $q->where('nis', 'like', '%' . $this->search . '%')
-                    ->orWhere('nisn', 'like', '%' . $this->search . '%')
-                    ->orWhereHas('user', function ($qu) {
-                        $qu->where('name', 'like', '%' . $this->search . '%');
-                    });
+                $q->where(function ($sub) {
+                    $sub->where('nis', 'like', '%' . $this->search . '%')
+                        ->orWhere('nisn', 'like', '%' . $this->search . '%')
+                        ->orWhereHas('user', function ($qu) {
+                            $qu->where('name', 'like', '%' . $this->search . '%');
+                        });
+                });
             })
             ->when($this->filterJenjang, function ($q) {
                 $q->where('jenjang', $this->filterJenjang);
@@ -394,21 +442,35 @@ class DataSiswaIndex extends Component
                 $q->where('status', $this->filterStatus);
             });
 
-        $availableClasses = Kelas::when($this->filterJenjang, function ($q) {
-            $q->where('jenjang', $this->filterJenjang);
-        })->get();
+        $availableClasses = Kelas::select('id', 'nama_kelas', 'jenjang')
+            ->when($this->filterJenjang, function ($q) {
+                $q->where('jenjang', $this->filterJenjang);
+            })->get();
 
-        $formClasses = Kelas::with('jurusan')->where('jenjang', $this->jenjang)->get();
+        // Lazy load form classes only when modal is open to save database I/O
+        $formClasses = $this->isModalOpen
+            ? Kelas::with('jurusan:id,kode,nama_jurusan')
+                ->select('id', 'nama_kelas', 'jenjang', 'jurusan_id')
+                ->where('jenjang', $this->jenjang)
+                ->get()
+            : collect();
+
+        $statRow = Siswa::selectRaw("
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'Aktif' THEN 1 ELSE 0 END) as aktif,
+            SUM(CASE WHEN status = 'Lulus' THEN 1 ELSE 0 END) as lulus,
+            SUM(CASE WHEN status IN ('Pindah', 'Dikeluarkan') THEN 1 ELSE 0 END) as nonaktif
+        ")->first();
 
         return view('livewire.admin.civitas.data-siswa-index', [
             'siswas' => $query->latest()->paginate($this->perPage),
             'availableClasses' => $availableClasses,
             'formClasses' => $formClasses,
             'stats' => [
-                'total' => Siswa::count(),
-                'aktif' => Siswa::where('status', 'Aktif')->count(),
-                'lulus' => Siswa::where('status', 'Lulus')->count(),
-                'nonaktif' => Siswa::whereIn('status', ['Pindah', 'Dikeluarkan'])->count(),
+                'total' => (int) ($statRow->total ?? 0),
+                'aktif' => (int) ($statRow->aktif ?? 0),
+                'lulus' => (int) ($statRow->lulus ?? 0),
+                'nonaktif' => (int) ($statRow->nonaktif ?? 0),
             ],
         ]);
     }

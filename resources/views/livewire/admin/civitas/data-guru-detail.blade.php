@@ -29,8 +29,12 @@
                     <span class="txt-secondary" style="font-size:14px;font-weight:500;">NIP: {{ $guru->nip }}</span>
                     <span style="color:rgba(156,163,175,0.5);">•</span>
                     <span class="badge" style="background:rgba(139,92,246,0.12);color:#7c3aed;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;">{{ $guru->jabatan ?: 'Guru' }}</span>
-                    @if($guru->kelas)
-                    <span class="badge" style="background:rgba(16,185,129,0.12);color:#059669;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;">Wali Kelas {{ $guru->kelas->nama_kelas }}</span>
+                    @php
+                        $rombelWali = $guru->rombels->first();
+                        $namaWali = $rombelWali?->kelas?->nama_kelas ?? $guru->kelas?->nama_kelas;
+                    @endphp
+                    @if($namaWali)
+                    <span class="badge" style="background:rgba(16,185,129,0.12);color:#059669;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;">Wali Kelas {{ $namaWali }}</span>
                     @endif
                 </div>
 
@@ -69,7 +73,14 @@
 
     {{-- Jadwal Mengajar --}}
     <div class="fu d3 glass-card" style="padding:24px;">
-        <h3 class="txt-primary" style="font-size:16px;font-weight:700;margin-bottom:16px;">Jadwal Mengajar Aktif</h3>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+            <h3 class="txt-primary" style="font-size:16px;font-weight:700;">Jadwal Mengajar Aktif</h3>
+            @if($taAktif)
+                <span class="badge" style="background:rgba(99,102,241,0.1);color:#6366f1;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;">
+                    Tahun Ajaran: {{ $taAktif->tahun }} ({{ $taAktif->semester }})
+                </span>
+            @endif
+        </div>
         <div style="overflow-x:auto;">
             <table class="tbl" style="width:100%;border-collapse:collapse;">
                 <thead>

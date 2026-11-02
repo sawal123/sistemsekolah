@@ -209,8 +209,17 @@
                                                 d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                         </svg>
                                     </button>
-                                    <button wire:click="edit({{ $item->id }})"
+                                    <button wire:click="resetPassword({{ $item->id }})"
+                                        wire:confirm="Reset kata sandi siswa ini ke format ddmmyyyy tanggal lahir / default siswa123?"
                                         class="p-2 rounded-lg hover:bg-amber-500/10 text-amber-500 transition-all cursor-pointer"
+                                        title="Reset Password">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4v-3.252a1 1 0 01.293-.707l8.196-8.196A6 6 0 0115 7z" />
+                                        </svg>
+                                    </button>
+                                    <button wire:click="edit({{ $item->id }})"
+                                        class="p-2 rounded-lg hover:bg-blue-500/10 text-blue-500 transition-all cursor-pointer"
                                         title="Edit">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
