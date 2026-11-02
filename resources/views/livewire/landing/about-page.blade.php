@@ -5,7 +5,7 @@
         description="{{ $settings->get('site_tagline') ?: 'Mengenal identitas, arah pendidikan, dan komitmen sekolah dalam mendampingi setiap peserta didik.' }}"
     />
 
-    <section class="py-20">
+    <section id="sambutan" class="scroll-mt-24 py-20">
         <div class="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-[0.85fr_1.15fr] lg:px-8">
             <div class="relative">
                 <div class="aspect-[4/5] overflow-hidden rounded-3xl bg-gradient-to-br from-blue-700 to-blue-300 shadow-xl">

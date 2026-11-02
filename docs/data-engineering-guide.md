@@ -41,6 +41,8 @@
 | `pendaftaran_murid_barus` | `PendaftaranMuridBaru` | Formulir lengkap calon siswa, path dokumen, koordinat rumah, JSON `nilai_rapor`. Konversi ke `User` + `Siswa` via `PendaftaranMuridBaruIndex::konversiKeSiswa()`. |
 | `kegiatan_alumnis` | `KegiatanAlumni` | Tracer study alumni (kuliah, kerja, wirausaha) beserta status verifikasi. |
 | `website_visits` | `WebsiteVisit` | Log trafik HTTP GET publik & deteksi ancaman (SQLi, XSS, Path Traversal, Scanner) via middleware `TrackWebsiteVisit`. |
+| `website_popups` | `WebsitePopup` | Gambar, link, judul, interval tampil ulang, dan status modal publik yang dikelola admin. Lihat `docs/modal-pengunjung.md`. |
+| `website_popup_impressions` | `WebsitePopupImpression` | Riwayat sekali tayang per modal + hash kombinasi IP/User-Agent; unique `(website_popup_id, visitor_key)` mencegah pengulangan lintas tab/halaman. |
 
 ---
 

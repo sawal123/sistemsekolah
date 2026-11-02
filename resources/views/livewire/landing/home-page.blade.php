@@ -18,11 +18,11 @@
             Nama Sekolah menghadirkan ekosistem pembelajaran modern yang memadukan kurikulum nasional terkini, laboratorium terpadu, serta pembinaan karakter secara menyeluruh.
           </p>
           <div class="flex flex-wrap items-center gap-3.5 pt-2">
-            <a href="{{ Route::has('landing.ppdb') ? route('landing.ppdb') : '#' }}" class="px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-[#2563EB] hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/30 inline-flex items-center gap-2">
+            <a href="{{ route('landing.ppdb.section', 'daftar') }}#daftar" class="px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-[#2563EB] hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/30 inline-flex items-center gap-2">
               <span>Daftar Sekarang</span>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
             </a>
-            <a href="{{ Route::has('landing.about') ? route('landing.about') : '#' }}" class="px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-xs transition-all">
+            <a href="{{ route('landing.about') }}" class="px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-xs transition-all">
               Jelajahi Sekolah
             </a>
           </div>
@@ -47,11 +47,11 @@
             Didukung fasilitas praktikum sains, komputasi digital, dan perpustakaan kolaboratif untuk menumbuhkan daya pikir kritis serta pemecahan masalah nyata.
           </p>
           <div class="flex flex-wrap items-center gap-3.5 pt-2">
-            <a href="{{ Route::has('landing.ppdb') ? route('landing.ppdb') : '#' }}" class="px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-[#2563EB] hover:bg-blue-500 transition-all shadow-lg inline-flex items-center gap-2">
+            <a href="{{ route('landing.ppdb.section', 'daftar') }}#daftar" class="px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-[#2563EB] hover:bg-blue-500 transition-all shadow-lg inline-flex items-center gap-2">
               <span>Daftar Sekarang</span>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
             </a>
-            <a href="{{ Route::has('landing.facilities') ? route('landing.facilities') : '#' }}" class="px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-xs transition-all">
+            <a href="{{ route('landing.facilities') }}" class="px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-xs transition-all">
               Jelajahi Sekolah
             </a>
           </div>
@@ -76,11 +76,11 @@
             Melalui bimbingan intensif pendidik berpengalaman dan klub ekstrakurikuler aktif, siswa didorong berprestasi di bidang akademik, olahraga, maupun seni budaya.
           </p>
           <div class="flex flex-wrap items-center gap-3.5 pt-2">
-            <a href="{{ Route::has('landing.ppdb') ? route('landing.ppdb') : '#' }}" class="px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-[#2563EB] hover:bg-blue-500 transition-all shadow-lg inline-flex items-center gap-2">
+            <a href="{{ route('landing.ppdb.section', 'daftar') }}#daftar" class="px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-[#2563EB] hover:bg-blue-500 transition-all shadow-lg inline-flex items-center gap-2">
               <span>Daftar Sekarang</span>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
             </a>
-            <a href="#prestasi" class="px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-xs transition-all">
+            <a href="{{ route('landing.prestasi') }}" class="px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-xs transition-all">
               Jelajahi Sekolah
             </a>
           </div>
@@ -184,11 +184,11 @@
             Selamat datang di portal resmi <strong class="text-[#0F172A] font-semibold">Nama Sekolah</strong>. Kami berkomitmen menghadirkan tata kelola pendidikan yang transparan dan kolaboratif bersama orang tua serta masyarakat. Melalui kurikulum yang adaptif dan fasilitas pembelajaran terpadu, kami mendampingi setiap siswa mengenali potensi terbaiknya.
           </p>
           <div class="pt-2 flex flex-wrap items-center gap-4">
-            <a href="{{ Route::has('landing.about') ? route('landing.about') . '#sambutan' : '#sambutan' }}" class="px-5 py-3 rounded-xl text-sm font-semibold text-white bg-[#2563EB] hover:bg-blue-700 transition-colors inline-flex items-center gap-2">
+            <a href="{{ route('landing.about') . '#sambutan' }}" class="px-5 py-3 rounded-xl text-sm font-semibold text-white bg-[#2563EB] hover:bg-blue-700 transition-colors inline-flex items-center gap-2">
               <span>Baca Selengkapnya</span>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
             </a>
-            <a href="{{ Route::has('landing.staffing') ? route('landing.staffing', 'guru') : '#' }}" class="px-5 py-3 rounded-xl text-sm font-semibold text-[#0F172A] bg-slate-100 hover:bg-slate-200 transition-colors">
+            <a href="{{ route('landing.staffing', 'guru') }}" class="px-5 py-3 rounded-xl text-sm font-semibold text-[#0F172A] bg-slate-100 hover:bg-slate-200 transition-colors">
               Lihat Direktori Pendidik
             </a>
           </div>
@@ -279,7 +279,7 @@
             Peminatan Akademik yang Terarah Sesuai Minat &amp; Rencana Karier
           </h2>
         </div>
-        <a href="{{ Route::has('landing.academic') ? route('landing.academic', 'kurikulum') : '#' }}" class="text-sm font-semibold text-[#2563EB] hover:text-[#0F172A] inline-flex items-center gap-1.5 shrink-0">
+        <a href="{{ route('landing.academic', 'kurikulum') }}" class="text-sm font-semibold text-[#2563EB] hover:text-[#0F172A] inline-flex items-center gap-1.5 shrink-0">
           <span>Pelajari Struktur Kurikulum</span>
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
         </a>
@@ -304,7 +304,7 @@
             </ul>
           </div>
           <div class="pt-6 mt-6 border-t border-slate-200/80">
-            <a href="{{ Route::has('landing.academic') ? route('landing.academic', 'ipa') : '#' }}" class="inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB] hover:text-[#0F172A]">
+            <a href="{{ route('landing.academic', 'ipa') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB] hover:text-[#0F172A]">
               <span>Detail Program IPA</span>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
             </a>
@@ -328,7 +328,7 @@
             </ul>
           </div>
           <div class="pt-6 mt-6 border-t border-slate-200/80">
-            <a href="{{ Route::has('landing.academic') ? route('landing.academic', 'ips') : '#' }}" class="inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB] hover:text-[#0F172A]">
+            <a href="{{ route('landing.academic', 'ips') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB] hover:text-[#0F172A]">
               <span>Detail Program IPS</span>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
             </a>
@@ -352,7 +352,7 @@
             </ul>
           </div>
           <div class="pt-6 mt-6 border-t border-slate-200/80">
-            <a href="{{ Route::has('landing.academic') ? route('landing.academic', 'bahasa') : '#' }}" class="inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB] hover:text-[#0F172A]">
+            <a href="{{ route('landing.academic', 'bahasa') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB] hover:text-[#0F172A]">
               <span>Detail Program Bahasa</span>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
             </a>
@@ -375,7 +375,7 @@
             Rekam Jejak Prestasi Siswa &amp; Pendidik
           </h2>
         </div>
-        <a href="#prestasi" class="text-sm font-semibold text-[#0EA5E9] hover:text-white inline-flex items-center gap-1.5 shrink-0">
+        <a href="{{ route('landing.prestasi') }}" class="text-sm font-semibold text-[#0EA5E9] hover:text-white inline-flex items-center gap-1.5 shrink-0">
           <span>Lihat Seluruh Prestasi</span>
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
         </a>
@@ -398,7 +398,7 @@
                 Tim riset siswa merancang prototipe pemantau kualitas air otomatis berbasis sensor hemat energi.
               </p>
             </div>
-            <a href="#prestasi" class="text-xs font-semibold text-[#0EA5E9] hover:underline inline-flex items-center gap-1">
+            <a href="{{ route('landing.prestasi') }}" class="text-xs font-semibold text-[#0EA5E9] hover:underline inline-flex items-center gap-1">
               <span>Lihat Detail Capaian</span>
               <span>&rarr;</span>
             </a>
@@ -421,7 +421,7 @@
                 Apresiasi atas pengembangan metode praktikum kolaboratif yang mudah diakses oleh seluruh siswa.
               </p>
             </div>
-            <a href="#prestasi" class="text-xs font-semibold text-[#0EA5E9] hover:underline inline-flex items-center gap-1">
+            <a href="{{ route('landing.prestasi') }}" class="text-xs font-semibold text-[#0EA5E9] hover:underline inline-flex items-center gap-1">
               <span>Lihat Detail Capaian</span>
               <span>&rarr;</span>
             </a>
@@ -444,7 +444,7 @@
                 Kolaborasi ansambel musik modern dan instrumen tradisional Nusantara dalam gelar karya pelajar.
               </p>
             </div>
-            <a href="#prestasi" class="text-xs font-semibold text-[#0EA5E9] hover:underline inline-flex items-center gap-1">
+            <a href="{{ route('landing.prestasi') }}" class="text-xs font-semibold text-[#0EA5E9] hover:underline inline-flex items-center gap-1">
               <span>Lihat Detail Capaian</span>
               <span>&rarr;</span>
             </a>
@@ -467,7 +467,7 @@
             Fasilitas Unggulan Pendukung Eksplorasi Siswa
           </h2>
         </div>
-        <a href="{{ Route::has('landing.facilities') ? route('landing.facilities') : '#' }}" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-[#0F172A] bg-white border border-slate-200 hover:border-[#2563EB] hover:text-[#2563EB] transition-colors shrink-0">
+        <a href="{{ route('landing.facilities') }}" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-[#0F172A] bg-white border border-slate-200 hover:border-[#2563EB] hover:text-[#2563EB] transition-colors shrink-0">
           Lihat Semua Fasilitas
         </a>
       </div>
@@ -535,7 +535,7 @@
             Berita &amp; Artikel Pendidikan Terbaru
           </h2>
         </div>
-        <a href="{{ Route::has('landing.blog') ? route('landing.blog') : '#' }}" class="text-sm font-semibold text-[#2563EB] hover:text-[#0F172A] inline-flex items-center gap-1.5 shrink-0">
+        <a href="{{ route('landing.blog') }}" class="text-sm font-semibold text-[#2563EB] hover:text-[#0F172A] inline-flex items-center gap-1.5 shrink-0">
           <span>Jelajahi Semua Artikel</span>
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
         </a>
@@ -545,7 +545,7 @@
         <!-- COMPONENT: NewsCard 1 -->
         <article class="bg-white rounded-2xl overflow-hidden border border-slate-200/90 shadow-xs flex flex-col justify-between card-elevated">
           <div>
-            <a href="{{ Route::has('landing.blog') ? route('landing.blog') : '#' }}" class="block aspect-16/10 overflow-hidden bg-slate-100">
+            <a href="{{ route('landing.blog') }}" class="block aspect-16/10 overflow-hidden bg-slate-100">
               <img src="{{ asset('assets/images/hero-lab.jpg') }}" alt="Pameran Karya Riset Siswa" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300" loading="lazy" />
             </a>
             <div class="p-6">
@@ -554,7 +554,7 @@
                 <span>18 Oktober 2026</span>
               </div>
               <h3 class="font-heading text-lg font-bold text-[#0F172A] leading-snug hover:text-[#2563EB] transition-colors">
-                <a href="{{ Route::has('landing.blog') ? route('landing.blog') : '#' }}">Pekan Eksplorasi Sains 2026: Menampilkan 24 Proyek Inovasi Lingkungan Karya Siswa</a>
+                <a href="{{ route('landing.blog') }}">Pekan Eksplorasi Sains 2026: Menampilkan 24 Proyek Inovasi Lingkungan Karya Siswa</a>
               </h3>
               <p class="text-sm text-[#64748B] mt-2.5 leading-relaxed">
                 Kegiatan tahunan yang mewadahi kolaborasi lintas jurusan dalam merancang solusi ramah lingkungan di lingkungan sekolah.
@@ -562,7 +562,7 @@
             </div>
           </div>
           <div class="px-6 pb-6">
-            <a href="{{ Route::has('landing.blog') ? route('landing.blog') : '#' }}" class="text-sm font-semibold text-[#2563EB] hover:text-[#0F172A] inline-flex items-center gap-1.5">
+            <a href="{{ route('landing.blog') }}" class="text-sm font-semibold text-[#2563EB] hover:text-[#0F172A] inline-flex items-center gap-1.5">
               <span>Baca Selengkapnya</span>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
             </a>
@@ -572,7 +572,7 @@
         <!-- COMPONENT: NewsCard 2 -->
         <article class="bg-white rounded-2xl overflow-hidden border border-slate-200/90 shadow-xs flex flex-col justify-between card-elevated">
           <div>
-            <a href="{{ Route::has('landing.blog') ? route('landing.blog') : '#' }}" class="block aspect-16/10 overflow-hidden bg-slate-100">
+            <a href="{{ route('landing.blog') }}" class="block aspect-16/10 overflow-hidden bg-slate-100">
               <img src="{{ asset('assets/images/facility-library.jpg') }}" alt="Gerakan Literasi Pagi" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300" loading="lazy" />
             </a>
             <div class="p-6">
@@ -581,7 +581,7 @@
                 <span>10 Oktober 2026</span>
               </div>
               <h3 class="font-heading text-lg font-bold text-[#0F172A] leading-snug hover:text-[#2563EB] transition-colors">
-                <a href="{{ Route::has('landing.blog') ? route('landing.blog') : '#' }}">Transformasi Perpustakaan Sekolah Menjadi Ruang Kolaborasi &amp; Diskusi Terbuka</a>
+                <a href="{{ route('landing.blog') }}">Transformasi Perpustakaan Sekolah Menjadi Ruang Kolaborasi &amp; Diskusi Terbuka</a>
               </h3>
               <p class="text-sm text-[#64748B] mt-2.5 leading-relaxed">
                 Hadirnya pod belajar mandiri dan katalog literasi digital meningkatkan minat baca serta diskusi kelompok siswa secara signifikan.
@@ -589,7 +589,7 @@
             </div>
           </div>
           <div class="px-6 pb-6">
-            <a href="{{ Route::has('landing.blog') ? route('landing.blog') : '#' }}" class="text-sm font-semibold text-[#2563EB] hover:text-[#0F172A] inline-flex items-center gap-1.5">
+            <a href="{{ route('landing.blog') }}" class="text-sm font-semibold text-[#2563EB] hover:text-[#0F172A] inline-flex items-center gap-1.5">
               <span>Baca Selengkapnya</span>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
             </a>
@@ -599,7 +599,7 @@
         <!-- COMPONENT: NewsCard 3 -->
         <article class="bg-white rounded-2xl overflow-hidden border border-slate-200/90 shadow-xs flex flex-col justify-between card-elevated">
           <div>
-            <a href="{{ Route::has('landing.blog') ? route('landing.blog') : '#' }}" class="block aspect-16/10 overflow-hidden bg-slate-100">
+            <a href="{{ route('landing.blog') }}" class="block aspect-16/10 overflow-hidden bg-slate-100">
               <img src="{{ asset('assets/images/activity-arts.jpg') }}" alt="Pentas Budaya Tahunan" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300" loading="lazy" />
             </a>
             <div class="p-6">
@@ -608,7 +608,7 @@
                 <span>02 Oktober 2026</span>
               </div>
               <h3 class="font-heading text-lg font-bold text-[#0F172A] leading-snug hover:text-[#2563EB] transition-colors">
-                <a href="{{ Route::has('landing.blog') ? route('landing.blog') : '#' }}">Harmoni Nusantara: Apresiasi Seni Musik dan Karawitan Siswa Nama Sekolah</a>
+                <a href="{{ route('landing.blog') }}">Harmoni Nusantara: Apresiasi Seni Musik dan Karawitan Siswa Nama Sekolah</a>
               </h3>
               <p class="text-sm text-[#64748B] mt-2.5 leading-relaxed">
                 Melatih kepekaan estetika, kepemimpinan acara, dan kecintaan terhadap warisan budaya bangsa melalui panggung ekspresi siswa.
@@ -616,7 +616,7 @@
             </div>
           </div>
           <div class="px-6 pb-6">
-            <a href="{{ Route::has('landing.blog') ? route('landing.blog') : '#' }}" class="text-sm font-semibold text-[#2563EB] hover:text-[#0F172A] inline-flex items-center gap-1.5">
+            <a href="{{ route('landing.blog') }}" class="text-sm font-semibold text-[#2563EB] hover:text-[#0F172A] inline-flex items-center gap-1.5">
               <span>Baca Selengkapnya</span>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
             </a>
@@ -639,7 +639,7 @@
             Galeri Aktivitas &amp; Kehidupan Kampus
           </h2>
         </div>
-        <a href="#galeri" class="text-sm font-semibold text-[#2563EB] hover:text-[#0F172A] inline-flex items-center gap-1.5 shrink-0">
+        <a href="{{ route('landing.galeri') }}" class="text-sm font-semibold text-[#2563EB] hover:text-[#0F172A] inline-flex items-center gap-1.5 shrink-0">
           <span>Buka Galeri Lengkap</span>
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
         </a>
@@ -706,20 +706,20 @@
         <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           <div class="lg:col-span-8 space-y-4">
             <span class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-semibold bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30">
-              Penerimaan Peserta Didik Baru • Tahun Ajaran 2026/2027
+              Penerimaan Peserta Didik Baru
             </span>
             <h2 class="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold text-white leading-tight">
-              Siap Bergabung Menjadi Bagian dari Sivitas Akademika Nama Sekolah?
+              Siap Bergabung Menjadi Bagian dari {{ $settings->get('school_name') ?: 'Sekolah Kami' }}?
             </h2>
             <p class="text-sm sm:text-base text-slate-300 max-w-2xl leading-relaxed">
-              Pendaftaran daring Gelombang I dibuka untuk jalur Reguler, Prestasi Akademik/Non-Akademik, serta Afirmasi. Pelajari syarat dokumen dan tahapan seleksinya.
+              Temukan jadwal pendaftaran terbaru, persyaratan dokumen, rincian biaya, dan tahapan penerimaan siswa baru melalui halaman informasi PPDB.
             </p>
           </div>
           <div class="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col gap-3.5 justify-end">
-            <a href="{{ Route::has('landing.ppdb') ? route('landing.ppdb') . '#form-ppdb' : '#form-ppdb' }}" class="px-6 py-4 rounded-xl text-sm font-semibold text-white bg-[#2563EB] hover:bg-blue-500 text-center transition-colors shadow-lg">
+            <a href="{{ route('landing.ppdb.section', 'daftar') . '#daftar' }}" class="px-6 py-4 rounded-xl text-sm font-semibold text-white bg-[#2563EB] hover:bg-blue-500 text-center transition-colors shadow-lg">
               Daftar Online Sekarang
             </a>
-            <a href="{{ Route::has('landing.ppdb') ? route('landing.ppdb') . '#persyaratan' : '#persyaratan' }}" class="px-6 py-4 rounded-xl text-sm font-semibold text-white bg-white/10 hover:bg-white/15 border border-white/20 text-center transition-colors">
+            <a href="{{ route('landing.ppdb.section', 'syarat') . '#syarat' }}" class="px-6 py-4 rounded-xl text-sm font-semibold text-white bg-white/10 hover:bg-white/15 border border-white/20 text-center transition-colors">
               Lihat Persyaratan &amp; Jadwal
             </a>
           </div>

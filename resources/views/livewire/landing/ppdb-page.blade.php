@@ -24,7 +24,7 @@
             <div class="flex flex-col justify-between gap-4 md:flex-row md:items-end">
                 <div>
                     <p class="text-sm font-bold uppercase tracking-[0.18em] text-blue-600">Gelombang Pendaftaran</p>
-                    <h2 class="mt-2 font-display text-3xl font-bold text-blue-950">Jadwal PPDB dari admin</h2>
+                    <h2 class="mt-2 font-display text-3xl font-bold text-blue-950">Jadwal penerimaan siswa baru</h2>
                 </div>
                 @if($openWave)
                     <span class="w-fit rounded-full bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-600">Pendaftaran sedang dibuka</span>
@@ -51,7 +51,7 @@
                         @if($wave->deskripsi)<p class="mt-4 text-sm leading-6 text-slate-600">{{ $wave->deskripsi }}</p>@endif
                     </article>
                 @empty
-                    <div class="col-span-full rounded-3xl border border-dashed border-blue-200 bg-blue-50 p-10 text-center text-slate-500">Gelombang PPDB belum dibuat pada halaman admin.</div>
+                    <div class="col-span-full rounded-3xl border border-dashed border-blue-200 bg-blue-50 p-10 text-center text-slate-500">Jadwal pendaftaran belum diumumkan. Silakan hubungi panitia untuk informasi lebih lanjut.</div>
                 @endforelse
             </div>
         </div>
@@ -78,7 +78,7 @@
                     </div>
                 @endforeach
             </div>
-            <p class="mt-6 text-sm text-slate-500">Daftar dokumen mengikuti kolom berkas pada modul Pendaftaran Murid Baru di admin.</p>
+            <p class="mt-6 text-sm text-slate-500">Siapkan salinan dokumen yang jelas. Panitia akan mengonfirmasi kelengkapan berkas saat verifikasi.</p>
         </div>
     </section>
 
@@ -107,7 +107,7 @@
         <div class="mx-auto max-w-7xl px-6 lg:px-8">
             <p class="text-sm font-bold uppercase tracking-[0.18em] text-blue-200">Biaya Sekolah</p>
             <h2 class="mt-2 font-display text-3xl font-bold">Rincian biaya aktif</h2>
-            <p class="mt-3 max-w-2xl text-blue-200">Nominal dikelola admin per tahun ajaran, jenjang, dan jurusan SMK.</p>
+            <p class="mt-3 max-w-2xl text-blue-200">Rincian biaya sesuai tahun ajaran, jenjang pendidikan, dan jurusan yang dipilih.</p>
             <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 @forelse($fees as $fee)
                     <article class="rounded-2xl border border-white/10 bg-white/10 p-6">
@@ -131,7 +131,7 @@
             <div>
                 <p class="text-sm font-bold uppercase tracking-[0.18em] text-blue-600">Daftar Online</p>
                 <h2 class="mt-2 font-display text-3xl font-bold text-blue-950">Formulir pendaftaran awal</h2>
-                <p class="mt-5 leading-7 text-slate-600">Data yang dikirim akan langsung muncul pada modul Pendaftaran Murid Baru di admin dengan status <strong>Baru</strong>.</p>
+                <p class="mt-5 leading-7 text-slate-600">Isi data calon siswa dengan benar. Panitia akan meninjau pendaftaran dan menghubungi Anda melalui nomor yang dicantumkan.</p>
                 <div class="mt-7 rounded-2xl bg-blue-50 p-5 text-sm leading-6 text-slate-600">
                     Form ini belum meminta unggahan berkas. Panitia akan menghubungi calon siswa untuk proses verifikasi dan kelengkapan dokumen.
                 </div>

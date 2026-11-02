@@ -26,6 +26,8 @@ use App\Livewire\Admin\Website\GaleriSliderIndex;
 use App\Livewire\Admin\Website\PengaturanUmumIndex;
 use App\Livewire\Admin\Website\VisiMisiIndex;
 use App\Livewire\Admin\Website\WebsiteVisitIndex;
+use App\Livewire\Admin\Website\WebsitePopupIndex;
+use App\Http\Controllers\VisitorPopupController;
 use App\Livewire\Admin\Website\StructureOrganizationIndex;
 use App\Livewire\Auth\Login;
 use App\Livewire\Dashboard;
@@ -38,12 +40,18 @@ use App\Livewire\Landing\BlogPage;
 use App\Livewire\Landing\ContactPage;
 use App\Livewire\Landing\FacilitiesPage;
 use App\Livewire\Landing\PpdbPage;
+use App\Livewire\Landing\PublicPage;
 use App\Livewire\Landing\StaffingPage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomePage::class)->middleware('track.website')->name('home');
+Route::post('/informasi-modal/{popup}/tampil', [VisitorPopupController::class, 'store'])
+    ->middleware('throttle:30,1')->name('landing.popup.impression');
 Route::middleware('track.website')->name('landing.')->group(function () {
+    foreach (array_keys(PublicPage::PAGES) as $page) {
+        Route::get('/'.$page, PublicPage::class)->defaults('page', $page)->name($page);
+    }
     Route::get('/tentang', AboutPage::class)->name('about');
     Route::get('/akademik/{program}', AcademicPage::class)
         ->whereIn('program', ['ipa', 'ips', 'bahasa', 'kurikulum'])
@@ -145,6 +153,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     // ─── Website (Restricted) ───
     Route::prefix('website')->name('admin.website.')->group(function () {
         Route::get('/galeri-slider', GaleriSliderIndex::class)->name('galeri-slider');
+        Route::get('/modal-pengunjung', WebsitePopupIndex::class)->name('modal-pengunjung');
         Route::get('/pengaturan-umum', PengaturanUmumIndex::class)->name('pengaturan-umum');
         Route::get('/visi-misi', VisiMisiIndex::class)->name('visi-misi');
         Route::get('/struktur-organisasi', StructureOrganizationIndex::class)->name('struktur-organisasi');

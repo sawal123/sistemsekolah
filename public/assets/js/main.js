@@ -108,6 +108,7 @@
     if (!openBtn || !drawer) return;
 
     function openMobileMenu() {
+      drawer.inert = false;
       drawer.classList.remove('translate-x-full');
       drawer.classList.add('translate-x-0');
       if (backdrop) {
@@ -116,9 +117,11 @@
       }
       openBtn.setAttribute('aria-expanded', 'true');
       document.body.classList.add('overflow-hidden-lock');
+      if (closeBtn) closeBtn.focus();
     }
 
     function closeMobileMenu() {
+      drawer.inert = true;
       drawer.classList.add('translate-x-full');
       drawer.classList.remove('translate-x-0');
       if (backdrop) {
@@ -127,11 +130,26 @@
       }
       openBtn.setAttribute('aria-expanded', 'false');
       document.body.classList.remove('overflow-hidden-lock');
+      openBtn.focus();
     }
 
     openBtn.addEventListener('click', openMobileMenu);
     if (closeBtn) closeBtn.addEventListener('click', closeMobileMenu);
     if (backdrop) backdrop.addEventListener('click', closeMobileMenu);
+    document.addEventListener('keydown', function (event) {
+      if (drawer.inert) return;
+      if (event.key === 'Escape') closeMobileMenu();
+      if (event.key === 'Tab') {
+        const items = Array.from(drawer.querySelectorAll('a, button')).filter(function (item) { return item.getClientRects().length > 0; });
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
+    });
+    window.matchMedia('(min-width: 1440px)').addEventListener('change', function (event) {
+      if (event.matches && !drawer.inert) closeMobileMenu();
+    });
 
     // Close mobile menu when clicking a link inside it
     drawer.querySelectorAll('a').forEach(function (link) {
@@ -329,11 +347,12 @@
       document.body.classList.remove('overflow-hidden-lock');
     }
 
-    document.querySelectorAll('[data-lightbox-src]').forEach(function (item) {
-      item.addEventListener('click', function (e) {
-        e.preventDefault();
-        openLightbox(item);
-      });
+    // Delegate so photos loaded by Livewire pagination also open correctly.
+    document.addEventListener('click', function (e) {
+      const item = e.target.closest('[data-lightbox-src]');
+      if (!item) return;
+      e.preventDefault();
+      openLightbox(item);
     });
 
     if (closeBtn) closeBtn.addEventListener('click', closeLightbox);
@@ -755,7 +774,49 @@
   /* --------------------------------------------------------------------------
    * INITIALIZE ALL MODULES
    * -------------------------------------------------------------------------- */
+  function initVisitorPopup() {
+    const dialog = document.getElementById('visitor-popup');
+    if (!dialog || typeof dialog.showModal !== 'function') return;
+    const picture = dialog.querySelector('[data-popup-image]');
+    const csrf = document.querySelector('meta[name="csrf-token"]');
+    if (!picture || !csrf) return;
+    let attempted = false;
+
+    async function displayOnce() {
+      if (attempted || document.visibilityState !== 'visible' || !picture.complete || !picture.naturalWidth) return;
+      attempted = true;
+      try {
+        // The server grants only one display, including across tabs and page reloads.
+        const response = await fetch(dialog.dataset.impressionUrl, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf.content },
+          body: '{}',
+        });
+        if (!response.ok || !(await response.json()).show) return;
+        dialog.showModal();
+      } catch (error) {
+        // Leave the page usable if the image, connection, or session is unavailable.
+      }
+    }
+
+    dialog.querySelectorAll('[data-popup-close]').forEach(function (button) {
+      button.addEventListener('click', function () { dialog.close(); });
+    });
+    dialog.addEventListener('click', function (event) {
+      if (event.target !== dialog) return;
+      const rect = dialog.getBoundingClientRect();
+      if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
+    });
+    // Do not restore an already displayed modal from the browser's back/forward cache.
+    window.addEventListener('pagehide', function () { if (dialog.open) dialog.close(); });
+    document.addEventListener('visibilitychange', displayOnce);
+    picture.addEventListener('load', displayOnce, { once: true });
+    displayOnce();
+  }
+
   function initAll() {
+    initVisitorPopup();
     initScrollEffects();
     initDesktopDropdowns();
     initMobileNavigation();
