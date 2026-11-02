@@ -21,7 +21,7 @@
     @endif
     
     <button type="button" @click="open = !open" @click.away="open = false" draggable="false"
-        class="cursor-pointer w-full flex items-center justify-between px-4 py-2.5 glass border-2 border-transparent rounded-xl text-sm font-medium focus:border-indigo-500/50 transition-all txt-primary focus:outline-none focus:ring-4 focus:ring-indigo-500/15">
+        class="form-control-surface cursor-pointer w-full flex items-center justify-between px-4 py-2.5 glass border-2 rounded-xl text-sm font-medium focus:border-indigo-500/50 transition-all txt-primary focus:outline-none focus:ring-4 focus:ring-indigo-500/15">
         <span x-text="selectedLabel"></span>
         <svg class="w-4 h-4 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -35,7 +35,7 @@
         x-transition:leave="transition ease-in duration-75"
         x-transition:leave-start="opacity-100 scale-100"
         x-transition:leave-end="opacity-0 scale-95"
-        class="absolute z-[50] w-full mt-2 bg-white dark:bg-slate-900 rounded-2xl border border-white/10 shadow-xl overflow-hidden divide-y divide-white/5"
+        class="absolute z-[50] w-full mt-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xl overflow-hidden divide-y divide-slate-100 dark:divide-white/5"
         style="display: none;">
         
         <div class="max-h-60 overflow-y-auto custom-scrollbar">

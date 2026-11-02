@@ -54,6 +54,12 @@ class DataGuruIndex extends Component
     {
         $guru = Guru::with('user')->findOrFail($guruId);
         if ($guru->user) {
+            if (auth()->id() === $guru->user->id) {
+                $this->dispatch('notify', type: 'error', message: 'Anda tidak dapat mengubah status akun sendiri.');
+
+                return;
+            }
+
             $guru->user->update([
                 'is_active' => ! $guru->user->is_active,
             ]);
@@ -89,15 +95,14 @@ class DataGuruIndex extends Component
                 return;
             }
 
-            // 2. Cek apakah guru memiliki jadwal mengajar aktif pada semester ini
-            $hasActiveSchedule = $taAktif && Jadwal::where('guru_id', $guru->id)
-                ->where('tahun_ajaran_id', $taAktif->id)
-                ->exists();
+            // 2. Riwayat jadwal dan perwalian tidak boleh ikut hilang melalui cascade delete.
+            $hasScheduleHistory = Jadwal::where('guru_id', $guru->id)->exists();
+            $hasWaliHistory = Rombel::where('wali_kelas_id', $guru->id)->exists();
 
-            if ($hasActiveSchedule) {
+            if ($hasScheduleHistory || $hasWaliHistory) {
                 $this->dispatch('notify', 
                     type: 'error',
-                    message: 'Guru tidak dapat dihapus karena memiliki jadwal mengajar aktif pada semester ini. Silakan hapus/pindahkan jadwal mengajar terlebih dahulu.'
+                    message: 'Guru tidak dapat dihapus karena memiliki riwayat jadwal mengajar atau perwalian kelas. Gunakan opsi suspend/nonaktifkan akun agar histori akademik tetap terjaga.'
                 );
                 $this->dispatch('close-modal', 'confirm-delete-guru');
                 $this->confirmDeleteId = null;

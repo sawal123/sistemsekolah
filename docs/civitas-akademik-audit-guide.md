@@ -71,6 +71,8 @@ Dokumen ini mencatat hasil audit komprehensif, analisis akar masalah (*root caus
 - [x] **C.2**: Perketat proteksi `deleteRole()` di backend untuk melindungi `['admin', 'operator', 'guru', 'siswa', 'alumni']`.
 - [x] **C.3**: Pastikan `assignRole($userId, 'guru')` menginisialisasi profil guru jika belum ada.
 - [x] **C.4**: Rapikan deklarasi rute Civitas Akademik di `routes/web.php` menjadi satu grup terpadu tanpa duplikasi.
+- [x] **C.5**: Data Pengguna mengelola role staf/operator dan dapat mengambil akun dari Data Guru atau Data Siswa tanpa menduplikasi user. Data Guru tetap membentuk profil `Guru` dan role `guru` bersama-sama; role profil tersebut dipertahankan ketika akun diberi tugas staf.
+- [x] **C.6**: Lindungi riwayat guru: penghapusan guru yang masih memiliki riwayat jadwal atau perwalian ditolak agar foreign-key cascade tidak menghilangkan histori akademik.
 
 ### Bagian D: Verifikasi & Automated Testing
 - [x] **D.1**: Buat test suite komprehensif `tests/Feature/CivitasAkademikTest.php` untuk memverifikasi seluruh skenario di atas.
