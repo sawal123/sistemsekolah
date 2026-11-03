@@ -69,6 +69,11 @@
                         : ($existingImage ? asset('storage/'.$existingImage) : null);
                     $previewName = $gambar?->getClientOriginalName() ?? ($existingImage ? basename($existingImage) : null);
                 @endphp
+                <select wire:model="mediaAssetId" class="mt-2 block w-full rounded-xl border-2 glass txt-primary px-3 py-2.5">
+                    <option value="">Gunakan gambar saat ini / pilih dari Asset Media</option>
+                    @foreach($mediaAssets as $asset)<option value="{{ $asset->id }}">{{ $asset->original_name }}</option>@endforeach
+                </select>
+                <p class="mt-1 text-xs txt-muted">Atau unggah gambar baru untuk langsung menambahkannya ke Asset Media.</p>
                 <input id="popup-image" wire:model="gambar" type="file" accept="image/jpeg,image/png,image/webp" class="sr-only">
 
                 <div class="mt-2 rounded-2xl border border-dashed border-indigo-300 bg-indigo-50/50 p-4 transition hover:border-indigo-500 hover:bg-indigo-50">

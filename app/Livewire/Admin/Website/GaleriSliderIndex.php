@@ -3,8 +3,9 @@
 namespace App\Livewire\Admin\Website;
 
 use App\Models\Gallery;
+use App\Models\MediaAsset;
 use App\Models\Slider;
-use Illuminate\Support\Facades\Storage;
+use App\Services\MediaAssetService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -30,11 +31,13 @@ class GaleriSliderIndex extends Component
     public bool $sliderIsActive = true;
     public $sliderFoto;
     public ?string $sliderExistingFoto = null;
+    public ?int $sliderMediaId = null;
 
     public string $galleryJudul = '';
     public string $galleryDeskripsi = '';
     public $galleryFoto;
     public ?string $galleryExistingFoto = null;
+    public ?int $galleryMediaId = null;
 
     public function mount(): void
     {
@@ -51,6 +54,7 @@ class GaleriSliderIndex extends Component
         return view('livewire.admin.website.galeri-slider-index', [
             'sliders' => Slider::orderBy('urutan')->orderByDesc('created_at')->get(),
             'galleries' => Gallery::latest()->get(),
+            'mediaAssets' => MediaAsset::latest()->limit(200)->get(['id', 'original_name', 'path']),
         ]);
     }
 
@@ -70,29 +74,34 @@ class GaleriSliderIndex extends Component
         $this->sliderDeskripsi = $slider->deskripsi ?? '';
         $this->sliderIsActive = (bool) $slider->is_active;
         $this->sliderExistingFoto = $slider->foto;
+        $this->sliderMediaId = MediaAsset::where('path', $slider->foto)->value('id');
         $this->sliderFoto = null;
 
         $this->isSliderModalOpen = true;
         $this->dispatch('open-modal', 'slider-form');
     }
 
-    public function saveSlider(): void
+    public function saveSlider(MediaAssetService $media): void
     {
         $this->validate([
             'sliderJudul' => 'required|string|max:150',
             'sliderDeskripsi' => 'nullable|string|max:500',
             'sliderIsActive' => 'boolean',
-            'sliderFoto' => [$this->editSliderId ? 'nullable' : 'required', 'image', 'max:4096'],
+            'sliderFoto' => ['nullable', 'image', 'max:4096'],
+            'sliderMediaId' => ['nullable', 'exists:media_assets,id'],
         ]);
+
+        if (! $this->editSliderId && ! $this->sliderFoto && ! $this->sliderMediaId) {
+            $this->addError('sliderFoto', 'Pilih gambar dari Asset Media atau unggah gambar baru.');
+            return;
+        }
 
         $fotoPath = $this->sliderExistingFoto;
 
         if ($this->sliderFoto) {
-            $fotoPath = $this->sliderFoto->store('website/sliders', 'public');
-
-            if ($this->sliderExistingFoto) {
-                Storage::disk('public')->delete($this->sliderExistingFoto);
-            }
+            $fotoPath = $media->store($this->sliderFoto, auth()->user(), $this->sliderJudul)->path;
+        } elseif ($this->sliderMediaId) {
+            $fotoPath = MediaAsset::findOrFail($this->sliderMediaId)->path;
         }
 
         Slider::updateOrCreate(
@@ -158,28 +167,33 @@ class GaleriSliderIndex extends Component
         $this->galleryJudul = $gallery->judul;
         $this->galleryDeskripsi = $gallery->deskripsi ?? '';
         $this->galleryExistingFoto = $gallery->foto;
+        $this->galleryMediaId = MediaAsset::where('path', $gallery->foto)->value('id');
         $this->galleryFoto = null;
 
         $this->isGalleryModalOpen = true;
         $this->dispatch('open-modal', 'gallery-form');
     }
 
-    public function saveGallery(): void
+    public function saveGallery(MediaAssetService $media): void
     {
         $this->validate([
             'galleryJudul' => 'required|string|max:150',
             'galleryDeskripsi' => 'nullable|string|max:500',
-            'galleryFoto' => [$this->editGalleryId ? 'nullable' : 'required', 'image', 'max:4096'],
+            'galleryFoto' => ['nullable', 'image', 'max:4096'],
+            'galleryMediaId' => ['nullable', 'exists:media_assets,id'],
         ]);
+
+        if (! $this->editGalleryId && ! $this->galleryFoto && ! $this->galleryMediaId) {
+            $this->addError('galleryFoto', 'Pilih gambar dari Asset Media atau unggah gambar baru.');
+            return;
+        }
 
         $fotoPath = $this->galleryExistingFoto;
 
         if ($this->galleryFoto) {
-            $fotoPath = $this->galleryFoto->store('website/galleries', 'public');
-
-            if ($this->galleryExistingFoto) {
-                Storage::disk('public')->delete($this->galleryExistingFoto);
-            }
+            $fotoPath = $media->store($this->galleryFoto, auth()->user(), $this->galleryJudul)->path;
+        } elseif ($this->galleryMediaId) {
+            $fotoPath = MediaAsset::findOrFail($this->galleryMediaId)->path;
         }
 
         Gallery::updateOrCreate(
@@ -210,18 +224,12 @@ class GaleriSliderIndex extends Component
 
         if ($this->deleteType === 'slider') {
             $slider = Slider::findOrFail($this->idBeingDeleted);
-            if ($slider->foto) {
-                Storage::disk('public')->delete($slider->foto);
-            }
             $slider->delete();
             $this->normalizeSliderOrder();
         }
 
         if ($this->deleteType === 'gallery') {
             $gallery = Gallery::findOrFail($this->idBeingDeleted);
-            if ($gallery->foto) {
-                Storage::disk('public')->delete($gallery->foto);
-            }
             $gallery->delete();
         }
 
@@ -248,6 +256,7 @@ class GaleriSliderIndex extends Component
         $this->sliderIsActive = true;
         $this->sliderFoto = null;
         $this->sliderExistingFoto = null;
+        $this->sliderMediaId = null;
         $this->resetValidation();
     }
 
@@ -258,6 +267,7 @@ class GaleriSliderIndex extends Component
         $this->galleryDeskripsi = '';
         $this->galleryFoto = null;
         $this->galleryExistingFoto = null;
+        $this->galleryMediaId = null;
         $this->resetValidation();
     }
 

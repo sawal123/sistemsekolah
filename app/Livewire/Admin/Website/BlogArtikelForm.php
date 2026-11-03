@@ -3,11 +3,12 @@
 namespace App\Livewire\Admin\Website;
 
 use App\Models\Kategori;
+use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\Tag;
 use App\Services\OpenAISeoService;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
+use App\Services\MediaAssetService;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
@@ -36,6 +37,7 @@ class BlogArtikelForm extends Component
 
     public $thumbnailFile;
     public ?string $existingThumbnail = null;
+    public ?int $mediaAssetId = null;
 
     public function mount(?Post $post = null): void
     {
@@ -54,6 +56,7 @@ class BlogArtikelForm extends Component
             $this->meta_description = $post->meta_description ?? '';
             $this->meta_keywords = $post->meta_keywords ?? '';
             $this->existingThumbnail = $post->thumbnail;
+            $this->mediaAssetId = MediaAsset::where('path', $post->thumbnail)->value('id');
             $this->selectedTags = $post->tags->pluck('id')->map(fn ($id) => (string) $id)->all();
         }
     }
@@ -77,6 +80,7 @@ class BlogArtikelForm extends Component
             'meta_description' => 'nullable|string|max:180',
             'meta_keywords' => 'nullable|string|max:255',
             'thumbnailFile' => 'nullable|image|max:3072',
+            'mediaAssetId' => 'nullable|exists:media_assets,id',
         ];
     }
 
@@ -122,7 +126,7 @@ class BlogArtikelForm extends Component
         }
     }
 
-    public function save()
+    public function save(MediaAssetService $media)
     {
         $this->slug = Str::slug($this->slug ?: $this->judul);
         $validated = $this->validate();
@@ -130,11 +134,9 @@ class BlogArtikelForm extends Component
         $thumbnailPath = $this->existingThumbnail;
 
         if ($this->thumbnailFile) {
-            $thumbnailPath = $this->thumbnailFile->store('blog/thumbnails', 'public');
-
-            if ($this->existingThumbnail) {
-                Storage::disk('public')->delete($this->existingThumbnail);
-            }
+            $thumbnailPath = $media->store($this->thumbnailFile, auth()->user(), $this->judul)->path;
+        } elseif ($this->mediaAssetId) {
+            $thumbnailPath = MediaAsset::findOrFail($this->mediaAssetId)->path;
         }
 
         $post = Post::updateOrCreate(
@@ -168,6 +170,7 @@ class BlogArtikelForm extends Component
         return view('livewire.admin.website.blog-artikel-form', [
             'categories' => Kategori::orderBy('nama_kategori')->get(),
             'tags' => Tag::orderBy('nama_tag')->get(),
+            'mediaAssets' => MediaAsset::latest()->limit(200)->get(['id', 'original_name', 'path']),
         ]);
     }
 }

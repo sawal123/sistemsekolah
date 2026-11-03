@@ -2,8 +2,9 @@
 
 namespace App\Livewire\Admin\Website;
 
+use App\Models\MediaAsset;
 use App\Models\WebsitePopup;
-use Illuminate\Support\Facades\Storage;
+use App\Services\MediaAssetService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
@@ -29,6 +30,7 @@ class WebsitePopupIndex extends Component
     public int $displayIntervalHours = 24;
     public bool $isActive = true;
     public $gambar;
+    public ?int $mediaAssetId = null;
 
     public function mount(): void
     {
@@ -55,6 +57,7 @@ class WebsitePopupIndex extends Component
         $popup = WebsitePopup::findOrFail($id);
         $this->editId = $popup->id;
         $this->existingImage = $popup->gambar;
+        $this->mediaAssetId = MediaAsset::where('path', $popup->gambar)->value('id');
         $this->judul = $popup->judul;
         $this->link = $popup->link;
         $this->displayIntervalHours = $popup->display_interval_hours;
@@ -63,7 +66,7 @@ class WebsitePopupIndex extends Component
         $this->dispatch('open-modal', 'website-popup-form');
     }
 
-    public function save(): void
+    public function save(MediaAssetService $media): void
     {
         $this->authorizeAdmin();
         $popup = $this->editId ? WebsitePopup::findOrFail($this->editId) : new WebsitePopup;
@@ -72,28 +75,26 @@ class WebsitePopupIndex extends Component
             'link' => 'required|url:http,https|max:2048',
             'displayIntervalHours' => 'required|integer|min:1|max:8760',
             'isActive' => 'boolean',
-            'gambar' => [$popup->exists ? 'nullable' : 'required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'gambar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'mediaAssetId' => ['nullable', 'exists:media_assets,id'],
         ]);
 
+        if (! $popup->exists && ! $this->gambar && ! $this->mediaAssetId) {
+            $this->addError('gambar', 'Pilih gambar dari Asset Media atau unggah gambar baru.');
+            return;
+        }
+
         $oldImage = $popup->gambar;
-        $newImage = $this->gambar ? $this->gambar->store('website/popups', 'public') : $oldImage;
-        try {
-            $popup->fill([
-                'judul' => $this->judul,
-                'gambar' => $newImage,
-                'link' => $this->link,
-                'display_interval_hours' => $this->displayIntervalHours,
-                'is_active' => $this->isActive,
-            ])->save();
-        } catch (\Throwable $exception) {
-            if ($newImage && $newImage !== $oldImage) {
-                Storage::disk('public')->delete($newImage);
-            }
-            throw $exception;
-        }
-        if ($oldImage && $newImage !== $oldImage) {
-            Storage::disk('public')->delete($oldImage);
-        }
+        $newImage = $this->gambar
+            ? $media->store($this->gambar, auth()->user(), $this->judul)->path
+            : ($this->mediaAssetId ? MediaAsset::findOrFail($this->mediaAssetId)->path : $oldImage);
+        $popup->fill([
+            'judul' => $this->judul,
+            'gambar' => $newImage,
+            'link' => $this->link,
+            'display_interval_hours' => $this->displayIntervalHours,
+            'is_active' => $this->isActive,
+        ])->save();
 
         $this->closeModal();
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Modal pengunjung berhasil disimpan.']);
@@ -110,9 +111,7 @@ class WebsitePopupIndex extends Component
     {
         $this->authorizeAdmin();
         $popup = WebsitePopup::findOrFail($id);
-        $image = $popup->gambar;
         $popup->delete();
-        Storage::disk('public')->delete($image);
         $this->resetPage();
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Modal pengunjung berhasil dihapus.']);
     }
@@ -126,7 +125,7 @@ class WebsitePopupIndex extends Component
 
     private function resetForm(): void
     {
-        $this->reset(['editId', 'existingImage', 'judul', 'link', 'displayIntervalHours', 'isActive', 'gambar']);
+        $this->reset(['editId', 'existingImage', 'judul', 'link', 'displayIntervalHours', 'isActive', 'gambar', 'mediaAssetId']);
         $this->resetValidation();
     }
 
@@ -136,6 +135,7 @@ class WebsitePopupIndex extends Component
 
         return view('livewire.admin.website.website-popup-index', [
             'popups' => WebsitePopup::withCount('impressions')->latest('id')->paginate(10),
+            'mediaAssets' => MediaAsset::latest()->limit(200)->get(['id', 'original_name', 'path']),
         ]);
     }
 }

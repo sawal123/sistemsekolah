@@ -157,7 +157,17 @@
             </div>
 
             <div>
-                <x-ui.label value="Upload Gambar Slider" class="mb-2 txt-secondary" />
+                <x-ui.label for="slider-media" value="1. Pilih dari Asset Media (opsional)" class="mb-2 txt-secondary" />
+                <select wire:model="sliderMediaId" id="slider-media" class="block w-full rounded-xl border-2 glass txt-primary px-3 py-2.5">
+                    <option value="">Gunakan gambar saat ini / pilih asset</option>
+                    @foreach($mediaAssets as $asset)<option value="{{ $asset->id }}">{{ $asset->original_name }}</option>@endforeach
+                </select>
+                <p class="mt-1 text-xs txt-muted">Gunakan gambar yang sudah tersimpan, atau pilih Upload baru di bawah.</p>
+                @error('sliderMediaId') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+            </div>
+
+            <div>
+                <x-ui.label value="2. Upload gambar baru (opsional)" class="mb-2 txt-secondary" />
                 <input wire:model="sliderFoto" type="file" accept="image/*" class="block w-full text-sm txt-muted" />
                 <p class="txt-muted text-xs mt-1">Rekomendasi rasio 16:9, maksimal 4 MB.</p>
                 @error('sliderFoto') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
@@ -202,7 +212,17 @@
             </div>
 
             <div>
-                <x-ui.label value="Upload Foto" class="mb-2 txt-secondary" />
+                <x-ui.label for="gallery-media" value="1. Pilih dari Asset Media (opsional)" class="mb-2 txt-secondary" />
+                <select wire:model="galleryMediaId" id="gallery-media" class="block w-full rounded-xl border-2 glass txt-primary px-3 py-2.5">
+                    <option value="">Gunakan gambar saat ini / pilih asset</option>
+                    @foreach($mediaAssets as $asset)<option value="{{ $asset->id }}">{{ $asset->original_name }}</option>@endforeach
+                </select>
+                <p class="mt-1 text-xs txt-muted">Gunakan gambar yang sudah tersimpan, atau pilih Upload baru di bawah.</p>
+                @error('galleryMediaId') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+            </div>
+
+            <div>
+                <x-ui.label value="2. Upload gambar baru (opsional)" class="mb-2 txt-secondary" />
                 <input wire:model="galleryFoto" type="file" accept="image/*" class="block w-full text-sm txt-muted" />
                 <p class="txt-muted text-xs mt-1">JPG, PNG, atau WebP maksimal 4 MB.</p>
                 @error('galleryFoto') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror

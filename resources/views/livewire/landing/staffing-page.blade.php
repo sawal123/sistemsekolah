@@ -52,7 +52,7 @@
                         <article class="overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
                             <div class="aspect-square overflow-hidden bg-gradient-to-br from-blue-100 to-blue-50">
                                 @if($teacher->foto)
-                                    <img src="{{ asset('storage/' . $teacher->foto) }}" alt="{{ $teacher->user?->name }}" class="h-full w-full object-cover">
+                                    <img src="{{ \App\Support\PublicImage::url($teacher->foto) }}" alt="{{ $teacher->user?->name }}" class="h-full w-full object-cover">
                                 @else
                                     <div class="flex h-full items-center justify-center">
                                         <span class="flex h-24 w-24 items-center justify-center rounded-full bg-blue-600 font-display text-3xl font-bold text-white">
@@ -116,7 +116,7 @@
                 @if($settings->get('organization_structure_image'))
                     <div class="mt-10 overflow-auto rounded-3xl border border-blue-100 bg-white p-3 shadow-lg sm:p-6">
                         <img
-                            src="{{ asset('storage/' . $settings->get('organization_structure_image')) }}"
+                            src="{{ \App\Support\PublicImage::url($settings->get('organization_structure_image')) }}"
                             alt="Struktur organisasi {{ $settings->get('school_name') ?: 'sekolah' }}"
                             class="mx-auto h-auto max-h-[1000px] max-w-full rounded-2xl object-contain"
                         >

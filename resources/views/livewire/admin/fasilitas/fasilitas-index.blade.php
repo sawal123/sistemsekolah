@@ -217,6 +217,11 @@
                 {{-- Upload Foto --}}
                 <div class="mb-8">
                     <x-ui.label value="Foto Fasilitas" class="mb-2 txt-secondary" />
+                    <select wire:model="mediaAssetId" class="mb-3 block w-full rounded-xl border-2 glass txt-primary px-3 py-2.5">
+                        <option value="">Gunakan foto saat ini / pilih dari Asset Media</option>
+                        @foreach($mediaAssets as $asset)<option value="{{ $asset->id }}">{{ $asset->original_name }}</option>@endforeach
+                    </select>
+                    <p class="mb-3 text-xs txt-muted">Atau unggah gambar baru. Upload baru akan otomatis masuk ke Asset Media.</p>
                     <div class="flex flex-col md:flex-row gap-6 items-center">
                         {{-- Foto Preview --}}
                         <div class="w-28 h-28 rounded-2xl overflow-hidden glass border border-indigo-500/10 flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5">
@@ -275,7 +280,7 @@
     <x-ui.confirm-modal 
         name="confirm-delete-modal" 
         title="Hapus Fasilitas Sekolah"
-        message="Apakah Anda yakin ingin menghapus data fasilitas ini? Tindakan ini tidak dapat dibatalkan dan foto terkait akan dihapus secara permanen."
+        message="Apakah Anda yakin ingin menghapus data fasilitas ini? Asset medianya tetap tersimpan agar dapat digunakan kembali."
         onConfirm="delete"
     />
 </div>

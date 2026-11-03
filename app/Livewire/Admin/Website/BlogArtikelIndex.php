@@ -6,7 +6,6 @@ use App\Models\Kategori;
 use App\Models\Post;
 use App\Models\PostComment;
 use App\Models\Tag;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
@@ -255,10 +254,6 @@ class BlogArtikelIndex extends Component
     private function deletePost(int $id): void
     {
         $post = Post::findOrFail($id);
-
-        if ($post->thumbnail) {
-            Storage::disk('public')->delete($post->thumbnail);
-        }
 
         $post->delete();
     }

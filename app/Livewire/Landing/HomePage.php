@@ -3,6 +3,7 @@
 namespace App\Livewire\Landing;
 
 use App\Models\Fasilitas;
+use App\Models\Gallery;
 use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\KegiatanAlumni;
@@ -10,6 +11,7 @@ use App\Models\Post;
 use App\Models\Setting;
 use App\Models\Siswa;
 use App\Models\Slider;
+use App\Support\PublicImage;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -28,16 +30,17 @@ class HomePage extends Component
             'settings' => $settings,
             'heroSlides' => $this->heroSlides($sliders, $settings),
             'facilities' => Fasilitas::latest()->take(6)->get(),
+            'galleries' => Gallery::latest()->take(6)->get(),
             'posts' => Post::with(['kategori', 'user'])
                 ->where('status', 'Published')
                 ->latest()
                 ->take(3)
                 ->get(),
             'stats' => [
-                'students' => $this->formatNumber(Siswa::where('status', 'Aktif')->count(), '1.250+'),
-                'teachers' => $this->formatNumber(Guru::count(), '85'),
-                'programs' => $this->formatNumber(Kelas::count(), '3'),
-                'alumni' => $this->formatNumber((int) ($settings->get('alumni_count') ?: KegiatanAlumni::count()), '7.800+'),
+                'students' => $this->formatNumber(Siswa::where('status', 'Aktif')->count()),
+                'teachers' => $this->formatNumber(Guru::count()),
+                'programs' => $this->formatNumber(Kelas::count()),
+                'alumni' => $this->formatNumber((int) ($settings->get('alumni_count') ?: KegiatanAlumni::count())),
             ],
         ]);
     }
@@ -49,7 +52,7 @@ class HomePage extends Component
                 'badge' => 'Informasi Sekolah',
                 'title' => $slider->judul,
                 'description' => $slider->deskripsi ?: ($settings->get('site_tagline') ?: 'Informasi terbaru dari sekolah kami.'),
-                'image' => $slider->foto ? asset('storage/' . $slider->foto) : null,
+                'image' => PublicImage::url($slider->foto),
                 'primary_label' => 'Pendaftaran Siswa Baru',
                 'primary_url' => route('landing.ppdb.section', 'daftar') . '#daftar',
                 'secondary_label' => 'Profil Sekolah',
@@ -93,12 +96,8 @@ class HomePage extends Component
         ];
     }
 
-    private function formatNumber(int $value, string $fallback): string
+    private function formatNumber(int $value): string
     {
-        if ($value <= 0) {
-            return $fallback;
-        }
-
         return $value >= 1000 ? number_format($value, 0, ',', '.') . '+' : (string) $value;
     }
 }

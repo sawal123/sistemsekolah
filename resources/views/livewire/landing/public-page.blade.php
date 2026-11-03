@@ -8,7 +8,7 @@
                     @forelse($posts as $post)
                         <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                             @if($post->thumbnail)
-                                <img src="{{ asset('storage/'.$post->thumbnail) }}" alt="{{ $post->judul }}" class="aspect-video w-full object-cover" loading="lazy">
+                                <img src="{{ \App\Support\PublicImage::url($post->thumbnail) }}" alt="{{ $post->judul }}" class="aspect-video w-full object-cover" loading="lazy">
                             @endif
                             <div class="p-6">
                                 <p class="text-xs font-semibold text-blue-600">{{ $post->kategori?->nama_kategori }} · {{ $post->created_at->translatedFormat('d M Y') }}</p>
@@ -41,8 +41,8 @@
                     @forelse($photos as $photo)
                         <figure class="overflow-hidden rounded-2xl border border-slate-200">
                             @if($photo->foto)
-                                <button type="button" data-lightbox-src="{{ asset('storage/'.$photo->foto) }}" data-lightbox-title="{{ $photo->judul }}" data-lightbox-category="Galeri Kegiatan" data-lightbox-desc="{{ $photo->deskripsi }}" class="block w-full" aria-label="Perbesar foto {{ $photo->judul }}">
-                                    <img src="{{ asset('storage/'.$photo->foto) }}" alt="{{ $photo->judul }}" class="aspect-[4/3] w-full object-cover" loading="lazy">
+                                <button type="button" data-lightbox-src="{{ \App\Support\PublicImage::url($photo->foto) }}" data-lightbox-title="{{ $photo->judul }}" data-lightbox-category="Galeri Kegiatan" data-lightbox-desc="{{ $photo->deskripsi }}" class="block w-full" aria-label="Perbesar foto {{ $photo->judul }}">
+                                    <img src="{{ \App\Support\PublicImage::url($photo->foto) }}" alt="{{ $photo->judul }}" class="aspect-[4/3] w-full object-cover" loading="lazy">
                                 </button>
                             @else
                                 <div class="flex aspect-[4/3] items-center justify-center bg-blue-50 text-slate-500">Foto belum tersedia</div>
