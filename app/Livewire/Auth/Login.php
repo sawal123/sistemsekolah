@@ -37,12 +37,12 @@ class Login extends Component
 
         session()->regenerate();
 
-        match ($user->role) {
-            'admin' => $this->redirect(route('dashboard'), navigate: true),
-            'guru'  => $this->redirect(route('dashboard'), navigate: true),
-            'siswa' => $this->redirect(route('dashboard'), navigate: true),
-            default => $this->redirect(route('dashboard'), navigate: true),
-        };
+        if ($user->hasRole('siswa') && ! $user->hasAnyRole(['admin', 'guru'])) {
+            $this->redirect(route('siswa.dashboard'), navigate: true);
+            return;
+        }
+
+        $this->redirect(route('dashboard'), navigate: true);
     }
 
     public function render()

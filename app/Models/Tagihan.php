@@ -34,6 +34,11 @@ class Tagihan extends Model
         return $this->hasMany(Pembayaran::class);
     }
 
+    public function paymentSubmissions()
+    {
+        return $this->hasMany(PaymentSubmission::class);
+    }
+
     // ── Accessors ─────────────────────────────────────────────
 
     public function getTotalTerbayarAttribute(): float

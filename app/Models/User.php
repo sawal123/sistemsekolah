@@ -54,4 +54,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(AiChatConversation::class);
     }
+
+    public function submittedPaymentSubmissions()
+    {
+        return $this->hasMany(PaymentSubmission::class, 'submitted_by');
+    }
 }

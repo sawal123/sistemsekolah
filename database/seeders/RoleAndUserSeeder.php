@@ -42,6 +42,7 @@ class RoleAndUserSeeder extends Seeder
             'name' => 'Andi Pratama',
             'email' => 'siswa@sekolah.com',
             'password' => Hash::make('password'),
+            'is_active' => true,
         ]);
         $siswa->syncRoles([$roleSiswa]);
     }

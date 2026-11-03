@@ -19,6 +19,8 @@ use App\Http\Controllers\KeuanganPdfController;
 use App\Livewire\Admin\Keuangan\LaporanKeuanganIndex;
 use App\Livewire\Admin\Keuangan\MasterSppIndex;
 use App\Livewire\Admin\Keuangan\TransaksiPembayaranIndex;
+use App\Livewire\Admin\Keuangan\PaymentSubmissionReviewIndex;
+use App\Http\Controllers\PaymentSubmissionProofController;
 use App\Livewire\Admin\Ppdb\PendaftaranMuridBaruIndex;
 use App\Livewire\Admin\Website\BlogArtikelForm;
 use App\Livewire\Admin\Website\BlogArtikelIndex;
@@ -44,6 +46,10 @@ use App\Livewire\Landing\FacilitiesPage;
 use App\Livewire\Landing\PpdbPage;
 use App\Livewire\Landing\PublicPage;
 use App\Livewire\Landing\StaffingPage;
+use App\Livewire\Student\StudentAcademicIndex;
+use App\Livewire\Student\StudentDashboard;
+use App\Livewire\Student\StudentPaymentIndex;
+use App\Livewire\Student\StudentProfile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -113,6 +119,15 @@ Route::middleware(['auth', 'role:admin|guru'])->group(function () {
     Route::get('/website/blog-artikel/{post}/edit', BlogArtikelForm::class)->name('admin.website.blog-artikel.edit');
 });
 
+Route::middleware(['auth', 'role:siswa', 'student.profile'])->prefix('siswa')->name('siswa.')->group(function () {
+    Route::get('/dashboard', StudentDashboard::class)->name('dashboard');
+    Route::get('/pembayaran', StudentPaymentIndex::class)->name('payments');
+    Route::get('/akademik', StudentAcademicIndex::class)->name('academic');
+    Route::get('/profil', StudentProfile::class)->name('profile');
+    Route::get('/pengajuan-pembayaran/{submission}/bukti', [PaymentSubmissionProofController::class, 'show'])
+        ->name('payment-submissions.proof');
+});
+
 // ─── Admin Exclusive Routes ────────────────────────────────────
 Route::middleware(['auth', 'role:admin'])->group(function () {
     // ─── Fasilitas Sekolah ───
@@ -145,8 +160,12 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
         Route::get('/master-spp', MasterSppIndex::class)->name('master-spp');
         Route::get('/transaksi-pembayaran', TransaksiPembayaranIndex::class)->name('transaksi-pembayaran');
         Route::get('/laporan-keuangan', LaporanKeuanganIndex::class)->name('laporan-keuangan');
+        Route::get('/verifikasi-pembayaran', PaymentSubmissionReviewIndex::class)->name('verifikasi-pembayaran');
         Route::get('/kuitansi/cetak', [KeuanganPdfController::class, 'cetakKuitansi'])->name('kuitansi.cetak');
     });
+
+    Route::get('/keuangan/pengajuan-pembayaran/{submission}/bukti', [PaymentSubmissionProofController::class, 'show'])
+        ->name('admin.payment-submissions.proof');
 
     // ─── Kelulusan & Alumni ───
     Route::prefix('alumni')->name('admin.alumni.')->group(function () {

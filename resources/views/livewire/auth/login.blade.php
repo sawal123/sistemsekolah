@@ -88,6 +88,9 @@
               } else if (type === 'guru') {
                   $wire.set('email', 'guru@sekolah.com');
                   $wire.set('password', 'password');
+              } else if (type === 'siswa') {
+                  $wire.set('email', 'siswa@sekolah.com');
+                  $wire.set('password', 'password');
               }
           }
       }">
@@ -102,6 +105,10 @@
               <span class="text-slate-300">|</span>
               <button type="button" @click="fillDemo('guru')" class="font-semibold text-[#2563EB] hover:underline">
                 Guru
+              </button>
+              <span class="text-slate-300">|</span>
+              <button type="button" @click="fillDemo('siswa')" class="font-semibold text-[#2563EB] hover:underline">
+                Siswa
               </button>
             </div>
           </div>
