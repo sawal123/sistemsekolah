@@ -16,7 +16,7 @@
 
     <article class="mx-auto max-w-4xl px-6 py-16 lg:px-8">
         @if($post->thumbnail)
-            <img src="{{ asset('storage/' . $post->thumbnail) }}" alt="{{ $post->judul }}" class="mb-10 aspect-[16/9] w-full rounded-3xl object-cover shadow-lg">
+            <img src="{{ \App\Support\PublicImage::url($post->thumbnail) }}" alt="{{ $post->judul }}" class="mb-10 aspect-[16/9] w-full rounded-3xl object-cover shadow-lg">
         @endif
         <div class="prose prose-lg max-w-none prose-headings:font-display prose-headings:text-blue-950 prose-a:text-blue-600">
             {!! $post->konten !!}

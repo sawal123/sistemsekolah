@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('model:prune')->daily();
 Schedule::command('website-popups:purge-impressions')->hourly()->withoutOverlapping();
+Schedule::command('ai-chat:prune')->daily()->withoutOverlapping();

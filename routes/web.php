@@ -23,6 +23,7 @@ use App\Livewire\Admin\Ppdb\PendaftaranMuridBaruIndex;
 use App\Livewire\Admin\Website\BlogArtikelForm;
 use App\Livewire\Admin\Website\BlogArtikelIndex;
 use App\Livewire\Admin\Website\GaleriSliderIndex;
+use App\Livewire\Admin\Website\MediaAssetIndex;
 use App\Livewire\Admin\Website\PengaturanUmumIndex;
 use App\Livewire\Admin\Website\VisiMisiIndex;
 use App\Livewire\Admin\Website\WebsiteVisitIndex;
@@ -30,6 +31,7 @@ use App\Livewire\Admin\Website\WebsitePopupIndex;
 use App\Http\Controllers\VisitorPopupController;
 use App\Livewire\Admin\Website\StructureOrganizationIndex;
 use App\Livewire\Auth\Login;
+use App\Livewire\Assistant\HelpChat;
 use App\Livewire\Dashboard;
 use App\Livewire\Admin\Fasilitas\FasilitasIndex;
 use App\Livewire\Landing\HomePage;
@@ -88,6 +90,7 @@ Route::get('/unauthorized', function () {
 // ─── Admin & Guru Shared Routes (protected) ───────────────
 Route::middleware(['auth', 'role:admin|guru'])->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard');
+    Route::get('/bantuan-ai', HelpChat::class)->name('assistant.help');
 
     // ─── Profil & Pengaturan Akun ───
     Route::get('/profil', App\Livewire\Admin\Profile\ProfileIndex::class)->name('admin.profile');
@@ -152,6 +155,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
     // ─── Website (Restricted) ───
     Route::prefix('website')->name('admin.website.')->group(function () {
+        Route::get('/asset-media', MediaAssetIndex::class)->name('asset-media');
         Route::get('/galeri-slider', GaleriSliderIndex::class)->name('galeri-slider');
         Route::get('/modal-pengunjung', WebsitePopupIndex::class)->name('modal-pengunjung');
         Route::get('/pengaturan-umum', PengaturanUmumIndex::class)->name('pengaturan-umum');

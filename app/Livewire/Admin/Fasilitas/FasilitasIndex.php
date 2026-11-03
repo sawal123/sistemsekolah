@@ -3,7 +3,8 @@
 namespace App\Livewire\Admin\Fasilitas;
 
 use App\Models\Fasilitas;
-use Illuminate\Support\Facades\Storage;
+use App\Models\MediaAsset;
+use App\Services\MediaAssetService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -37,6 +38,7 @@ class FasilitasIndex extends Component
     public string $lokasi = '';
     public $foto;
     public ?string $existingFoto = null;
+    public ?int $mediaAssetId = null;
 
     // Reset pagination when filter changes
     public function updatingSearch(): void
@@ -104,6 +106,7 @@ class FasilitasIndex extends Component
                 'Rusak Ringan' => 'Rusak Ringan',
                 'Rusak Berat' => 'Rusak Berat',
             ],
+            'mediaAssets' => MediaAsset::latest()->limit(200)->get(['id', 'original_name', 'path']),
             'filterKondisiOptions' => [
                 '' => 'Semua Kondisi',
                 'Baik' => 'Baik',
@@ -139,6 +142,7 @@ class FasilitasIndex extends Component
         $this->lokasi = '';
         $this->foto = null;
         $this->existingFoto = null;
+        $this->mediaAssetId = null;
         $this->resetValidation();
     }
 
@@ -155,12 +159,13 @@ class FasilitasIndex extends Component
         $this->kondisi = $item->kondisi;
         $this->lokasi = $item->lokasi ?? '';
         $this->existingFoto = $item->foto;
+        $this->mediaAssetId = MediaAsset::where('path', $item->foto)->value('id');
         
         $this->isModalOpen = true;
         $this->dispatch('open-modal', 'fasilitas-form');
     }
 
-    public function save(): void
+    public function save(MediaAssetService $media): void
     {
         $this->validate([
             'nama_fasilitas' => 'required|string|max:100',
@@ -170,16 +175,15 @@ class FasilitasIndex extends Component
             'kondisi' => 'required|in:Baik,Rusak Ringan,Rusak Berat',
             'lokasi' => 'nullable|string|max:100',
             'foto' => 'nullable|image|max:4096',
+            'mediaAssetId' => 'nullable|exists:media_assets,id',
         ]);
 
         $fotoPath = $this->existingFoto;
 
         if ($this->foto) {
-            $fotoPath = $this->foto->store('fasilitas', 'public');
-
-            if ($this->existingFoto) {
-                Storage::disk('public')->delete($this->existingFoto);
-            }
+            $fotoPath = $media->store($this->foto, auth()->user(), $this->nama_fasilitas)->path;
+        } elseif ($this->mediaAssetId) {
+            $fotoPath = MediaAsset::findOrFail($this->mediaAssetId)->path;
         }
 
         Fasilitas::updateOrCreate(
@@ -213,10 +217,6 @@ class FasilitasIndex extends Component
         if ($this->idBeingDeleted) {
             $item = Fasilitas::findOrFail($this->idBeingDeleted);
             
-            if ($item->foto) {
-                Storage::disk('public')->delete($item->foto);
-            }
-
             $item->delete();
             $this->closeModal();
             $this->dispatch('notify', [

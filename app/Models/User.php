@@ -49,4 +49,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Post::class);
     }
+
+    public function aiChatConversations()
+    {
+        return $this->hasMany(AiChatConversation::class);
+    }
 }

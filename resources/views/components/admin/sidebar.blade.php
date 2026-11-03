@@ -42,6 +42,13 @@
                 </svg></span>
             Dashboard
         </a>
+        <a href="{{ route('assistant.help') }}" wire:navigate
+            class="nav-item {{ request()->routeIs('assistant.help') ? 'active' : '' }}">
+            <span class="nav-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.8 9.8 0 01-4.255-.96L3 20l1.12-3.36A7.56 7.56 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8Z" />
+                </svg></span>
+            Bantuan AI
+        </a>
         @endhasrole
 
         @hasrole('admin')
@@ -290,6 +297,8 @@
             </button>
             <div class="submenu" :class="{ 'open': open }">
                 @hasrole('admin')
+                <a href="{{ route('admin.website.asset-media') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.asset-media*') ? 'active' : '' }}"><span
+                        style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Asset Media</a>
                 <a href="{{ route('admin.website.galeri-slider') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.galeri-slider*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Galeri
                     & Slider</a>

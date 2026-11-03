@@ -29,7 +29,7 @@
                 @forelse($facilities as $facility)
                     <article class="overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
                         @if($facility->foto)
-                            <img src="{{ asset('storage/' . $facility->foto) }}" alt="{{ $facility->nama_fasilitas }}" class="aspect-[16/10] w-full object-cover">
+                            <img src="{{ \App\Support\PublicImage::url($facility->foto) }}" alt="{{ $facility->nama_fasilitas }}" class="aspect-[16/10] w-full object-cover">
                         @else
                             <div class="flex aspect-[16/10] items-center justify-center bg-gradient-to-br from-blue-700 to-blue-300 text-white">
                                 <svg class="h-14 w-14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M3 21h18M9 7h1m-1 4h1m4-4h1m-1 4h1m-6 4h6"/></svg>

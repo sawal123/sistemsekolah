@@ -22,7 +22,7 @@
                     <article class="group overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
                         <a href="{{ route('landing.blog.show', $post->slug) }}">
                             @if($post->thumbnail)
-                                <img src="{{ asset('storage/' . $post->thumbnail) }}" alt="{{ $post->judul }}" class="aspect-[16/10] w-full object-cover transition duration-500 group-hover:scale-105">
+                                <img src="{{ \App\Support\PublicImage::url($post->thumbnail) }}" alt="{{ $post->judul }}" class="aspect-[16/10] w-full object-cover transition duration-500 group-hover:scale-105">
                             @else
                                 <div class="aspect-[16/10] bg-gradient-to-br from-blue-700 to-blue-300"></div>
                             @endif

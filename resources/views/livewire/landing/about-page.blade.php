@@ -10,7 +10,7 @@
             <div class="relative">
                 <div class="aspect-[4/5] overflow-hidden rounded-3xl bg-gradient-to-br from-blue-700 to-blue-300 shadow-xl">
                     @if($settings->get('principal_image'))
-                        <img src="{{ asset('storage/' . $settings->get('principal_image')) }}" alt="{{ $settings->get('principal_name') }}" class="h-full w-full object-cover">
+                        <img src="{{ \App\Support\PublicImage::url($settings->get('principal_image')) }}" alt="{{ $settings->get('principal_name') }}" class="h-full w-full object-cover">
                     @endif
                 </div>
                 <div class="absolute -bottom-5 left-5 right-5 rounded-2xl bg-white p-5 shadow-xl">
@@ -79,7 +79,7 @@
                     @foreach($galleries as $gallery)
                         <figure class="group overflow-hidden rounded-3xl bg-slate-100">
                             @if($gallery->foto)
-                                <img src="{{ asset('storage/' . $gallery->foto) }}" alt="{{ $gallery->judul }}" class="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-105">
+                                <img src="{{ \App\Support\PublicImage::url($gallery->foto) }}" alt="{{ $gallery->judul }}" class="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-105">
                             @endif
                             <figcaption class="p-5">
                                 <p class="font-display font-bold text-blue-950">{{ $gallery->judul }}</p>

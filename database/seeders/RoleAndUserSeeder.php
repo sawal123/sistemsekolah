@@ -15,33 +15,34 @@ class RoleAndUserSeeder extends Seeder
     public function run(): void
     {
         // 1. Buat Role Dasar (Tanpa harus mikir permission detail dulu)
-        $roleAdmin = Role::create(['name' => 'admin']);
-        $roleGuru = Role::create(['name' => 'guru']);
-        $roleSiswa = Role::create(['name' => 'siswa']);
+        $roleAdmin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $roleGuru = Role::firstOrCreate(['name' => 'guru', 'guard_name' => 'web']);
+        $roleSiswa = Role::firstOrCreate(['name' => 'siswa', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'alumni', 'guard_name' => 'web']);
 
         // 2. Buat Akun Dummy Super Admin
-        $admin = User::create([
+        $admin = User::updateOrCreate(['email' => 'admin@sekolah.com'], [
             'name' => 'Super Administrator',
             'email' => 'admin@sekolah.com',
             'password' => Hash::make('password'), // Password default: password
             'staff_position' => 'Kepala Tata Usaha',
         ]);
-        $admin->assignRole($roleAdmin); // Jadikan dia Admin
+        $admin->syncRoles([$roleAdmin]);
 
         // 3. Buat Akun Dummy Guru
-        $guru = User::create([
+        $guru = User::updateOrCreate(['email' => 'guru@sekolah.com'], [
             'name' => 'Budi Santoso, S.Pd',
             'email' => 'guru@sekolah.com',
             'password' => Hash::make('password'),
         ]);
-        $guru->assignRole($roleGuru); // Jadikan dia Guru
+        $guru->syncRoles([$roleGuru]);
 
         // 4. Buat Akun Dummy Siswa
-        $siswa = User::create([
+        $siswa = User::updateOrCreate(['email' => 'siswa@sekolah.com'], [
             'name' => 'Andi Pratama',
             'email' => 'siswa@sekolah.com',
             'password' => Hash::make('password'),
         ]);
-        $siswa->assignRole($roleSiswa); // Jadikan dia Siswa
+        $siswa->syncRoles([$roleSiswa]);
     }
 }

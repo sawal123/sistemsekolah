@@ -3,7 +3,7 @@
     $schoolName = $settings->get('school_name') ?: 'Nama Sekolah';
     $tagline = $settings->get('site_tagline') ?: 'Institusi Pendidikan Menengah Modern';
     $logo = $settings->get('app_logo') ?: $settings->get('logo');
-    $logoUrl = $logo ? asset('storage/'.$logo) : asset('assets/images/logo-sekolah.svg');
+    $logoUrl = \App\Support\PublicImage::url($logo) ?: asset('assets/images/logo-sekolah.svg');
     $portalUrl = auth()->check() ? route('dashboard') : route('login');
     $portalLabel = auth()->check() ? 'Buka Portal' : 'Login Portal';
     $groups = [
