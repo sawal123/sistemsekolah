@@ -518,17 +518,66 @@ class TransaksiPembayaranIndex extends Component
     {
         // Riwayat pembayaran siswa terpilih (10 terakhir)
         $riwayat = collect();
+        $quickStudents = collect();
+        $recentPayments = collect();
+        $todaySummary = ['total' => 0, 'count' => 0, 'tunggakan_count' => 0];
+
         if ($this->selectedSiswaId) {
             $riwayat = Pembayaran::with('tagihan')
                 ->whereHas('tagihan', fn($q) => $q->where('siswa_id', $this->selectedSiswaId))
                 ->latest('tanggal_bayar')
                 ->limit(10)
                 ->get();
+        } else {
+            // Tampilan Beranda Kasir jika belum ada siswa yang dipilih
+            $quickStudents = Siswa::forCurrentUser()
+                ->with(['user:id,name', 'kelas:id,nama_kelas', 'unit:id,kode,nama', 'jurusan:id,kode'])
+                ->where('status', 'Aktif')
+                ->latest('id')
+                ->limit(8)
+                ->get();
+
+            $recentPayments = Pembayaran::query()
+                ->with([
+                    'tagihan.siswa.user:id,name',
+                    'tagihan.siswa.kelas:id,nama_kelas',
+                    'tagihan.siswa.unit:id,kode,nama',
+                    'petugas:id,name',
+                ])
+                ->whereHas('tagihan.siswa', fn($q) => $q->forCurrentUser())
+                ->latest('tanggal_bayar')
+                ->latest('id')
+                ->limit(6)
+                ->get();
+
+            $todayTotal = (int) Pembayaran::query()
+                ->whereHas('tagihan.siswa', fn($q) => $q->forCurrentUser())
+                ->whereDate('tanggal_bayar', now()->toDateString())
+                ->sum('nominal');
+
+            $todayCount = (int) Pembayaran::query()
+                ->whereHas('tagihan.siswa', fn($q) => $q->forCurrentUser())
+                ->whereDate('tanggal_bayar', now()->toDateString())
+                ->count();
+
+            $tunggakanCount = (int) Siswa::forCurrentUser()
+                ->where('status', 'Aktif')
+                ->whereHas('tagihans', fn($q) => $q->where('status', '!=', 'Lunas'))
+                ->count();
+
+            $todaySummary = [
+                'total' => $todayTotal,
+                'count' => $todayCount,
+                'tunggakan_count' => $tunggakanCount,
+            ];
         }
 
         return view('livewire.admin.keuangan.transaksi-pembayaran-index', [
             'totalBayar' => $this->getTotalBayar(),
             'riwayat' => $riwayat,
+            'quickStudents' => $quickStudents,
+            'recentPayments' => $recentPayments,
+            'todaySummary' => $todaySummary,
         ]);
     }
 }

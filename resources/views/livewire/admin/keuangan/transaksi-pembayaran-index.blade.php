@@ -445,16 +445,165 @@
             </div>
         </x-ui.card>
     @else
-        <x-ui.card>
-            <div class="flex flex-col items-center justify-center py-16 opacity-40">
-                <svg class="w-16 h-16 txt-muted mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
-                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                <p class="text-sm font-bold txt-primary">Cari Siswa Terlebih Dahulu</p>
-                <p class="text-xs txt-muted mt-1">Gunakan kolom pencarian di atas untuk menemukan siswa.</p>
+        {{-- ── BERANDA KASIR (Tampil saat belum ada siswa yang dipilih) ── --}}
+        <div class="space-y-6">
+            {{-- 1. Kartu Statistik Ringkas Kasir Hari Ini --}}
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="p-5 rounded-2xl bg-white/5 border border-indigo-500/10 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500/15 flex items-center justify-center flex-shrink-0 text-emerald-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold txt-muted uppercase tracking-wider">Penerimaan Hari Ini</p>
+                        <p class="text-xl font-black text-emerald-400 mt-1">
+                            Rp {{ number_format($todaySummary['total'], 0, ',', '.') }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-white/5 border border-indigo-500/10 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-500/15 flex items-center justify-center flex-shrink-0 text-indigo-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold txt-muted uppercase tracking-wider">Transaksi Hari Ini</p>
+                        <p class="text-xl font-black txt-primary mt-1">
+                            {{ $todaySummary['count'] }} <span class="text-xs font-normal txt-muted">kuitansi</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-white/5 border border-indigo-500/10 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-amber-500/15 flex items-center justify-center flex-shrink-0 text-amber-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold txt-muted uppercase tracking-wider">Siswa Punya Tunggakan</p>
+                        <p class="text-xl font-black text-amber-400 mt-1">
+                            {{ $todaySummary['tunggakan_count'] }} <span class="text-xs font-normal txt-muted">siswa</span>
+                        </p>
+                    </div>
+                </div>
             </div>
-        </x-ui.card>
+
+            {{-- 2. Dua Kolom: Akses Cepat Siswa & Transaksi Terbaru Dicatat --}}
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {{-- Kolom Kiri: Akses Cepat Siswa --}}
+                <x-ui.card>
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-500/15 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold txt-primary">Pilih Cepat Siswa</h3>
+                                <p class="text-xs txt-muted">Klik salah satu siswa di bawah untuk langsung membuka pembayaran</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        @forelse($quickStudents as $siswaItem)
+                            <button wire:click="selectSiswa({{ $siswaItem->id }})" type="button"
+                                class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] hover:bg-indigo-500/10 border border-indigo-500/10 hover:border-indigo-500/30 transition-all text-left cursor-pointer group">
+                                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                                    {{ strtoupper(substr($siswaItem->user?->name ?? 'S', 0, 1)) }}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-xs font-bold txt-primary truncate group-hover:text-indigo-400 transition-colors">
+                                        {{ $siswaItem->user?->name ?? '-' }}
+                                    </p>
+                                    <p class="text-[11px] txt-muted truncate">
+                                        {{ $siswaItem->kelas?->nama_kelas ?? 'Tanpa Kelas' }} · {{ $siswaItem->jenjang }}
+                                    </p>
+                                </div>
+                                <span class="text-[10px] font-semibold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded flex-shrink-0 group-hover:bg-indigo-500/20">
+                                    Pilih →
+                                </span>
+                            </button>
+                        @empty
+                            <div class="col-span-2 py-8 text-center txt-muted text-xs">
+                                Belum ada data siswa aktif pada unit ini.
+                            </div>
+                        @endforelse
+                    </div>
+                </x-ui.card>
+
+                {{-- Kolom Kanan: Transaksi Terbaru Dicatat --}}
+                <x-ui.card>
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold txt-primary">Transaksi Terbaru Dicatat</h3>
+                                <p class="text-xs txt-muted">Riwayat pencatatan kuitansi pembayaran terakhir</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        @forelse($recentPayments as $pItem)
+                            <div class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-colors">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0 text-emerald-400">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-xs font-bold txt-primary truncate">
+                                        {{ $pItem->tagihan?->siswa?->user?->name ?? 'Siswa' }}
+                                    </p>
+                                    <p class="text-[11px] txt-muted truncate">
+                                        {{ $pItem->tagihan?->jenis_biaya ?? 'SPP' }} · Rp {{ number_format($pItem->nominal, 0, ',', '.') }}
+                                    </p>
+                                </div>
+                                <div class="flex items-center gap-1.5 flex-shrink-0">
+                                    <button wire:click="selectSiswa({{ $pItem->tagihan?->siswa_id }})" type="button"
+                                        title="Buka Transaksi Siswa"
+                                        class="p-1.5 rounded-lg text-xs font-semibold text-indigo-400 hover:bg-indigo-500/10 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                    </button>
+                                    <a href="{{ route('admin.keuangan.kuitansi.cetak', ['ids' => $pItem->id]) }}" target="_blank"
+                                        title="Cetak Kuitansi PDF"
+                                        class="p-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="py-8 text-center txt-muted text-xs">
+                                Belum ada riwayat transaksi pembayaran baru-baru ini.
+                            </div>
+                        @endforelse
+                    </div>
+                </x-ui.card>
+            </div>
+        </div>
     @endif
 
 

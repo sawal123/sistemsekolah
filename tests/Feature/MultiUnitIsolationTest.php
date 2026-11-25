@@ -408,4 +408,15 @@ class MultiUnitIsolationTest extends TestCase
             ->set('jenjang', 'SMK')
             ->assertOk();
     }
+
+    public function test_transaksi_pembayaran_renders_cashier_dashboard_and_quick_select(): void
+    {
+        $this->actingAs($this->superAdmin);
+
+        Livewire::test(\App\Livewire\Admin\Keuangan\TransaksiPembayaranIndex::class)
+            ->assertOk()
+            ->assertSee('Pilih Cepat Siswa')
+            ->assertSee('Transaksi Terbaru Dicatat')
+            ->assertSee('Penerimaan Hari Ini');
+    }
 }
