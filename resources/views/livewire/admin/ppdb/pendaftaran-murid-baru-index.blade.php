@@ -536,13 +536,13 @@
                     </div>
                     <div><x-ui.select label="Jenjang Tujuan" wire:model.live="jenjang_pilihan" :options="['' => 'Pilih Jenjang', 'SD' => 'SD', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK']" />
                     </div>
-                    @if ($jenjang_pilihan === 'SMK')
-                        <div><x-ui.select label="Jurusan SMK" wire:model="jurusan_id" :options="['' => 'Pilih Jurusan'] +
+                    @if (in_array($jenjang_pilihan, ['SMA', 'SMK']))
+                        <div><x-ui.select label="Jurusan / Peminatan" wire:model="jurusan_id" :options="['' => 'Pilih Jurusan / Peminatan'] +
                             $jurusans->mapWithKeys(fn($j) => [$j->id => $j->kode . ' - ' . $j->nama])->toArray()" /></div>
                     @else
                         <div><x-ui.label for="jurusan_pilihan_1" value="Program/Peminatan"
                                 class="mb-2" /><x-ui.input wire:model="jurusan_pilihan_1" id="jurusan_pilihan_1"
-                                placeholder="IPA/IPS/Umum" /></div>
+                                placeholder="Umum" /></div>
                     @endif
                     <div><x-ui.select label="Status Berkas" wire:model="status" :options="$statusOptions" /></div>
                     <div><x-ui.label for="sekolah_pilihan_2" value="Sekolah Tujuan Pilihan 2"

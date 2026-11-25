@@ -10,7 +10,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 #[Layout('layouts.admin')]
-#[Title('Master Jurusan SMK')]
+#[Title('Master Jurusan & Peminatan')]
 class JurusanIndex extends Component
 {
     use WithPagination;

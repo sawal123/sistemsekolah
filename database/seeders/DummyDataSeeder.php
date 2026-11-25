@@ -88,6 +88,8 @@ class DummyDataSeeder extends Seeder
     private function seedMajors(): array
     {
         return collect([
+            'IPA' => ['Ilmu Pengetahuan Alam (MIPA)', 'Peminatan sains, matematika terapan, fisika, kimia, dan biologi.'],
+            'IPS' => ['Ilmu Pengetahuan Sosial', 'Peminatan sosiologi, geografi, ekonomi, dan sejarah.'],
             'RPL' => ['Rekayasa Perangkat Lunak', 'Pengembangan aplikasi, pemrograman, dan basis data.'],
             'TKJ' => ['Teknik Komputer dan Jaringan', 'Infrastruktur jaringan, sistem, dan keamanan digital.'],
             'AKL' => ['Akuntansi dan Keuangan Lembaga', 'Akuntansi, perpajakan, dan pengelolaan keuangan.'],
@@ -217,9 +219,9 @@ class DummyDataSeeder extends Seeder
             ['IPA-SMP', 'Ilmu Pengetahuan Alam', 'Nasional', 'SMP', null],
             ['IPS-SMP', 'Ilmu Pengetahuan Sosial', 'Nasional', 'SMP', null],
             // SMA
-            ['FIS', 'Fisika', 'Peminatan', 'SMA', null],
-            ['BIO', 'Biologi', 'Peminatan', 'SMA', null],
-            ['EKO', 'Ekonomi', 'Peminatan', 'SMA', null],
+            ['FIS', 'Fisika', 'Peminatan', 'SMA', $jurusans['IPA']->id],
+            ['BIO', 'Biologi', 'Peminatan', 'SMA', $jurusans['IPA']->id],
+            ['EKO', 'Ekonomi', 'Peminatan', 'SMA', $jurusans['IPS']->id],
             ['SEJ', 'Sejarah Indonesia', 'Nasional', 'SMA', null],
             // SMK
             ['PBO-RPL', 'Pemrograman Berorientasi Objek', 'Peminatan', 'SMK', $jurusans['RPL']->id],
@@ -259,10 +261,10 @@ class DummyDataSeeder extends Seeder
             ['7A', 'SMP', null, 3],
             ['8A', 'SMP', null, 4],
             // SMA (teachers 6, 7, 8, 9)
-            ['X IPA 1', 'SMA', null, 6],
-            ['X IPS 1', 'SMA', null, 7],
-            ['XI IPA 1', 'SMA', null, 8],
-            ['XI IPS 1', 'SMA', null, 9],
+            ['X IPA 1', 'SMA', $jurusans['IPA']->id, 6],
+            ['X IPS 1', 'SMA', $jurusans['IPS']->id, 7],
+            ['XI IPA 1', 'SMA', $jurusans['IPA']->id, 8],
+            ['XI IPS 1', 'SMA', $jurusans['IPS']->id, 9],
             // SMK (teachers 10, 11, 12)
             ['X RPL 1', 'SMK', $jurusans['RPL']->id, 10],
             ['X TKJ 1', 'SMK', $jurusans['TKJ']->id, 11],

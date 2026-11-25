@@ -146,7 +146,7 @@
                 <div class="flex items-center gap-6 pt-3">
                     <label class="inline-flex items-center gap-2 text-xs font-semibold txt-primary cursor-pointer">
                         <input type="checkbox" wire:model="punya_jurusan" class="rounded border-indigo-500/30 text-indigo-600" />
-                        <span>Memiliki Jurusan (SMK)</span>
+                        <span>Memiliki Jurusan / Peminatan (misal: SMA, SMK, MA)</span>
                     </label>
                     <label class="inline-flex items-center gap-2 text-xs font-semibold txt-primary cursor-pointer">
                         <input type="checkbox" wire:model="is_active" class="rounded border-indigo-500/30 text-indigo-600" />

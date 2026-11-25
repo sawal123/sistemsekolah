@@ -287,9 +287,9 @@
                         placeholder="Pilih Jenjang" />
                 </div>
 
-                @if($jenjang === 'SMK')
-                    <x-ui.select label="Jurusan SMK" wire:model="jurusan_id"
-                        :options="['' => 'Pilih Jurusan'] + $jurusans->mapWithKeys(fn($j) => [$j->id => $j->kode . ' - ' . $j->nama])->toArray()" />
+                @if(in_array($jenjang, ['SMA', 'SMK']))
+                    <x-ui.select label="Jurusan / Peminatan" wire:model="jurusan_id"
+                        :options="['' => 'Pilih Jurusan / Peminatan'] + $jurusans->mapWithKeys(fn($j) => [$j->id => $j->kode . ' - ' . $j->nama])->toArray()" />
                 @endif
 
                 {{-- Action Buttons --}}

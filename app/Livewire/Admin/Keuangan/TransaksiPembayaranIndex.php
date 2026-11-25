@@ -501,7 +501,7 @@ class TransaksiPembayaranIndex extends Component
                     'ids' => implode(',', $this->lastPembayaranIds),
                 ]),
             ]);
-            $this->showKuitansiModal = false;
+            $this->closeKuitansiModal();
         }
     }
 

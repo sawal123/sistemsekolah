@@ -157,7 +157,7 @@
 
                     @if($jenjang_pilihan === 'SMK')
                         <label class="block">
-                            <span class="mb-2 block text-sm font-semibold text-slate-700">Jurusan SMK *</span>
+                            <span class="mb-2 block text-sm font-semibold text-slate-700">Jurusan / Program Keahlian *</span>
                             <select wire:model="jurusan_id" class="w-full rounded-xl border border-blue-100 px-4 py-3 outline-none focus:border-blue-400">
                                 <option value="">Pilih jurusan</option>
                                 @foreach($jurusans as $jurusan)

@@ -157,7 +157,7 @@ class MataPelajaranIndex extends Component
             'nama_mapel' => 'required|string|max:255',
             'kelompok' => 'required|in:Nasional,Kewilayahan,Peminatan,Mulok',
             'jenjang' => ['required', \Illuminate\Validation\Rule::in($allowedJenjang)],
-            'jurusan_id' => 'nullable|required_if:jenjang,SMK|exists:jurusans,id',
+            'jurusan_id' => 'nullable|exists:jurusans,id',
         ]);
 
         $unitId = \App\Support\UnitContext::resolveUnitIdFromJenjang($this->jenjang);
@@ -172,7 +172,7 @@ class MataPelajaranIndex extends Component
                 'kelompok' => $this->kelompok,
                 'jenjang' => $this->jenjang,
                 'unit_id' => $unitId,
-                'jurusan_id' => $this->jenjang === 'SMK' ? $this->jurusan_id : null,
+                'jurusan_id' => in_array($this->jenjang, ['SMA', 'SMK']) ? ($this->jurusan_id ?: null) : null,
             ]);
             $msg = 'Mata Pelajaran berhasil diperbarui!';
         } else {
@@ -182,7 +182,7 @@ class MataPelajaranIndex extends Component
                 'kelompok' => $this->kelompok,
                 'jenjang' => $this->jenjang,
                 'unit_id' => $unitId,
-                'jurusan_id' => $this->jenjang === 'SMK' ? $this->jurusan_id : null,
+                'jurusan_id' => in_array($this->jenjang, ['SMA', 'SMK']) ? ($this->jurusan_id ?: null) : null,
             ]);
             $msg = 'Mata Pelajaran berhasil ditambahkan!';
         }

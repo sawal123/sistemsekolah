@@ -61,7 +61,7 @@ class DataKelasIndex extends Component
     protected $rules = [
         'nama_kelas' => 'required|string|max:50',
         'jenjang' => 'required|in:SMP,SMA,SMK',
-        'jurusan_id' => 'nullable|required_if:jenjang,SMK|exists:jurusans,id',
+        'jurusan_id' => 'nullable|exists:jurusans,id',
         'wali_kelas_id' => 'nullable|exists:gurus,id',
     ];
 
@@ -111,7 +111,7 @@ class DataKelasIndex extends Component
         $this->validate([
             'nama_kelas' => 'required|string|max:50',
             'jenjang' => ['required', Rule::in($allowedCodes)],
-            'jurusan_id' => 'nullable|required_if:jenjang,SMK|exists:jurusans,id',
+            'jurusan_id' => 'nullable|exists:jurusans,id',
             'wali_kelas_id' => 'nullable|exists:gurus,id',
         ]);
 
@@ -147,7 +147,7 @@ class DataKelasIndex extends Component
             'nama_kelas' => $this->nama_kelas,
             'jenjang' => $this->jenjang,
             'unit_id' => $unitId,
-            'jurusan_id' => $this->jenjang === 'SMK' ? $this->jurusan_id : null,
+            'jurusan_id' => in_array($this->jenjang, ['SMA', 'SMK']) ? ($this->jurusan_id ?: null) : null,
             'wali_kelas_id' => $this->wali_kelas_id ?: null,
         ]);
         if ($tahunAjaranAktif) {

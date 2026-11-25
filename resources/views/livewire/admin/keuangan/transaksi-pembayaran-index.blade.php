@@ -5,7 +5,10 @@
     <script>
         document.addEventListener('livewire:initialized', () => {
             Livewire.on('open-pdf-tab', (data) => {
-                window.open(data[0].url, '_blank');
+                const url = data?.url || (Array.isArray(data) && data[0]?.url) || data?.detail?.url;
+                if (url) {
+                    window.open(url, '_blank');
+                }
             });
         });
     </script>
@@ -555,17 +558,25 @@
                 {{ count($lastPembayaranIds ?? []) }} tagihan telah berhasil dicatat.
                 Apakah Anda ingin mencetak kuitansi pembayaran?
             </p>
-            <div class="flex gap-3 justify-center">
+            <div class="flex gap-3 justify-center items-center">
                 <x-ui.button wire:click="closeKuitansiModal" variant="secondary" type="button">
                     Lewati
                 </x-ui.button>
-                <x-ui.button wire:click="openKuitansi" variant="primary" type="button">
+                @php
+                    $kuitansiUrl = !empty($lastPembayaranIds)
+                        ? route('admin.keuangan.kuitansi.cetak', ['ids' => implode(',', $lastPembayaranIds)])
+                        : '#';
+                @endphp
+                <a href="{{ $kuitansiUrl }}"
+                    target="_blank"
+                    wire:click="closeKuitansiModal"
+                    class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                     </svg>
                     Cetak Kuitansi PDF
-                </x-ui.button>
+                </a>
             </div>
         </div>
     </x-ui.modal>

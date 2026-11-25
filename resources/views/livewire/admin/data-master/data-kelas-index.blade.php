@@ -221,11 +221,11 @@
                         placeholder="Pilih Jenjang" />
                     @error('jenjang') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                 </div>
-                @if($jenjang === 'SMK')
+                @if(in_array($jenjang, ['SMA', 'SMK']))
                     <div>
-                        <x-ui.label value="Jurusan SMK" class="mb-2" />
+                        <x-ui.label value="Jurusan / Peminatan" class="mb-2" />
                         <x-ui.select wire:model="jurusan_id"
-                            :options="['' => 'Pilih Jurusan'] + $jurusans->mapWithKeys(fn($j) => [$j->id => $j->kode . ' - ' . $j->nama])->toArray()" />
+                            :options="['' => 'Pilih Jurusan / Peminatan'] + $jurusans->mapWithKeys(fn($j) => [$j->id => $j->kode . ' - ' . $j->nama])->toArray()" />
                         @error('jurusan_id') <span class="mt-1 text-xs text-red-500">{{ $message }}</span> @enderror
                     </div>
                 @endif

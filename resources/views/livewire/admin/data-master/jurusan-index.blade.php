@@ -3,8 +3,8 @@
 
     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-            <h1 class="txt-primary text-2xl font-extrabold tracking-tight">Master Jurusan SMK</h1>
-            <p class="mt-1 text-sm txt-muted">Kelola kompetensi keahlian untuk kelas, siswa, PPDB, mata pelajaran, dan tarif SPP SMK.</p>
+            <h1 class="txt-primary text-2xl font-extrabold tracking-tight">Master Jurusan & Peminatan</h1>
+            <p class="mt-1 text-sm txt-muted">Kelola data kompetensi keahlian SMK dan peminatan SMA (IPA/IPS) untuk kelas, siswa, PPDB, mapel, dan tarif SPP.</p>
         </div>
         <x-ui.button wire:click="openModal" variant="primary">
             <span class="mr-2 text-lg">+</span> Tambah Jurusan
@@ -77,7 +77,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-16 text-center txt-muted">Belum ada master jurusan SMK.</td>
+                            <td colspan="7" class="px-6 py-16 text-center txt-muted">Belum ada data jurusan atau peminatan.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -87,8 +87,8 @@
     </x-ui.card>
 
     <x-ui.modal name="jurusan-form" :show="$isModalOpen" maxWidth="lg">
-        <h2 class="text-xl font-bold txt-primary">{{ $editId ? 'Edit Jurusan' : 'Tambah Jurusan SMK' }}</h2>
-        <p class="mb-6 mt-1 text-sm txt-muted">Gunakan kode singkat seperti RPL, TKJ, AKL, atau TKR.</p>
+        <h2 class="text-xl font-bold txt-primary">{{ $editId ? 'Edit Jurusan / Peminatan' : 'Tambah Jurusan / Peminatan' }}</h2>
+        <p class="mb-6 mt-1 text-sm txt-muted">Gunakan kode singkat seperti IPA, IPS, RPL, TKJ, atau AKL.</p>
 
         <form wire:submit="save" class="space-y-5">
             <div class="grid gap-4 sm:grid-cols-[140px_1fr]">

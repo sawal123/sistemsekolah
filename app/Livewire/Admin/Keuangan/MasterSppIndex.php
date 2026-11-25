@@ -93,7 +93,7 @@ class MasterSppIndex extends Component
 
     public function updatedJenjang(string $value): void
     {
-        if ($value !== 'SMK') {
+        if (! in_array($value, ['SMA', 'SMK'])) {
             $this->jurusan_id = '';
         }
     }
@@ -171,7 +171,7 @@ class MasterSppIndex extends Component
             'tahun_ajaran_id' => $this->tahun_ajaran_id,
             'jenjang' => $this->jenjang,
             'unit_id' => $unitId,
-            'jurusan_id' => $this->jenjang === 'SMK' && $this->jurusan_id !== '' ? $this->jurusan_id : null,
+            'jurusan_id' => in_array($this->jenjang, ['SMA', 'SMK']) && $this->jurusan_id !== '' ? $this->jurusan_id : null,
             'kategori' => $this->kategori,
             'nominal' => $this->nominal,
             'keterangan' => $this->keterangan ?: null,

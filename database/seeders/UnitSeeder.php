@@ -46,7 +46,7 @@ class UnitSeeder extends Seeder
                 'npsn' => '20203303',
                 'tingkat_awal' => 10,
                 'tingkat_akhir' => 12,
-                'punya_jurusan' => false,
+                'punya_jurusan' => true,
                 'kepala_sekolah' => 'Dr. H. Ahmad Daris, M.Pd.',
                 'nip_kepala_sekolah' => '19700512 199501 1 003',
                 'alamat' => 'Jl. Pendidikan No. 10, Blok C, Kota Bandung',

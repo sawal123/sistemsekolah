@@ -113,8 +113,7 @@
                     Kelas</a>
                 <a href="{{ route('admin.data-master.jurusan') }}" wire:navigate
                     class="sub-item {{ request()->routeIs('admin.data-master.jurusan*') ? 'active' : '' }}"><span
-                        style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Master
-                    Jurusan SMK</a>
+                        style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Jurusan / Peminatan</a>
             </div>
         </div>
         @endif

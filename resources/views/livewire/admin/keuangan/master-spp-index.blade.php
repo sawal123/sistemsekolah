@@ -238,16 +238,16 @@
                     </div>
                 </div>
 
-                @if($jenjang === 'SMK')
+                @if(in_array($jenjang, ['SMA', 'SMK']))
                     <div>
                         @php
-                            $jurusanOptions = ['' => 'Umum untuk semua jurusan SMK'];
+                            $jurusanOptions = ['' => 'Umum untuk semua jurusan / peminatan'];
                             foreach ($jurusans as $jurusan) {
                                 $jurusanOptions[$jurusan->id] = $jurusan->kode . ' - ' . $jurusan->nama;
                             }
                         @endphp
-                        <x-ui.select label="Jurusan SMK" wire:model="jurusan_id" :options="$jurusanOptions" />
-                        <p class="mt-1 text-xs txt-muted">Pilih jurusan jika tarif hanya berlaku untuk jurusan tersebut.</p>
+                        <x-ui.select label="Jurusan / Peminatan" wire:model="jurusan_id" :options="$jurusanOptions" />
+                        <p class="mt-1 text-xs txt-muted">Pilih jurusan/peminatan jika tarif khusus berlaku untuk jurusan tersebut.</p>
                         @error('jurusan_id') <p class="mt-1 text-xs text-red-400">{{ $message }}</p> @enderror
                     </div>
                 @endif
