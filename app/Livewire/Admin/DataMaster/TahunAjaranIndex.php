@@ -405,15 +405,18 @@ class TahunAjaranIndex extends Component
             return;
         }
 
+        $activeUnitId = \App\Support\UnitContext::activeUnitId();
+
         $rombelsAktif = Rombel::with([
-            'kelas',
+            'kelas.unit',
             'anggotaRombels' => fn($q) => $q
                 ->where('status', 'Aktif')
                 ->whereNull('tanggal_keluar')
-                ->whereHas('siswa', fn($s) => $s->where('status', 'Aktif')),
-            'anggotaRombels.siswa.user',
+                ->whereHas('siswa', fn($s) => $s->where('status', 'Aktif'))
+                ->with('siswa.user'),
         ])
             ->where('tahun_ajaran_id', $taAktif->id)
+            ->when($activeUnitId, fn ($q) => $q->whereHas('kelas', fn ($k) => $k->where('unit_id', $activeUnitId)))
             ->get();
 
         if ($rombelsAktif->isEmpty()) {
@@ -422,9 +425,13 @@ class TahunAjaranIndex extends Component
             return;
         }
 
-        // Mapping kenaikan: VII→VIII, VIII→IX, IX→(Lulus), X→XI, XI→XII, XII→(Lulus)
+        // Mapping kenaikan: I→II..V→VI, VI→(Lulus), VII→VIII, VIII→IX, IX→(Lulus), X→XI, XI→XII, XII→(Lulus)
         $this->kenaikanPreview = [];
-        $semuaKelas = Kelas::orderBy('jenjang')->orderBy('nama_kelas')->get();
+        $semuaKelas = Kelas::with('unit')
+            ->when($activeUnitId, fn ($q) => $q->where('unit_id', $activeUnitId))
+            ->orderBy('jenjang')
+            ->orderBy('nama_kelas')
+            ->get();
 
         foreach ($rombelsAktif as $rombel) {
             $kelasAsal = $rombel->kelas;
@@ -555,20 +562,24 @@ class TahunAjaranIndex extends Component
      */
     private function cariKelasTujuan(Kelas $kelasAsal, $semuaKelas): array
     {
-        $nama = $kelasAsal->nama_kelas;
+        $nama = trim($kelasAsal->nama_kelas);
 
-        $romanToNum = ['VII' => 7, 'VIII' => 8, 'IX' => 9, 'X' => 10, 'XI' => 11, 'XII' => 12];
-        $numToRoman = [7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 11 => 'XI', 12 => 'XII'];
+        $romanToNum = [
+            'I' => 1, 'II' => 2, 'III' => 3, 'IV' => 4, 'V' => 5, 'VI' => 6,
+            'VII' => 7, 'VIII' => 8, 'IX' => 9, 'X' => 10, 'XI' => 11, 'XII' => 12,
+        ];
+        $numToRoman = array_flip($romanToNum);
 
         $level = null;
         $suffix = '';
         $isRoman = false;
 
-        $romanSorted = ['VIII', 'VII', 'XII', 'XI', 'IX', 'X'];
+        // Urutkan dari terpanjang agar prefix tidak salah cocok (misal VIII sebelum VII, III sebelum II/I)
+        $romanSorted = ['VIII', 'VII', 'XII', 'III', 'XI', 'IX', 'VI', 'IV', 'II', 'X', 'V', 'I'];
         foreach ($romanSorted as $roman) {
             if (str_starts_with($nama, $roman)) {
                 $afterRoman = substr($nama, strlen($roman));
-                if ($afterRoman === '' || ctype_space($afterRoman[0]) || ctype_digit($afterRoman[0])) {
+                if ($afterRoman === '' || ctype_space($afterRoman[0]) || ctype_digit($afterRoman[0]) || $afterRoman[0] === '-') {
                     $level = $romanToNum[$roman];
                     $suffix = $afterRoman;
                     $isRoman = true;
@@ -578,11 +589,11 @@ class TahunAjaranIndex extends Component
         }
 
         if ($level === null) {
-            $numericSorted = ['12', '11', '10', '9', '8', '7'];
+            $numericSorted = ['12', '11', '10', '9', '8', '7', '6', '5', '4', '3', '2', '1'];
             foreach ($numericSorted as $num) {
                 if (str_starts_with($nama, $num)) {
                     $afterNum = substr($nama, strlen($num));
-                    if ($afterNum === '' || ctype_space($afterNum[0]) || ctype_alpha($afterNum[0])) {
+                    if ($afterNum === '' || ctype_space($afterNum[0]) || ctype_alpha($afterNum[0]) || $afterNum[0] === '-') {
                         $level = (int) $num;
                         $suffix = $afterNum;
                         break;
@@ -595,25 +606,34 @@ class TahunAjaranIndex extends Component
             return ['kelas' => null, 'disposition' => 'tidak_ditemukan'];
         }
 
-        $nextLevel = match ($level) {
-            7 => 8,
-            8 => 9,
-            9 => null,
-            10 => 11,
-            11 => 12,
-            12 => null,
-            default => null,
+        $tingkatAkhir = $kelasAsal->unit?->tingkat_akhir ?? match ($kelasAsal->jenjang) {
+            'SD' => 6,
+            'SMP' => 9,
+            'SMA', 'SMK' => 12,
+            default => in_array($level, [6, 9, 12], true) ? $level : 12,
         };
 
-        if ($nextLevel === null) {
+        if ($level >= $tingkatAkhir) {
             return ['kelas' => null, 'disposition' => 'lulus'];
         }
+
+        $nextLevel = $level + 1;
 
         $nextName = $isRoman
             ? ($numToRoman[$nextLevel] ?? (string) $nextLevel) . $suffix
             : (string) $nextLevel . $suffix;
 
-        $kelasTujuan = $semuaKelas->firstWhere('nama_kelas', $nextName);
+        $kelasTujuan = $semuaKelas->first(function ($k) use ($nextName, $kelasAsal) {
+            if ($k->nama_kelas !== $nextName) {
+                return false;
+            }
+
+            if ($kelasAsal->unit_id && $k->unit_id) {
+                return (int) $k->unit_id === (int) $kelasAsal->unit_id;
+            }
+
+            return $k->jenjang === $kelasAsal->jenjang;
+        });
 
         return $kelasTujuan
             ? ['kelas' => $kelasTujuan, 'disposition' => 'ok']

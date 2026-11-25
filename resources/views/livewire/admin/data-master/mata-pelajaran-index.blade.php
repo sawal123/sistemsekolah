@@ -144,7 +144,7 @@
 
                 {{-- Filter Jenjang --}}
                 <div class="w-40 flex-shrink-0">
-                    <x-ui.select wire:model.live="filterJenjang" :options="['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK', 'Umum' => 'Umum']" />
+                    <x-ui.select wire:model.live="filterJenjang" :options="['' => 'Semua Jenjang', 'SD' => 'SD', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK', 'Umum' => 'Umum']" />
                 </div>
 
                 {{-- Filter Kelompok --}}
@@ -283,7 +283,7 @@
                     <x-ui.select label="Kelompok" wire:model="kelompok" :options="['Nasional', 'Kewilayahan', 'Peminatan', 'Mulok']" placeholder="Pilih Kelompok" />
 
                     {{-- Jenjang --}}
-                    <x-ui.select label="Jenjang" wire:model.live="jenjang" :options="['SMP', 'SMA', 'SMK', 'Umum']"
+                    <x-ui.select label="Jenjang" wire:model.live="jenjang" :options="['SD', 'SMP', 'SMA', 'SMK', 'Umum']"
                         placeholder="Pilih Jenjang" />
                 </div>
 

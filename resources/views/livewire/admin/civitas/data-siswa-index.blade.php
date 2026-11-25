@@ -113,7 +113,7 @@
         
             {{-- Filter Jenjang --}}
             <div class="w-40 flex-shrink-0">
-                <x-ui.select wire:model.live="filterJenjang" :options="['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK']" />
+                <x-ui.select wire:model.live="filterJenjang" :options="['' => 'Semua Jenjang', 'SD' => 'SD', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK']" />
             </div>
         
             {{-- Filter Kelas --}}
@@ -332,7 +332,7 @@
                         </div>
                         <div>
                             <x-ui.label value="Jenjang" class="mb-2" />
-                            <x-ui.select wire:model.live="jenjang" :options="['SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK']"
+                            <x-ui.select wire:model.live="jenjang" :options="['SD' => 'SD', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK']"
                                 placeholder="Pilih Jenjang" />
                         </div>
                         <div>

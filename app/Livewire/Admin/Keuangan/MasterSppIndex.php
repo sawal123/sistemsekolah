@@ -48,9 +48,11 @@ class MasterSppIndex extends Component
 
     protected function rules(): array
     {
+        $allowedJenjang = array_merge(\App\Models\Unit::active()->pluck('kode')->toArray() ?: ['SD', 'SMP', 'SMA', 'SMK'], ['Semua']);
+
         return [
             'tahun_ajaran_id' => 'required|exists:tahun_ajarans,id',
-            'jenjang' => 'required|in:SMP,SMA,SMK,Semua',
+            'jenjang' => ['required', Rule::in($allowedJenjang)],
             'jurusan_id' => 'nullable|exists:jurusans,id',
             'kategori' => [
                 'required',
@@ -98,7 +100,8 @@ class MasterSppIndex extends Component
 
     public function render()
     {
-        $spps = Spp::with(['tahunAjaran', 'jurusan'])
+        $spps = Spp::forCurrentUser(true)
+            ->with(['tahunAjaran', 'jurusan', 'unit'])
             ->when($this->search, fn ($q) => $q->where(fn ($searchQuery) => $searchQuery
                 ->where('kategori', 'like', '%'.$this->search.'%')
                 ->orWhere('keterangan', 'like', '%'.$this->search.'%')))
@@ -122,6 +125,10 @@ class MasterSppIndex extends Component
         if ($aktif) {
             $this->tahun_ajaran_id = (string) $aktif->id;
         }
+        $activeUnit = \App\Support\UnitContext::activeUnit();
+        if ($activeUnit) {
+            $this->jenjang = $activeUnit->kode;
+        }
         $this->isModalOpen = true;
         $this->dispatch('open-modal', 'spp-form');
     }
@@ -130,6 +137,7 @@ class MasterSppIndex extends Component
     {
         $this->resetForm();
         $item = Spp::findOrFail($id);
+        \App\Support\UnitContext::authorizeUnit(auth()->user(), $item->unit_id, false);
 
         $this->editId = $id;
         $this->tahun_ajaran_id = (string) $item->tahun_ajaran_id;
@@ -146,11 +154,23 @@ class MasterSppIndex extends Component
 
     public function save(): void
     {
+        $user = auth()->user();
+        if ($user && $user->isUnitAdmin()) {
+            $unit = \App\Models\Unit::find($user->effectiveUnitId());
+            if ($unit) {
+                $this->jenjang = $unit->kode;
+            }
+        }
+
         $this->validate();
+
+        $unitId = \App\Support\UnitContext::resolveUnitIdFromJenjang($this->jenjang);
+        \App\Support\UnitContext::authorizeUnit($user, $unitId, false);
 
         $data = [
             'tahun_ajaran_id' => $this->tahun_ajaran_id,
             'jenjang' => $this->jenjang,
+            'unit_id' => $unitId,
             'jurusan_id' => $this->jenjang === 'SMK' && $this->jurusan_id !== '' ? $this->jurusan_id : null,
             'kategori' => $this->kategori,
             'nominal' => $this->nominal,
@@ -159,7 +179,9 @@ class MasterSppIndex extends Component
         ];
 
         if ($this->editId) {
-            Spp::findOrFail($this->editId)->update($data);
+            $existing = Spp::findOrFail($this->editId);
+            \App\Support\UnitContext::authorizeUnit($user, $existing->unit_id, false);
+            $existing->update($data);
             $msg = 'Tarif SPP berhasil diperbarui.';
         } else {
             Spp::create($data);
@@ -172,6 +194,8 @@ class MasterSppIndex extends Component
 
     public function confirmDelete(int $id): void
     {
+        $spp = Spp::findOrFail($id);
+        \App\Support\UnitContext::authorizeUnit(auth()->user(), $spp->unit_id, false);
         $this->idBeingDeleted = $id;
         $this->dispatch('open-modal', 'confirm-delete-modal');
     }
@@ -179,6 +203,7 @@ class MasterSppIndex extends Component
     public function toggleActive(int $id): void
     {
         $spp = Spp::findOrFail($id);
+        \App\Support\UnitContext::authorizeUnit(auth()->user(), $spp->unit_id, false);
         $spp->update(['is_active' => ! $spp->is_active]);
 
         $this->dispatch('notify', [
@@ -193,6 +218,7 @@ class MasterSppIndex extends Component
     {
         if ($this->idBeingDeleted) {
             $spp = Spp::findOrFail($this->idBeingDeleted);
+            \App\Support\UnitContext::authorizeUnit(auth()->user(), $spp->unit_id, false);
             if ($spp->pembayaranSpps()->exists()) {
                 $this->dispatch('notify', [
                     'type' => 'error',

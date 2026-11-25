@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToUnit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Siswa extends Model
 {
-    use SoftDeletes;
+    use BelongsToUnit, SoftDeletes;
 
     protected $guarded = ['id'];
 

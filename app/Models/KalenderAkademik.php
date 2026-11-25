@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToUnit;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class KalenderAkademik extends Model
 {
+    use BelongsToUnit;
+
     protected $guarded = ['id'];
     protected $casts = [
         'tanggal' => 'date',

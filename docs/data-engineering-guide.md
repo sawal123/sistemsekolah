@@ -81,6 +81,7 @@
 | **P7** | Personalisasi Dashboard & Penguncian Otorisasi Role Guru | `Dashboard.php`, `sidebar.blade.php`, `RekapAbsensiIndex.php`, `ERaporIndex.php`, `PdfCetakController.php`, `ManajemenNilaiIndex.php`, `JadwalPelajaranIndex.php`, `KalenderAkademikIndex.php`, `BlogArtikelIndex.php`, `BlogArtikelForm.php` | ✅ Selesai | 2026-10-30 (Dashboard guru berbasis jadwal/perwalian hari ini, validasi wali kelas di absensi & e-rapor, batasi input nilai ke kelas yang diajar, read-only kalender, isolasi blog author) |
 | **P8** | Penambahan Halaman Profil Saya & Pengaturan Akun | `ProfileIndex.php`, `SettingsIndex.php`, `header.blade.php`, `sidebar.blade.php`, `routes/web.php` | ✅ Selesai | 2026-10-30 (Halaman Profil terintegrasi biodata guru/staff, Halaman Pengaturan keamanan ubah password, preferensi tema, standar operasional KBM untuk admin) |
 | **P9** | Audit Menyeluruh & Perbaikan Modul Civitas Akademik (Siswa, Guru, Pengguna) | `DataSiswaIndex.php`, `DataGuruIndex.php`, `DataGuruDetail.php`, `DataPenggunaIndex.php`, `routes/web.php` | ✅ Selesai | 2026-10-30 (Integritas Rombel saat nonaktif siswa, pencegahan cascade delete guru, penambahan reset password siswa & form tambah staf, eliminasi rute duplikat) |
+| **P10** | Arsitektur Multi-Unit Sekolah (SD, SMP, SMA, SMK) & Isolasi Manajemen Per Unit | `Unit.php`, `UnitContext.php`, `BelongsToUnit.php`, `UnitIndex.php`, `UnitSwitcher.php`, `TahunAjaranIndex.php`, `PdfCetakController.php`, `KeuanganPdfController.php`, `MultiUnitIsolationTest.php` | ✅ Selesai | 2026-11-25 (Master Unit dinamis + identitas cetak per unit, role `super_admin` & `admin_unit`, *Unit Switcher*, dukungan penuh kenaikan kelas SD 1–6, isolasi data & guard `403` lintas unit di Civitas/KBM/Keuangan/PPDB/Alumni/PDF) |
 
 ---
 
@@ -244,6 +245,22 @@
   - [x] **P9.6**: Tambahkan fitur form modal "Tambah Staf / Pengguna Baru" di `DataPenggunaIndex`, proteksi role sistem di backend, dan auto-inisialisasi data guru saat role `guru` di-assign.
   - [x] **P9.7**: Gabungkan deklarasi rute ganda Civitas Akademik di `routes/web.php` menjadi satu blok terpadu.
   - [x] **P9.8**: Tulis feature test komprehensif `CivitasAkademikTest.php` dan pastikan 100% lulus.
+
+### Prioritas 10 (P10): Arsitektur Multi-Unit Sekolah (SD, SMP, SMA, SMK) & Isolasi Manajemen Per Unit
+- **Lokasi**:
+  - `database/migrations/2026_11_25_000001_create_units_table_and_add_unit_scoping.php`
+  - `app/Models/Unit.php`, `app/Models/Concerns/BelongsToUnit.php`, `app/Support/UnitContext.php`, `app/Http/Middleware/EnsureSuperAdmin.php`
+  - `app/Livewire/Admin/DataMaster/UnitIndex.php` & `app/Livewire/Components/UnitSwitcher.php`
+  - `app/Livewire/Admin/DataMaster/TahunAjaranIndex.php`, `DataKelasIndex.php`, `MataPelajaranIndex.php`
+  - Modul Civitas, KBM, Keuangan, PPDB, Alumni, `Dashboard.php`, `PdfCetakController.php`, `KeuanganPdfController.php`, `PaymentSubmissionProofController.php`
+  - `tests/Feature/MultiUnitIsolationTest.php`
+- **Checklist Eksekusi Agent**:
+  - [x] **P10.1**: Buat tabel `units` (identitas cetak per unit: NPSN, Kepsek, NIP, Alamat, Telepon, Logo, `tingkat_awal`/`tingkat_akhir`) serta migrasi `unit_id` + *backfill* otomatis pada 10 tabel inti.
+  - [x] **P10.2**: Tambahkan `UnitContext`, trait `BelongsToUnit`, helper `User::isSuperAdmin()`/`isUnitAdmin()`/`isAnyAdmin()`, dan middleware `super.admin`.
+  - [x] **P10.3**: Buat halaman **Master Unit Sekolah** (`UnitIndex`) dan komponen **Unit Switcher** di header.
+  - [x] **P10.4**: Perluas algoritma `TahunAjaranIndex::cariKelasTujuan()` untuk mendukung jenjang SD (`1–6`/`I–VI`, lulus kelas 6) dan validasi jenjang dinamis berbasis tabel `units`.
+  - [x] **P10.5**: Terapkan scoping `forCurrentUser()` dan guard `UnitContext::authorizeUnit()` (`403 Forbidden`) di Civitas, Keuangan, KBM, PPDB, Alumni, dan seluruh endpoint PDF (dengan kop cetak per unit).
+  - [x] **P10.6**: Verifikasi dengan test suite `MultiUnitIsolationTest` dan seluruh regression test proyek.
 
 
 

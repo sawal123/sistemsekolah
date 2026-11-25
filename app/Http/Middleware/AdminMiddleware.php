@@ -15,7 +15,7 @@ class AdminMiddleware
             return redirect()->route('login');
         }
 
-        if (! Auth::user()->hasRole('admin')) {
+        if (! Auth::user()->isAnyAdmin()) {
             return redirect()->route('unauthorized');
         }
 

@@ -19,7 +19,7 @@ class PdfCetakController extends Controller
         }
 
         $user = auth()->user();
-        if ($user && $user->hasRole('guru') && !$user->hasRole('admin')) {
+        if ($user && $user->hasRole('guru') && ! $user->isAnyAdmin()) {
             $isWali = false;
             if ($user->guru) {
                 $isWali = \App\Models\Rombel::where('wali_kelas_id', $user->guru->id)
@@ -27,13 +27,14 @@ class PdfCetakController extends Controller
                     ->whereHas('anggotaRombels', fn ($q) => $q->where('siswa_id', $siswa_id))
                     ->exists();
             }
-            if (!$isWali) {
+            if (! $isWali) {
                 abort(403, 'Akses ditolak: Anda hanya dapat mencetak e-Rapor untuk siswa di kelas perwalian Anda.');
             }
         }
 
         $ta = TahunAjaran::find($taId);
-        $siswa = Siswa::with(['user', 'kelas.wali_kelas.user'])->findOrFail($siswa_id);
+        $siswa = Siswa::with(['user', 'kelas.wali_kelas.user', 'unit'])->findOrFail($siswa_id);
+        \App\Support\UnitContext::authorizeUnit($user, $siswa->unit_id);
         
         $rapor = Rapor::where('siswa_id', $siswa_id)
             ->where('tahun_ajaran_id', $taId)
@@ -90,8 +91,9 @@ class PdfCetakController extends Controller
         }
 
         // Tembak Data ke View PDF Baru
+        $unit = $siswa->unit;
         $pdf = Pdf::loadView('rapor-pdf', compact(
-            'siswa', 'ta', 'rapor', 'nilais', 'qrCodeBase64', 'peringkat'
+            'siswa', 'ta', 'rapor', 'nilais', 'qrCodeBase64', 'peringkat', 'unit'
         ))->setPaper('A4', 'portrait');
 
         $tahunAman = str_replace(['/', '\\'], '-', $ta->tahun);
@@ -103,7 +105,7 @@ class PdfCetakController extends Controller
     public function cetakTemplateAbsen($kelasId, $bulan, $tahun)
     {
         $user = auth()->user();
-        if ($user && $user->hasRole('guru') && !$user->hasRole('admin')) {
+        if ($user && $user->hasRole('guru') && ! $user->isAnyAdmin()) {
             $tahunAjaranId = TahunAjaran::forDate(\Carbon\Carbon::createFromDate($tahun, $bulan, 1))?->id;
             $isWali = false;
             if ($user->guru) {
@@ -112,12 +114,13 @@ class PdfCetakController extends Controller
                     ->when($tahunAjaranId, fn ($query) => $query->where('tahun_ajaran_id', $tahunAjaranId))
                     ->exists();
             }
-            if (!$isWali) {
+            if (! $isWali) {
                 abort(403, 'Akses ditolak: Anda hanya dapat mengunduh format absensi untuk kelas perwalian Anda.');
             }
         }
 
-        $kelas = \App\Models\Kelas::with('wali_kelas.user')->findOrFail($kelasId);
+        $kelas = \App\Models\Kelas::with(['wali_kelas.user', 'unit'])->findOrFail($kelasId);
+        \App\Support\UnitContext::authorizeUnit($user, $kelas->unit_id);
         $tahunAjaranId = TahunAjaran::forDate(\Carbon\Carbon::createFromDate($tahun, $bulan, 1))?->id;
         $rombel = \App\Models\Rombel::with('waliKelas.user')
             ->where('kelas_id', $kelasId)

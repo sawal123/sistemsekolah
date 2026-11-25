@@ -231,11 +231,12 @@ class JadwalPelajaranIndex extends Component
     public function render()
     {
         $user = auth()->user();
-        if ($user && $user->hasRole('guru') && ! $user->hasRole('admin')) {
+        if ($user && $user->hasRole('guru') && ! $user->isAnyAdmin()) {
             $this->filterGuru = $user->guru?->id ?? '';
         }
 
         $query = Jadwal::with(['kelas', 'mapel', 'guru.user', 'ruangan'])
+            ->whereHas('kelas', fn ($k) => $k->forCurrentUser())
             ->when($this->filterTahunAjaran, fn ($q) => $q->where('tahun_ajaran_id', $this->filterTahunAjaran));
 
         if ($this->filterKelas) {
@@ -257,10 +258,10 @@ class JadwalPelajaranIndex extends Component
             $matrix[$hari] = $jadwalData->where('hari', $hari)->values();
         }
 
-        $kelases = Kelas::orderBy('jenjang')->orderBy('nama_kelas')->get();
-        $mapels = Mapel::orderBy('nama_mapel')->get();
-        $gurus = Guru::with('user')->get()->sortBy('user.name');
-        $ruangans = Ruangan::orderBy('nama_ruangan')->get();
+        $kelases = Kelas::forCurrentUser()->orderBy('jenjang')->orderBy('nama_kelas')->get();
+        $mapels = Mapel::forCurrentUser(true)->orderBy('nama_mapel')->get();
+        $gurus = Guru::forCurrentUser()->with('user')->get()->sortBy('user.name');
+        $ruangans = Ruangan::forCurrentUser(true)->orderBy('nama_ruangan')->get();
 
         // 1. GENERATE SUGGESTED SLOTS (1 query preload di luar loop 8 jam)
         $jadwalSettings = Setting::whereIn('key', ['durasi_jam_pelajaran', 'jam_mulai_pelajaran'])->pluck('value', 'key');

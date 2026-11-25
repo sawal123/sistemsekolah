@@ -534,7 +534,7 @@
                     <div><x-ui.label for="sekolah_pilihan_1" value="Sekolah Tujuan Pilihan 1"
                             class="mb-2" /><x-ui.input wire:model="sekolah_pilihan_1" id="sekolah_pilihan_1" />
                     </div>
-                    <div><x-ui.select label="Jenjang Tujuan" wire:model.live="jenjang_pilihan" :options="['' => 'Pilih Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK']" />
+                    <div><x-ui.select label="Jenjang Tujuan" wire:model.live="jenjang_pilihan" :options="['' => 'Pilih Jenjang', 'SD' => 'SD', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK']" />
                     </div>
                     @if ($jenjang_pilihan === 'SMK')
                         <div><x-ui.select label="Jurusan SMK" wire:model="jurusan_id" :options="['' => 'Pilih Jurusan'] +

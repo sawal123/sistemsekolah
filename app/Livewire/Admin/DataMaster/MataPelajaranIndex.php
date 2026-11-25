@@ -73,7 +73,7 @@ class MataPelajaranIndex extends Component
 
     public function render()
     {
-        $query = Mapel::query();
+        $query = Mapel::forCurrentUser(true);
 
         if ($this->search) {
             $query->where(function ($q) {
@@ -93,6 +93,7 @@ class MataPelajaranIndex extends Component
         return view('livewire.admin.data-master.mata-pelajaran-index', [
             'mapels' => $query->latest()->paginate($this->perPage),
             'jurusans' => Jurusan::where('is_active', true)->orderBy('nama')->get(),
+            'units' => \App\Models\Unit::active()->get(['id', 'kode', 'nama']),
         ]);
     }
 
@@ -127,6 +128,7 @@ class MataPelajaranIndex extends Component
     {
         $this->resetForm();
         $item = Mapel::findOrFail($id);
+        \App\Support\UnitContext::authorizeUnit(auth()->user(), $item->unit_id, false);
         $this->editId = $id;
         $this->kode_mapel = $item->kode_mapel;
         $this->nama_mapel = $item->nama_mapel;
@@ -140,20 +142,36 @@ class MataPelajaranIndex extends Component
 
     public function save()
     {
+        $allowedJenjang = array_merge(\App\Models\Unit::active()->pluck('kode')->toArray() ?: ['SD', 'SMP', 'SMA', 'SMK'], ['Umum']);
+
+        $user = auth()->user();
+        if ($user && $user->isUnitAdmin()) {
+            $unit = \App\Models\Unit::find($user->effectiveUnitId());
+            if ($unit) {
+                $this->jenjang = $unit->kode;
+            }
+        }
+
         $this->validate([
             'kode_mapel' => 'required|string|max:50|unique:mapels,kode_mapel,'.$this->editId,
             'nama_mapel' => 'required|string|max:255',
             'kelompok' => 'required|in:Nasional,Kewilayahan,Peminatan,Mulok',
-            'jenjang' => 'required|in:SMP,SMA,SMK,Umum',
+            'jenjang' => ['required', \Illuminate\Validation\Rule::in($allowedJenjang)],
             'jurusan_id' => 'nullable|required_if:jenjang,SMK|exists:jurusans,id',
         ]);
 
+        $unitId = \App\Support\UnitContext::resolveUnitIdFromJenjang($this->jenjang);
+        \App\Support\UnitContext::authorizeUnit($user, $unitId, false);
+
         if ($this->editId) {
-            Mapel::find($this->editId)->update([
+            $existing = Mapel::findOrFail($this->editId);
+            \App\Support\UnitContext::authorizeUnit($user, $existing->unit_id, false);
+            $existing->update([
                 'kode_mapel' => $this->kode_mapel,
                 'nama_mapel' => $this->nama_mapel,
                 'kelompok' => $this->kelompok,
                 'jenjang' => $this->jenjang,
+                'unit_id' => $unitId,
                 'jurusan_id' => $this->jenjang === 'SMK' ? $this->jurusan_id : null,
             ]);
             $msg = 'Mata Pelajaran berhasil diperbarui!';
@@ -163,6 +181,7 @@ class MataPelajaranIndex extends Component
                 'nama_mapel' => $this->nama_mapel,
                 'kelompok' => $this->kelompok,
                 'jenjang' => $this->jenjang,
+                'unit_id' => $unitId,
                 'jurusan_id' => $this->jenjang === 'SMK' ? $this->jurusan_id : null,
             ]);
             $msg = 'Mata Pelajaran berhasil ditambahkan!';
@@ -177,6 +196,8 @@ class MataPelajaranIndex extends Component
 
     public function confirmDelete($id)
     {
+        $item = Mapel::findOrFail($id);
+        \App\Support\UnitContext::authorizeUnit(auth()->user(), $item->unit_id, false);
         $this->idBeingDeleted = $id;
         $this->dispatch('open-modal', 'confirm-delete-modal');
     }
@@ -184,7 +205,9 @@ class MataPelajaranIndex extends Component
     public function delete()
     {
         if ($this->idBeingDeleted) {
-            Mapel::find($this->idBeingDeleted)->delete();
+            $item = Mapel::findOrFail($this->idBeingDeleted);
+            \App\Support\UnitContext::authorizeUnit(auth()->user(), $item->unit_id, false);
+            $item->delete();
             $this->closeModal();
             $this->dispatch('notify', [
                 'type' => 'success',

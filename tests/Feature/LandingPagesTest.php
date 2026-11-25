@@ -228,7 +228,7 @@ class LandingPagesTest extends TestCase
             'jenjang' => 'SMK',
             'jurusan_id' => $rpl->id,
         ]);
-        $this->assertDatabaseCount('spps', 9);
+        $this->assertDatabaseCount('spps', 10);
         $this->assertSame(
             2,
             Spp::where('jenjang', 'SMK')

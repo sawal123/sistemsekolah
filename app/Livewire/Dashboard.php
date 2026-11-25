@@ -25,7 +25,7 @@ class Dashboard extends Component
     public function render()
     {
         $user = auth()->user();
-        $isGuru = $user && $user->hasRole('guru') && ! $user->hasRole('admin');
+        $isGuru = $user && $user->hasRole('guru') && ! $user->isAnyAdmin();
 
         if ($isGuru) {
             $taAktif = TahunAjaran::where('is_active', true)->first();
@@ -145,9 +145,11 @@ class Dashboard extends Component
 
         return view('livewire.dashboard', [
             'isGuru' => false,
-            'totalSiswa' => Siswa::where('status', 'Aktif')->count(),
-            'totalGuru' => Guru::count(),
-            'totalKelas' => Kelas::count(),
+            'isSuperAdmin' => $user?->isSuperAdmin() ?? false,
+            'activeUnit' => \App\Support\UnitContext::activeUnit($user),
+            'totalSiswa' => Siswa::forCurrentUser()->where('status', 'Aktif')->count(),
+            'totalGuru' => Guru::forCurrentUser()->count(),
+            'totalKelas' => Kelas::forCurrentUser()->count(),
             'userName' => auth()->user()->name ?? 'Admin',
             'visitToday' => (int) ($todayStat->total ?? 0),
             'uniqueVisitToday' => WebsiteVisit::whereBetween('visited_at', [$todayStart, $todayEnd])->distinct('ip_address')->count('ip_address'),
@@ -155,9 +157,9 @@ class Dashboard extends Component
             'visitChart' => $visitChart,
             'maxVisit' => $maxVisit,
             'dangerLogs' => WebsiteVisit::suspicious()->latest('visited_at')->limit(5)->get(),
-            'ppdbOpen' => PpdbGelombang::where('status', 'Dibuka')->count(),
-            'ppdbNew' => PendaftaranMuridBaru::where('status', 'Baru')->count(),
-            'ppdbNeedReview' => PendaftaranMuridBaru::whereIn('status', ['Baru', 'Diperiksa'])->count(),
+            'ppdbOpen' => PpdbGelombang::forCurrentUser(true)->where('status', 'Dibuka')->count(),
+            'ppdbNew' => PendaftaranMuridBaru::forCurrentUser()->where('status', 'Baru')->count(),
+            'ppdbNeedReview' => PendaftaranMuridBaru::forCurrentUser()->whereIn('status', ['Baru', 'Diperiksa'])->count(),
         ]);
     }
 }

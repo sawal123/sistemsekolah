@@ -40,6 +40,7 @@
                         wire:model.live="filterJenjang"
                         :options="[
                             '' => 'Semua Jenjang',
+                            'SD' => 'SD',
                             'SMP' => 'SMP',
                             'SMA' => 'SMA',
                             'SMK' => 'SMK',
@@ -213,7 +214,8 @@
                             wire:model.live="jenjang"
                             :options="[
                                 'Semua' => 'Semua Jenjang',
-                                'SMP' => 'SMP',
+                                'SD' => 'SD',
+                            'SMP' => 'SMP',
                                 'SMA' => 'SMA',
                                 'SMK' => 'SMK'
                             ]"

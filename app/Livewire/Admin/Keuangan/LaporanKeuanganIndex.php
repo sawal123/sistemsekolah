@@ -76,15 +76,21 @@ class LaporanKeuanganIndex extends Component
 
     public function render()
     {
-        // ── Summary Cards ─────────────────────────────────────
-        $totalHariIni = Pembayaran::whereDate('tanggal_bayar', today())
+        $activeUnitId = \App\Support\UnitContext::activeUnitId();
+        $scopePembayaran = fn ($q) => $q->when(
+            $activeUnitId !== null,
+            fn ($pq) => $pq->whereHas('tagihan.siswa', fn ($sq) => $sq->where('unit_id', $activeUnitId))
+        );
+
+        // ── Summary Cards (scoped to unit) ────────────────────
+        $totalHariIni = $scopePembayaran(Pembayaran::whereDate('tanggal_bayar', today()))
             ->sum('nominal');
 
-        $totalBulanIni = Pembayaran::whereMonth('tanggal_bayar', now()->month)
-            ->whereYear('tanggal_bayar', now()->year)
+        $totalBulanIni = $scopePembayaran(Pembayaran::whereMonth('tanggal_bayar', now()->month)
+            ->whereYear('tanggal_bayar', now()->year))
             ->sum('nominal');
 
-        $totalTahunIni = Pembayaran::whereYear('tanggal_bayar', $this->filterTahun)
+        $totalTahunIni = $scopePembayaran(Pembayaran::whereYear('tanggal_bayar', $this->filterTahun))
             ->sum('nominal');
 
         // ── Target & Efektivitas ──────────────────────────────
@@ -95,7 +101,9 @@ class LaporanKeuanganIndex extends Component
             : 0;
 
         // ── Laporan Pembayaran (tabel dengan filter) ──────────
-        $laporanQuery = Pembayaran::with(['tagihan.siswa.user', 'tagihan.siswa.kelas', 'tagihan.spp', 'petugas']);
+        $laporanQuery = $scopePembayaran(
+            Pembayaran::with(['tagihan.siswa.user', 'tagihan.siswa.kelas', 'tagihan.spp', 'petugas'])
+        );
 
         if ($this->filterDateMulai) {
             $laporanQuery->whereDate('tanggal_bayar', '>=', $this->filterDateMulai);
@@ -134,7 +142,7 @@ class LaporanKeuanganIndex extends Component
             );
         }
 
-        $kelass = Kelas::orderBy('nama_kelas')->get();
+        $kelass = Kelas::forCurrentUser()->orderBy('nama_kelas')->get();
 
         return view('livewire.admin.keuangan.laporan-keuangan-index', [
             'totalHariIni' => $totalHariIni,
@@ -166,7 +174,8 @@ class LaporanKeuanganIndex extends Component
             ->active()
             ->get();
 
-        $siswaGroups = Siswa::where('status', 'Aktif')
+        $siswaGroups = Siswa::forCurrentUser()
+            ->where('status', 'Aktif')
             ->selectRaw('jenjang, jurusan_id, COUNT(*) as total')
             ->groupBy('jenjang', 'jurusan_id')
             ->get();
@@ -193,7 +202,8 @@ class LaporanKeuanganIndex extends Component
         }
 
         // Load semua siswa aktif dengan filter
-        $siswaAktif = Siswa::with(['user', 'kelas', 'jurusan'])
+        $siswaAktif = Siswa::forCurrentUser()
+            ->with(['user', 'kelas', 'jurusan'])
             ->where('status', 'Aktif')
             ->when($this->filterJenjang, fn($q) => $q->where('jenjang', $this->filterJenjang))
             ->when($this->filterKelas, fn($q) => $q->where('kelas_id', $this->filterKelas))

@@ -217,7 +217,8 @@ class PendaftaranMuridBaruIndex extends Component
 
     public function render()
     {
-        $query = PendaftaranMuridBaru::with(['gelombang', 'jurusan'])
+        $query = PendaftaranMuridBaru::forCurrentUser()
+            ->with(['gelombang', 'jurusan', 'unit'])
             ->when($this->search !== '', function ($q) {
                 $q->where(function ($sub) {
                     $sub->where('nama_lengkap', 'like', '%' . $this->search . '%')
@@ -688,7 +689,7 @@ class PendaftaranMuridBaruIndex extends Component
             'penghasilan_ortu' => 'nullable|string|max:100',
             'no_telp_ortu' => 'nullable|string|max:30',
             'sekolah_pilihan_1' => 'nullable|string|max:150',
-            'jenjang_pilihan' => 'nullable|in:SMP,SMA,SMK',
+            'jenjang_pilihan' => ['nullable', \Illuminate\Validation\Rule::in(\App\Models\Unit::active()->pluck('kode')->toArray() ?: ['SD', 'SMP', 'SMA', 'SMK'])],
             'jurusan_id' => 'nullable|required_if:jenjang_pilihan,SMK|exists:jurusans,id',
             'jurusan_pilihan_1' => 'nullable|string|max:100',
             'sekolah_pilihan_2' => 'nullable|string|max:150',
@@ -1041,6 +1042,7 @@ class PendaftaranMuridBaruIndex extends Component
     public function konversiKeSiswa(int $id): void
     {
         $ppdb = PendaftaranMuridBaru::with('gelombang')->findOrFail($id);
+        \App\Support\UnitContext::authorizeUnit(auth()->user(), $ppdb->unit_id);
 
         if ($ppdb->status !== 'Diterima') {
             $this->dispatch('notify', [
@@ -1107,7 +1109,12 @@ class PendaftaranMuridBaruIndex extends Component
 
             // 3. Buat Siswa — NISN hanya diisi jika ada, JANGAN diisi dengan NIS
             $jenjang = $ppdb->jenjang_pilihan ?: 'SMP';
+            $unitId = $ppdb->unit_id ?? \App\Support\UnitContext::resolveUnitIdFromJenjang($jenjang);
             $jurusanId = $ppdb->jurusan_id;
+
+            if ($unitId && ! $user->unit_id) {
+                $user->update(['unit_id' => $unitId]);
+            }
 
             $siswaKey = $ppdb->nisn
                 ? ['nisn' => $ppdb->nisn]
@@ -1117,6 +1124,7 @@ class PendaftaranMuridBaruIndex extends Component
                 $siswaKey,
                 [
                     'user_id' => $user->id,
+                    'unit_id' => $unitId,
                     'nisn' => $ppdb->nisn ?: null, // NISN hanya diisi jika ada dari PPDB
                     'nis' => $nis,
                     'jenjang' => $jenjang,

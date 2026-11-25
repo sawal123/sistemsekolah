@@ -15,7 +15,9 @@ class RoleAndUserSeeder extends Seeder
     public function run(): void
     {
         // 1. Buat Role Dasar (Tanpa harus mikir permission detail dulu)
+        $roleSuperAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
         $roleAdmin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'admin_unit', 'guard_name' => 'web']);
         $roleGuru = Role::firstOrCreate(['name' => 'guru', 'guard_name' => 'web']);
         $roleSiswa = Role::firstOrCreate(['name' => 'siswa', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'alumni', 'guard_name' => 'web']);
@@ -26,8 +28,9 @@ class RoleAndUserSeeder extends Seeder
             'email' => 'admin@sekolah.com',
             'password' => Hash::make('password'), // Password default: password
             'staff_position' => 'Kepala Tata Usaha',
+            'unit_id' => null,
         ]);
-        $admin->syncRoles([$roleAdmin]);
+        $admin->syncRoles([$roleSuperAdmin, $roleAdmin]);
 
         // 3. Buat Akun Dummy Guru
         $guru = User::updateOrCreate(['email' => 'guru@sekolah.com'], [

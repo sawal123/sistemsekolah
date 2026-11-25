@@ -17,6 +17,8 @@ class DataGuruDetail extends Component
 
     public function mount(Guru $guru)
     {
+        \App\Support\UnitContext::authorizeUnit(auth()->user(), $guru->unit_id);
+
         $this->taAktif = TahunAjaran::where('is_active', true)->first();
         $taId = $this->taAktif?->id;
 

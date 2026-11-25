@@ -425,6 +425,19 @@
                         @error('newUserStaffPosition') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
                     </div>
                 </div>
+
+                @if($isSuperAdmin)
+                    <div>
+                        <x-ui.label for="newUserUnitId" value="Unit Sekolah (Kosongkan untuk Super Admin / Lintas Unit)" />
+                        <select wire:model="newUserUnitId" id="newUserUnitId" class="mt-1 w-full rounded-xl border border-indigo-500/20 bg-white/70 dark:bg-white/5 px-3 py-2 text-sm txt-primary outline-none focus:border-indigo-500">
+                            <option value="">Semua Unit (Yayasan / Super Admin)</option>
+                            @foreach($units ?? [] as $unit)
+                                <option value="{{ $unit->id }}">{{ $unit->kode }} — {{ $unit->nama }}</option>
+                            @endforeach
+                        </select>
+                        @error('newUserUnitId') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                    </div>
+                @endif
             </div>
 
             <div class="flex justify-end gap-3 pt-3 border-t border-indigo-500/10">

@@ -58,11 +58,24 @@ class ERaporIndex extends Component
     private function validateWaliKelasAccess(): bool
     {
         $user = auth()->user();
-        if (!$user || !$user->hasRole('guru') || $user->hasRole('admin')) {
+        if (! $user || $user->isSuperAdmin()) {
             return true;
         }
 
-        if (!$user->guru || !$this->filterKelas) {
+        if ($user->isUnitAdmin()) {
+            if (! $this->filterKelas) {
+                return true;
+            }
+            $kelas = Kelas::find($this->filterKelas);
+
+            return $kelas && \App\Support\UnitContext::canAccessUnit($user, $kelas->unit_id);
+        }
+
+        if (! $user->hasRole('guru')) {
+            return true;
+        }
+
+        if (! $user->guru || ! $this->filterKelas) {
             return false;
         }
 
@@ -228,7 +241,7 @@ class ERaporIndex extends Component
     public function render()
     {
         $user = auth()->user();
-        $isGuru = $user && $user->hasRole('guru') && ! $user->hasRole('admin');
+        $isGuru = $user && $user->hasRole('guru') && ! $user->isAnyAdmin();
 
         // Authorization Logic
         if ($isGuru && $user->guru) {
@@ -247,7 +260,7 @@ class ERaporIndex extends Component
                 $this->filterKelas = $listKelas->first()->id;
             }
         } else {
-            $listKelas = Kelas::orderBy('jenjang')->orderBy('nama_kelas')->get();
+            $listKelas = Kelas::forCurrentUser()->orderBy('jenjang')->orderBy('nama_kelas')->get();
         }
 
         $listTahunAjaran = TahunAjaran::orderBy('tahun', 'desc')->orderBy('semester')->get();
@@ -256,7 +269,7 @@ class ERaporIndex extends Component
         $raporsMap = collect();
         $rankings = [];
 
-        if ($this->filterKelas && $this->filterTahunAjaran && (! $isGuru || $this->validateWaliKelasAccess())) {
+        if ($this->filterKelas && $this->filterTahunAjaran && $this->validateWaliKelasAccess()) {
             // Eager load nilais + mapel to avoid N+1 inside Rapor getRataRataNilaiAttribute
             $taId = $this->filterTahunAjaran;
             $siswas = Siswa::with(['user', 'nilais' => function ($q) use ($taId) {

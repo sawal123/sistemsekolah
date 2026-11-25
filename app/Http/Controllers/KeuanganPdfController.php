@@ -24,16 +24,24 @@ class KeuanganPdfController extends Controller
             'tagihan' => fn ($q) => $q->withSum('pembayarans', 'nominal'),
             'tagihan.siswa.user',
             'tagihan.siswa.kelas',
+            'tagihan.siswa.unit',
             'tagihan.spp.tahunAjaran',
             'petugas',
         ])->whereIn('id', $ids)->get();
 
         abort_if($pembayarans->isEmpty(), 404, 'Data pembayaran tidak ditemukan.');
 
-        // ── Dynamic Logo/Nama Sekolah dari Settings ────────────
+        // Pastikan user hanya mencetak kuitansi untuk unit yang menjadi hak aksesnya
+        $user = auth()->user();
+        foreach ($pembayarans as $p) {
+            \App\Support\UnitContext::authorizeUnit($user, $p->tagihan?->siswa?->unit_id);
+        }
+
+        // ── Dynamic Logo/Nama Sekolah: prioritaskan identitas Unit siswa, fallback ke Settings ──
+        $unit        = $pembayarans->first()?->tagihan?->siswa?->unit;
         $settings    = Setting::whereIn('key', ['nama_sekolah', 'logo', 'alamat', 'telepon'])->pluck('value', 'key');
-        $namaSekolah = $settings->get('nama_sekolah', 'Sistem Informasi Sekolah');
-        $logoKey     = $settings->get('logo');
+        $namaSekolah = $unit?->nama ?: $settings->get('nama_sekolah', 'Sistem Informasi Sekolah');
+        $logoKey     = $unit?->logo ?: $settings->get('logo');
         $logoPath    = null;
 
         if ($logoKey) {
@@ -49,8 +57,8 @@ class KeuanganPdfController extends Controller
             'pembayarans'   => $pembayarans,
             'namaSekolah'   => $namaSekolah,
             'logoPath'      => $logoPath,
-            'alamat'        => $settings->get('alamat', ''),
-            'telepon'       => $settings->get('telepon', ''),
+            'alamat'        => $unit?->alamat ?: $settings->get('alamat', ''),
+            'telepon'       => $unit?->telepon ?: $settings->get('telepon', ''),
             'nomorKuitansi' => $nomorKuitansi,
             'tanggalCetak'  => now()->translatedFormat('d F Y'),
             'petugas'       => auth()->user()?->name ?? 'Admin',

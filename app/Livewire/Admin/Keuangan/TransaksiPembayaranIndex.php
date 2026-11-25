@@ -64,7 +64,8 @@ class TransaksiPembayaranIndex extends Component
             return [];
         }
 
-        return Siswa::with(['kelas', 'user', 'jurusan'])
+        return Siswa::forCurrentUser()
+            ->with(['kelas', 'user', 'jurusan'])
             ->where('status', 'Aktif')
             ->where(function ($q) {
                 $q->where('nisn', 'like', '%' . $this->searchQuery . '%')
@@ -95,6 +96,7 @@ class TransaksiPembayaranIndex extends Component
     public function selectSiswa(int $id): void
     {
         $siswa = Siswa::with(['kelas', 'user', 'jurusan'])->findOrFail($id);
+        \App\Support\UnitContext::authorizeUnit(auth()->user(), $siswa->unit_id);
 
         $this->selectedSiswaId = $id;
         $this->selectedSiswaData = [

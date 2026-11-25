@@ -145,7 +145,7 @@
                 </div>
             @endif
             @php
-                $jenjangMap = ['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK'];
+                $jenjangMap = ['' => 'Semua Jenjang', 'SD' => 'SD', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK'];
             @endphp
             <div class="w-44">
                 <x-ui.select wire:model.live="filterJenjang" :options="$jenjangMap" />

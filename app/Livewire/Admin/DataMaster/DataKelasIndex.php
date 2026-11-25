@@ -9,7 +9,10 @@ use App\Models\Rombel;
 use App\Models\AnggotaRombel;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Models\Unit;
+use App\Support\UnitContext;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -76,7 +79,8 @@ class DataKelasIndex extends Component
     {
         $this->resetValidation();
         $this->reset(['nama_kelas', 'wali_kelas_id', 'jurusan_id', 'editId']);
-        $this->jenjang = 'SMP';
+        $activeUnit = UnitContext::activeUnit();
+        $this->jenjang = $activeUnit?->kode ?? 'SMP';
         $this->isModalOpen = true;
         $this->dispatch('open-modal', 'kelas-form');
     }
@@ -91,8 +95,39 @@ class DataKelasIndex extends Component
 
     public function save()
     {
-        $rules = $this->rules;
-        $this->validate($rules);
+        $allowedCodes = Unit::active()->pluck('kode')->toArray();
+        if (empty($allowedCodes)) {
+            $allowedCodes = ['SD', 'SMP', 'SMA', 'SMK'];
+        }
+
+        $user = auth()->user();
+        if ($user && $user->isUnitAdmin()) {
+            $unit = Unit::find($user->effectiveUnitId());
+            if ($unit) {
+                $this->jenjang = $unit->kode;
+            }
+        }
+
+        $this->validate([
+            'nama_kelas' => 'required|string|max:50',
+            'jenjang' => ['required', Rule::in($allowedCodes)],
+            'jurusan_id' => 'nullable|required_if:jenjang,SMK|exists:jurusans,id',
+            'wali_kelas_id' => 'nullable|exists:gurus,id',
+        ]);
+
+        $unitId = UnitContext::resolveUnitIdFromJenjang($this->jenjang);
+        UnitContext::authorizeUnit($user, $unitId);
+
+        if ($this->editId) {
+            $existing = Kelas::findOrFail($this->editId);
+            UnitContext::authorizeUnit($user, $existing->unit_id);
+        }
+
+        if ($this->wali_kelas_id) {
+            $guruWali = Guru::findOrFail($this->wali_kelas_id);
+            UnitContext::authorizeUnit($user, $guruWali->unit_id);
+        }
+
         $tahunAjaranAktif = TahunAjaran::where('is_active', true)->first();
 
         if ($tahunAjaranAktif && $this->wali_kelas_id) {
@@ -111,6 +146,7 @@ class DataKelasIndex extends Component
         $kelas = Kelas::updateOrCreate(['id' => $this->editId], [
             'nama_kelas' => $this->nama_kelas,
             'jenjang' => $this->jenjang,
+            'unit_id' => $unitId,
             'jurusan_id' => $this->jenjang === 'SMK' ? $this->jurusan_id : null,
             'wali_kelas_id' => $this->wali_kelas_id ?: null,
         ]);
@@ -139,6 +175,8 @@ class DataKelasIndex extends Component
     {
         $this->resetValidation();
         $kelas = Kelas::findOrFail($id);
+        UnitContext::authorizeUnit(auth()->user(), $kelas->unit_id);
+
         $this->editId = $id;
         $this->nama_kelas = $kelas->nama_kelas;
         $this->jenjang = $kelas->jenjang;
@@ -152,6 +190,7 @@ class DataKelasIndex extends Component
     public function confirmDelete($id)
     {
         $kelas = Kelas::withCount('siswas')->findOrFail($id);
+        UnitContext::authorizeUnit(auth()->user(), $kelas->unit_id);
 
         $this->deleteId = $kelas->id;
         $this->deleteClassName = $kelas->nama_kelas;
@@ -170,6 +209,7 @@ class DataKelasIndex extends Component
         }
 
         $kelas = Kelas::with(['siswas'])->findOrFail($this->deleteId);
+        UnitContext::authorizeUnit(auth()->user(), $kelas->unit_id);
         $studentCount = $kelas->siswas->count();
         $tahunAjaranAktif = TahunAjaran::where('is_active', true)->first();
 
@@ -218,12 +258,14 @@ class DataKelasIndex extends Component
     public function viewStudents($id)
     {
         $this->selectedKelas = Kelas::with(['siswas.user'])->findOrFail($id);
+        UnitContext::authorizeUnit(auth()->user(), $this->selectedKelas->unit_id);
         $this->dispatch('open-modal', 'view-students-modal');
     }
 
     public function removeStudent($siswaId)
     {
         $siswa = Siswa::findOrFail($siswaId);
+        UnitContext::authorizeUnit(auth()->user(), $siswa->unit_id);
         $siswa->update(['kelas_id' => null]);
         $tahunAjaranAktif = TahunAjaran::where('is_active', true)->first();
 
@@ -246,7 +288,8 @@ class DataKelasIndex extends Component
 
     public function render()
     {
-        $query = Kelas::with(['wali_kelas.user', 'jurusan'])
+        $query = Kelas::forCurrentUser()
+            ->with(['wali_kelas.user', 'jurusan', 'unit'])
             ->withCount('siswas')
             ->when($this->search, function ($q) {
                 $q->where('nama_kelas', 'like', '%' . $this->search . '%');
@@ -258,35 +301,38 @@ class DataKelasIndex extends Component
         $tahunAjaranAktif = TahunAjaran::where('is_active', true)->first();
 
         // Get teachers for dropdown with "Already Wali" check
-        $gurus = Guru::with(['user', 'rombels' => function ($q) use ($tahunAjaranAktif) {
-            $q->with('kelas')
-                ->when($tahunAjaranAktif, fn($query) => $query->where('tahun_ajaran_id', $tahunAjaranAktif->id));
-        }])->get()->mapWithKeys(function ($guru) {
-            $label = $guru->user->name;
-            $rombelAktif = $guru->rombels->first();
-            if ($rombelAktif?->kelas && $rombelAktif->kelas->id != $this->editId) {
-                $label .= ' (Sudah Wali Kelas: ' . $rombelAktif->kelas->nama_kelas . ')';
-            }
+        $gurus = Guru::forCurrentUser()
+            ->with(['user', 'rombels' => function ($q) use ($tahunAjaranAktif) {
+                $q->with('kelas')
+                    ->when($tahunAjaranAktif, fn($query) => $query->where('tahun_ajaran_id', $tahunAjaranAktif->id));
+            }])->get()->mapWithKeys(function ($guru) {
+                $label = $guru->user->name;
+                $rombelAktif = $guru->rombels->first();
+                if ($rombelAktif?->kelas && $rombelAktif->kelas->id != $this->editId) {
+                    $label .= ' (Sudah Wali Kelas: ' . $rombelAktif->kelas->nama_kelas . ')';
+                }
 
-            return [$guru->id => $label];
-        })->toArray();
+                return [$guru->id => $label];
+            })->toArray();
 
         // Add null option explicitly as key-value
         $gurus = ['' => 'Pilih Wali Kelas'] + $gurus;
 
-        // General Stats
+        // General Stats (scoped to current unit)
         $stats = [
-            'total_kelas' => Kelas::count(),
-            'total_siswa' => Siswa::whereNotNull('kelas_id')->count(),
-            'smp_count' => Kelas::where('jenjang', 'SMP')->count(),
-            'sma_count' => Kelas::where('jenjang', 'SMA')->count(),
-            'smk_count' => Kelas::where('jenjang', 'SMK')->count(),
+            'total_kelas' => Kelas::forCurrentUser()->count(),
+            'total_siswa' => Siswa::forCurrentUser()->whereNotNull('kelas_id')->count(),
+            'sd_count' => Kelas::forCurrentUser()->where('jenjang', 'SD')->count(),
+            'smp_count' => Kelas::forCurrentUser()->where('jenjang', 'SMP')->count(),
+            'sma_count' => Kelas::forCurrentUser()->where('jenjang', 'SMA')->count(),
+            'smk_count' => Kelas::forCurrentUser()->where('jenjang', 'SMK')->count(),
         ];
 
         return view('livewire.admin.data-master.data-kelas-index', [
             'kelas' => $query->latest()->paginate($this->perPage),
             'gurus' => $gurus,
             'jurusans' => Jurusan::where('is_active', true)->orderBy('nama')->get(),
+            'units' => Unit::active()->get(['id', 'kode', 'nama']),
             'stats' => $stats,
         ]);
     }

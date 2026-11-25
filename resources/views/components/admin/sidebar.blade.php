@@ -51,7 +51,7 @@
         </a>
         @endhasrole
 
-        @hasrole('admin')
+        @if(auth()->user()?->isAnyAdmin())
         <p class="txt-muted px-3 pt-4 pb-1"
             style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
             PPDB</p>
@@ -65,9 +65,9 @@
                 </svg></span>
             Pendaftaran Murid Baru
         </a>
-        @endhasrole
+        @endif
 
-        @hasrole('admin')
+        @if(auth()->user()?->isAnyAdmin())
         {{-- ── Data Master ── --}}
         <p class="txt-muted px-3 pt-4 pb-1"
             style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
@@ -93,6 +93,12 @@
                 </svg>
             </button>
             <div class="submenu" :class="{ 'open': open }">
+                @if(auth()->user()?->isSuperAdmin())
+                <a href="{{ route('admin.data-master.unit-sekolah') }}" wire:navigate
+                    class="sub-item {{ request()->routeIs('admin.data-master.unit-sekolah*') ? 'active' : '' }}"><span
+                        style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Unit
+                    Sekolah (Jenjang)</a>
+                @endif
                 <a href="{{ route('admin.data-master.tahun-ajaran') }}" wire:navigate
                     class="sub-item {{ request()->routeIs('admin.data-master.tahun-ajaran*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Tahun
@@ -111,9 +117,9 @@
                     Jurusan SMK</a>
             </div>
         </div>
-        @endhasrole
+        @endif
 
-        @hasrole('admin')
+        @if(auth()->user()?->isAnyAdmin())
         {{-- ── Civitas Akademik ── --}}
         <p class="txt-muted px-3 pt-4 pb-1"
             style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
@@ -148,9 +154,9 @@
                     Pengguna</a>
             </div>
         </div>
-        @endhasrole
+        @endif
 
-        @hasrole('admin|guru')
+        @if(auth()->user()?->isAnyAdmin() || auth()->user()?->hasRole('guru'))
         {{-- ── KBM & Laporan ── --}}
         <p class="txt-muted px-3 pt-4 pb-1"
             style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
@@ -189,9 +195,9 @@
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Kalender Akademik</a>
             </div>
         </div>
-        @endhasrole
+        @endif
 
-        @hasrole('admin')
+        @if(auth()->user()?->isAnyAdmin())
         {{-- ── Keuangan ── --}}
         <p class="txt-muted px-3 pt-4 pb-1"
             style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
@@ -229,9 +235,9 @@
                     Keuangan</a>
             </div>
         </div>
-        @endhasrole
+        @endif
 
-        @hasrole('admin')
+        @if(auth()->user()?->isSuperAdmin())
         {{-- ── Sarana & Prasarana ── --}}
         <p class="txt-muted px-3 pt-4 pb-1"
             style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
@@ -243,9 +249,9 @@
                 </svg></span>
             Fasilitas Sekolah
         </a>
-        @endhasrole
+        @endif
 
-        @hasrole('admin')
+        @if(auth()->user()?->isAnyAdmin())
         {{-- ── Kelulusan ── --}}
         <p class="txt-muted px-3 pt-4 pb-1"
             style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
@@ -257,9 +263,9 @@
                 </svg></span>
             Jejak Alumni
         </a>
-        @endhasrole
+        @endif
 
-        @hasrole('admin|guru')
+        @if(auth()->user()?->isAnyAdmin() || auth()->user()?->hasRole('guru'))
         {{-- Blog --}}
         <p class="txt-muted px-3 pt-4 pb-1"
             style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
@@ -273,9 +279,9 @@
                 </svg></span>
             Artikel, Tag & Komentar
         </a>
-        @endhasrole
+        @endif
 
-        @hasrole('admin')
+        @if(auth()->user()?->isSuperAdmin())
         {{-- ── Website ── --}}
         <p class="txt-muted px-3 pt-4 pb-1"
             style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">
@@ -299,7 +305,6 @@
                 </svg>
             </button>
             <div class="submenu" :class="{ 'open': open }">
-                @hasrole('admin')
                 <a href="{{ route('admin.website.asset-media') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.asset-media*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Asset Media</a>
                 <a href="{{ route('admin.website.galeri-slider') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.galeri-slider*') ? 'active' : '' }}"><span
@@ -315,10 +320,9 @@
                 <a href="{{ route('admin.website.pengaturan-umum') }}" wire:navigate class="sub-item {{ request()->routeIs('admin.website.pengaturan-umum*') ? 'active' : '' }}"><span
                         style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.4;"></span>Pengaturan
                     Umum</a>
-                @endhasrole
             </div>
         </div>
-        @endhasrole
+        @endif
     </nav>
 
     {{-- User bottom --}}

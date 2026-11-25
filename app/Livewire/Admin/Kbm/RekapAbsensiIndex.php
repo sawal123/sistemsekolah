@@ -57,11 +57,24 @@ class RekapAbsensiIndex extends Component
     private function validateWaliKelasAccess(): bool
     {
         $user = auth()->user();
-        if (!$user || !$user->hasRole('guru') || $user->hasRole('admin')) {
+        if (! $user || $user->isSuperAdmin()) {
             return true;
         }
 
-        if (!$user->guru || !$this->filterKelas) {
+        if ($user->isUnitAdmin()) {
+            if (! $this->filterKelas) {
+                return true;
+            }
+            $kelas = Kelas::find($this->filterKelas);
+
+            return $kelas && \App\Support\UnitContext::canAccessUnit($user, $kelas->unit_id);
+        }
+
+        if (! $user->hasRole('guru')) {
+            return true;
+        }
+
+        if (! $user->guru || ! $this->filterKelas) {
             return false;
         }
 
@@ -324,7 +337,7 @@ class RekapAbsensiIndex extends Component
         }
 
         $user = auth()->user();
-        $isGuru = $user && $user->hasRole('guru') && ! $user->hasRole('admin');
+        $isGuru = $user && $user->hasRole('guru') && ! $user->isAnyAdmin();
 
         if ($isGuru && $user->guru) {
             $tahunAjaranId = $this->filterBulan && $this->filterTahun
@@ -345,14 +358,14 @@ class RekapAbsensiIndex extends Component
                 $this->filterKelas = $listKelas->first()->id;
             }
         } else {
-            $listKelas = Kelas::orderBy('jenjang')->orderBy('nama_kelas')->get();
+            $listKelas = Kelas::forCurrentUser()->orderBy('jenjang')->orderBy('nama_kelas')->get();
         }
 
         $siswas = [];
         $kalender = [];
         $hariEfektif = 0;
 
-        if ($this->filterKelas && $this->filterBulan && $this->filterTahun && (! $isGuru || $this->validateWaliKelasAccess())) {
+        if ($this->filterKelas && $this->filterBulan && $this->filterTahun && $this->validateWaliKelasAccess()) {
             $startDate = Carbon::createFromDate($this->filterTahun, $this->filterBulan, 1)->startOfMonth();
             $endDate = $startDate->copy()->endOfMonth();
             $siswas = Siswa::with('user')

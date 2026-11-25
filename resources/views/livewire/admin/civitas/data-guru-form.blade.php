@@ -68,6 +68,19 @@
                 @error('email') <span style="color:red;font-size:11px;">{{ $message }}</span> @enderror
             </div>
 
+            @if(auth()->user()?->isSuperAdmin())
+            <div>
+                <x-ui.label value="Unit Sekolah (Homebase)" class="mb-2" />
+                <select wire:model="unit_id" class="block w-full rounded-xl border-2 glass focus:border-indigo-500 txt-primary py-2.5 px-3 text-sm outline-none">
+                    <option value="">Pilih Unit Sekolah</option>
+                    @foreach($units ?? [] as $unit)
+                        <option value="{{ $unit->id }}">{{ $unit->kode }} — {{ $unit->nama }}</option>
+                    @endforeach
+                </select>
+                @error('unit_id') <span style="color:red;font-size:11px;">{{ $message }}</span> @enderror
+            </div>
+            @endif
+
             <div>
                 <x-ui.label value="Unggah Foto Profil" class="mb-2" />
                 <input wire:model="foto" type="file" accept="image/*" style="width:100%;font-size:13px;" class="txt-muted">

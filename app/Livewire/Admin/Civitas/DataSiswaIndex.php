@@ -8,7 +8,10 @@ use App\Models\Rombel;
 use App\Models\Setting;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Models\Unit;
 use App\Models\User;
+use App\Support\UnitContext;
+use Illuminate\Validation\Rule;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -136,6 +139,10 @@ class DataSiswaIndex extends Component
             'status',
         ]);
         $this->foto = null; // Explicitly clear file instance
+        $activeUnit = UnitContext::activeUnit();
+        if ($activeUnit) {
+            $this->jenjang = $activeUnit->kode;
+        }
         $this->isModalOpen = true;
         $this->dispatch('open-modal', 'siswa-form');
     }
@@ -148,14 +155,16 @@ class DataSiswaIndex extends Component
 
     public function showDetail($id)
     {
-        $this->detailSiswa = Siswa::with(['user', 'kelas'])->findOrFail($id);
+        $this->detailSiswa = Siswa::with(['user', 'kelas', 'unit'])->findOrFail($id);
+        UnitContext::authorizeUnit(auth()->user(), $this->detailSiswa->unit_id);
         $this->schoolSettings = Setting::pluck('value', 'key')->toArray();
         $this->dispatch('open-modal', 'view-detail-modal');
     }
 
     public function downloadPdf($id)
     {
-        $siswa = Siswa::with(['user', 'kelas'])->findOrFail($id);
+        $siswa = Siswa::with(['user', 'kelas', 'unit'])->findOrFail($id);
+        UnitContext::authorizeUnit(auth()->user(), $siswa->unit_id);
         $settings = Setting::pluck('value', 'key')->toArray();
 
         // Use storage_path for absolute internal path to file
@@ -177,19 +186,40 @@ class DataSiswaIndex extends Component
 
     public function save()
     {
+        $allowedCodes = Unit::active()->pluck('kode')->toArray();
+        if (empty($allowedCodes)) {
+            $allowedCodes = ['SD', 'SMP', 'SMA', 'SMK'];
+        }
+
+        $authUser = auth()->user();
+        if ($authUser && $authUser->isUnitAdmin()) {
+            $unit = Unit::find($authUser->effectiveUnitId());
+            if ($unit) {
+                $this->jenjang = $unit->kode;
+            }
+        }
+
         $this->validate([
             'name' => 'required|string|max:255',
             'email' => 'nullable|email|unique:users,email,' . ($this->editId ? Siswa::find($this->editId)->user_id : ''),
             'nisn' => 'required|string|unique:siswas,nisn,' . $this->editId,
             'nis' => 'required|string|unique:siswas,nis,' . $this->editId,
-            'jenjang' => 'required|in:SMP,SMA,SMK',
+            'jenjang' => ['required', Rule::in($allowedCodes)],
             'kelas_id' => 'required|exists:kelas,id',
             'status' => 'required|in:Aktif,Lulus,Pindah,Dikeluarkan',
             'foto' => 'nullable|image|max:1024',
         ]);
 
-        // Validasi kecocokan jenjang kelas SEBELUM membuat User (cegah orphan)
+        // Validasi kecocokan jenjang kelas & otorisasi unit SEBELUM membuat User (cegah orphan)
         $kelas = Kelas::findOrFail($this->kelas_id);
+        $unitId = $kelas->unit_id ?? UnitContext::resolveUnitIdFromJenjang($this->jenjang);
+        UnitContext::authorizeUnit($authUser, $unitId);
+
+        if ($this->editId) {
+            $existingSiswa = Siswa::findOrFail($this->editId);
+            UnitContext::authorizeUnit($authUser, $existingSiswa->unit_id);
+        }
+
         if ($kelas->jenjang !== $this->jenjang) {
             $this->addError('kelas_id', 'Kelas tidak sesuai dengan jenjang yang dipilih.');
 
@@ -212,13 +242,14 @@ class DataSiswaIndex extends Component
         }
 
         // Bungkus pembuatan User + Siswa + Rombel dalam transaksi
-        DB::transaction(function () use ($kelas, $finalEmail, $finalPassword) {
+        DB::transaction(function () use ($kelas, $unitId, $finalEmail, $finalPassword) {
             if ($this->editId) {
                 $siswa = Siswa::findOrFail($this->editId);
                 $user = $siswa->user;
                 $user->update([
                     'name' => $this->name,
                     'email' => $finalEmail,
+                    'unit_id' => $unitId,
                 ]);
                 if ($this->password) {
                     $user->update(['password' => Hash::make($this->password)]);
@@ -228,6 +259,7 @@ class DataSiswaIndex extends Component
                     'name' => $this->name,
                     'email' => $finalEmail,
                     'password' => Hash::make($finalPassword),
+                    'unit_id' => $unitId,
                 ]);
                 $user->assignRole('siswa');
             }
@@ -244,6 +276,7 @@ class DataSiswaIndex extends Component
             // 3. Process Siswa Data
             $siswaData = [
                 'user_id' => $user->id,
+                'unit_id' => $unitId,
                 'kelas_id' => $this->kelas_id,
                 'nisn' => $this->nisn,
                 'nis' => $this->nis,
@@ -337,6 +370,7 @@ class DataSiswaIndex extends Component
         $this->foto = null; // Fix: clear any previous upload instance
 
         $siswa = Siswa::with('user')->findOrFail($id);
+        UnitContext::authorizeUnit(auth()->user(), $siswa->unit_id);
         $this->editId = $id;
 
         $this->name = $siswa->user->name;
@@ -368,6 +402,7 @@ class DataSiswaIndex extends Component
     public function resetPassword($siswaId)
     {
         $siswa = Siswa::with('user')->findOrFail($siswaId);
+        UnitContext::authorizeUnit(auth()->user(), $siswa->unit_id);
         if (! $siswa->user) {
             $this->dispatch('notify', ['type' => 'error', 'message' => 'Akun login untuk siswa ini tidak ditemukan.']);
 
@@ -391,6 +426,7 @@ class DataSiswaIndex extends Component
     public function delete($id)
     {
         $siswa = Siswa::with('user')->findOrFail($id);
+        UnitContext::authorizeUnit(auth()->user(), $siswa->unit_id);
 
         DB::transaction(function () use ($siswa) {
             // 1. Update status siswa
@@ -422,7 +458,8 @@ class DataSiswaIndex extends Component
 
     public function render()
     {
-        $query = Siswa::with(['user:id,name,email,is_active', 'kelas:id,nama_kelas,jenjang,jurusan_id', 'jurusan:id,kode,nama_jurusan'])
+        $query = Siswa::forCurrentUser()
+            ->with(['user:id,name,email,is_active', 'kelas:id,nama_kelas,jenjang,jurusan_id', 'jurusan:id,kode,nama_jurusan', 'unit:id,kode,nama'])
             ->when($this->search, function ($q) {
                 $q->where(function ($sub) {
                     $sub->where('nis', 'like', '%' . $this->search . '%')
@@ -442,20 +479,22 @@ class DataSiswaIndex extends Component
                 $q->where('status', $this->filterStatus);
             });
 
-        $availableClasses = Kelas::select('id', 'nama_kelas', 'jenjang')
+        $availableClasses = Kelas::forCurrentUser()
+            ->select('id', 'nama_kelas', 'jenjang')
             ->when($this->filterJenjang, function ($q) {
                 $q->where('jenjang', $this->filterJenjang);
             })->get();
 
         // Lazy load form classes only when modal is open to save database I/O
         $formClasses = $this->isModalOpen
-            ? Kelas::with('jurusan:id,kode,nama_jurusan')
+            ? Kelas::forCurrentUser()
+                ->with('jurusan:id,kode,nama_jurusan')
                 ->select('id', 'nama_kelas', 'jenjang', 'jurusan_id')
                 ->where('jenjang', $this->jenjang)
                 ->get()
             : collect();
 
-        $statRow = Siswa::selectRaw("
+        $statRow = Siswa::forCurrentUser()->selectRaw("
             COUNT(*) as total,
             SUM(CASE WHEN status = 'Aktif' THEN 1 ELSE 0 END) as aktif,
             SUM(CASE WHEN status = 'Lulus' THEN 1 ELSE 0 END) as lulus,

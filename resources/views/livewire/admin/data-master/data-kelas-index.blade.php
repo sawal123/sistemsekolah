@@ -97,7 +97,7 @@
         
             <div class="lg:col-span-4 flex items-center gap-2">
         
-                <x-ui.select wire:model.live="filterJenjang" :options="['' => 'Semua Jenjang', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK']"
+                <x-ui.select wire:model.live="filterJenjang" :options="['' => 'Semua Jenjang', 'SD' => 'SD', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK']"
                     placeholder="Filter Jenjang" />
         
             </div>
@@ -217,7 +217,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <x-ui.label value="Jenjang" class="mb-2" />
-                    <x-ui.select wire:model.live="jenjang" :options="['SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK']"
+                    <x-ui.select wire:model.live="jenjang" :options="['SD' => 'SD', 'SMP' => 'SMP', 'SMA' => 'SMA', 'SMK' => 'SMK']"
                         placeholder="Pilih Jenjang" />
                     @error('jenjang') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                 </div>

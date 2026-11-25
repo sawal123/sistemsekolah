@@ -3,7 +3,9 @@
 namespace App\Livewire\Admin\Civitas;
 
 use App\Models\Guru;
+use App\Models\Unit;
 use App\Models\User;
+use App\Support\UnitContext;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -30,11 +32,14 @@ class DataGuruForm extends Component
     public $email;
     public $foto;
     public $existing_foto;
+    public $unit_id;
 
     public function mount(?Guru $guru = null)
     {
         if ($guru && $guru->exists) {
+            UnitContext::authorizeUnit(auth()->user(), $guru->unit_id);
             $this->guru = $guru;
+            $this->unit_id = $guru->unit_id;
             $this->nip = $guru->nip;
             $this->nama_lengkap = $guru->user->name ?? '';
             $this->tempat_lahir = $guru->tempat_lahir;
@@ -45,13 +50,21 @@ class DataGuruForm extends Component
             $this->jabatan = $guru->jabatan;
             $this->email = $guru->user->email ?? '';
             $this->existing_foto = $guru->foto;
+        } else {
+            $this->unit_id = UnitContext::activeUnitId();
         }
     }
 
     public function save()
     {
+        $authUser = auth()->user();
+        if ($authUser && $authUser->isUnitAdmin()) {
+            $this->unit_id = $authUser->effectiveUnitId();
+        }
+
         $rules = [
             'nama_lengkap' => 'required|string|max:255',
+            'unit_id' => 'nullable|exists:units,id',
             'tempat_lahir' => 'nullable|string|max:255',
             'tanggal_lahir' => 'required|date',
             'agama' => 'nullable|string',
@@ -62,6 +75,7 @@ class DataGuruForm extends Component
         ];
 
         if ($this->guru && $this->guru->exists) {
+            UnitContext::authorizeUnit($authUser, $this->guru->unit_id);
             $rules['nip'] = 'required|string|unique:gurus,nip,' . $this->guru->id;
             $rules['email'] = 'nullable|email|unique:users,email,' . $this->guru->user_id;
         } else {
@@ -70,6 +84,8 @@ class DataGuruForm extends Component
         }
 
         $this->validate($rules);
+        $resolvedUnitId = $this->unit_id ?: null;
+        UnitContext::authorizeUnit($authUser, $resolvedUnitId, $authUser?->isSuperAdmin() ?? false);
 
         $email = $this->email;
         if (empty($email)) {
@@ -87,10 +103,12 @@ class DataGuruForm extends Component
             $user->update([
                 'name' => $this->nama_lengkap,
                 'email' => $email,
+                'unit_id' => $resolvedUnitId,
             ]);
             $this->ensureGuruRole($user);
 
             $this->guru->update([
+                'unit_id' => $resolvedUnitId,
                 'nip' => $this->nip,
                 'tempat_lahir' => $this->tempat_lahir,
                 'tanggal_lahir' => $this->tanggal_lahir,
@@ -111,12 +129,14 @@ class DataGuruForm extends Component
                 'email' => $email,
                 'password' => Hash::make($password),
                 'staff_position' => null,
+                'unit_id' => $resolvedUnitId,
             ]);
 
             $this->ensureGuruRole($user);
 
             Guru::create([
                 'user_id' => $user->id,
+                'unit_id' => $resolvedUnitId,
                 'nip' => $this->nip,
                 'tempat_lahir' => $this->tempat_lahir,
                 'tanggal_lahir' => $this->tanggal_lahir,
@@ -135,7 +155,9 @@ class DataGuruForm extends Component
 
     public function render()
     {
-        return view('livewire.admin.civitas.data-guru-form');
+        return view('livewire.admin.civitas.data-guru-form', [
+            'units' => Unit::active()->get(['id', 'kode', 'nama']),
+        ]);
     }
 
     private function ensureGuruRole(User $user): void

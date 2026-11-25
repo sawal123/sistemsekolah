@@ -7,6 +7,7 @@ use App\Models\Jadwal;
 use App\Models\Kelas;
 use App\Models\Rombel;
 use App\Models\TahunAjaran;
+use App\Support\UnitContext;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
@@ -39,6 +40,7 @@ class DataGuruIndex extends Component
     public function resetPassword($guruId)
     {
         $guru = Guru::findOrFail($guruId);
+        UnitContext::authorizeUnit(auth()->user(), $guru->unit_id);
         if ($guru->user && $guru->tanggal_lahir) {
             $password = Carbon::parse($guru->tanggal_lahir)->format('dmY');
             $guru->user->update([
@@ -53,6 +55,7 @@ class DataGuruIndex extends Component
     public function toggleStatus($guruId)
     {
         $guru = Guru::with('user')->findOrFail($guruId);
+        UnitContext::authorizeUnit(auth()->user(), $guru->unit_id);
         if ($guru->user) {
             if (auth()->id() === $guru->user->id) {
                 $this->dispatch('notify', type: 'error', message: 'Anda tidak dapat mengubah status akun sendiri.');
@@ -70,6 +73,8 @@ class DataGuruIndex extends Component
 
     public function confirmDelete($guruId)
     {
+        $guru = Guru::findOrFail($guruId);
+        UnitContext::authorizeUnit(auth()->user(), $guru->unit_id);
         $this->confirmDeleteId = $guruId;
         $this->dispatch('open-modal', 'confirm-delete-guru');
     }
@@ -78,6 +83,7 @@ class DataGuruIndex extends Component
     {
         if ($this->confirmDeleteId) {
             $guru = Guru::with(['user', 'kelas'])->findOrFail($this->confirmDeleteId);
+            UnitContext::authorizeUnit(auth()->user(), $guru->unit_id);
             $taAktif = TahunAjaran::where('is_active', true)->first();
 
             // 1. Cek apakah guru sedang menjadi Wali Kelas di kelas/rombel aktif
@@ -126,15 +132,17 @@ class DataGuruIndex extends Component
     public function render()
     {
         $taAktif = TahunAjaran::where('is_active', true)->first();
+        $activeUnitId = UnitContext::activeUnitId();
 
-        $query = Guru::with([
+        $query = Guru::forCurrentUser()->with([
             'user:id,name,email,is_active',
+            'unit:id,kode,nama',
             'kelas:id,nama_kelas,wali_kelas_id',
             'rombels' => fn($q) => $taAktif ? $q->where('tahun_ajaran_id', $taAktif->id)->with('kelas:id,nama_kelas') : $q,
         ]);
 
         // Calculate Stats (1 query agregasi + 1 count relasi)
-        $statRow = Guru::selectRaw("
+        $statRow = Guru::forCurrentUser()->selectRaw("
             COUNT(*) as total,
             SUM(CASE WHEN jabatan = 'Guru Honorer' THEN 1 ELSE 0 END) as honorer,
             SUM(CASE WHEN jabatan = 'Guru Tetap' THEN 1 ELSE 0 END) as tetap,
@@ -142,8 +150,12 @@ class DataGuruIndex extends Component
         ")->first();
 
         $waliCount = $taAktif
-            ? Rombel::where('tahun_ajaran_id', $taAktif->id)->whereNotNull('wali_kelas_id')->distinct('wali_kelas_id')->count('wali_kelas_id')
-            : Guru::has('kelas')->count();
+            ? Rombel::where('tahun_ajaran_id', $taAktif->id)
+                ->when($activeUnitId, fn ($q) => $q->whereHas('kelas', fn ($k) => $k->where('unit_id', $activeUnitId)))
+                ->whereNotNull('wali_kelas_id')
+                ->distinct('wali_kelas_id')
+                ->count('wali_kelas_id')
+            : Guru::forCurrentUser()->has('kelas')->count();
 
         $stats = [
             'total' => (int) ($statRow->total ?? 0),

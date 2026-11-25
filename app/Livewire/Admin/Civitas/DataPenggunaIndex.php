@@ -5,6 +5,8 @@ namespace App\Livewire\Admin\Civitas;
 use App\Models\User;
 use App\Models\Guru;
 use App\Models\Siswa;
+use App\Models\Unit;
+use App\Support\UnitContext;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
@@ -47,6 +49,8 @@ class DataPenggunaIndex extends Component
     public $newUserRole = 'admin';
 
     public $newUserStaffPosition = '';
+
+    public $newUserUnitId = '';
 
     public string $newUserSource = 'new';
 
@@ -95,7 +99,7 @@ class DataPenggunaIndex extends Component
     public function toggleSuspend()
     {
         if ($this->selectedUserId) {
-            $user = User::find($this->selectedUserId);
+            $user = $this->staffUsersQuery()->find($this->selectedUserId);
             if ($user && auth()->id() !== $user->id) {
                 $user->is_active = ! $user->is_active;
                 $user->save();
@@ -109,7 +113,7 @@ class DataPenggunaIndex extends Component
     public function resetPassword()
     {
         if ($this->selectedUserId) {
-            $user = User::find($this->selectedUserId);
+            $user = $this->staffUsersQuery()->find($this->selectedUserId);
             if ($user && auth()->id() !== $user->id) {
                 $user->password = Hash::make('password123');
                 $user->save();
@@ -164,11 +168,35 @@ class DataPenggunaIndex extends Component
 
     public function createUser()
     {
+        $authUser = auth()->user();
+        $isSuperAdmin = $authUser && $authUser->isSuperAdmin();
+
         $this->validate([
             'newUserSource' => ['required', Rule::in(['new', 'guru', 'siswa'])],
             'newUserRole' => ['required', 'exists:roles,name', Rule::notIn(self::PROFILE_MANAGED_ROLES)],
             'newUserStaffPosition' => ['nullable', 'string', 'max:100', Rule::in(array_keys($this->staffPositionOptions()))],
+            'newUserUnitId' => ['nullable', 'exists:units,id'],
         ]);
+
+        // Admin unit tidak boleh membuat super_admin dan selalu terikat ke unitnya sendiri
+        if (! $isSuperAdmin) {
+            if ($this->newUserRole === 'super_admin') {
+                $this->addError('newUserRole', 'Hanya Super Admin yang dapat menetapkan role Super Admin.');
+
+                return;
+            }
+            $this->newUserUnitId = $authUser?->effectiveUnitId();
+        }
+
+        $targetUnitId = $this->newUserRole === 'super_admin'
+            ? null
+            : ($this->newUserUnitId !== '' && $this->newUserUnitId !== null ? (int) $this->newUserUnitId : null);
+
+        if ($this->newUserRole === 'admin_unit' && ! $targetUnitId) {
+            $this->addError('newUserUnitId', 'Unit sekolah wajib dipilih untuk role Admin Unit.');
+
+            return;
+        }
 
         if ($this->newUserSource === 'new') {
             $this->validate([
@@ -184,14 +212,19 @@ class DataPenggunaIndex extends Component
                 'password' => Hash::make($password),
                 'is_active' => true,
                 'staff_position' => $this->newUserStaffPosition ?: null,
+                'unit_id' => $targetUnitId,
             ]);
             $user->assignRole($this->newUserRole);
             $message = "Pengguna {$user->name} berhasil ditambahkan dengan kata sandi: {$password}";
         } else {
             $this->validate(['newUserProfileId' => 'required|integer']);
             $user = $this->sourceProfileUser();
+            UnitContext::authorizeUnit($authUser, $user->effectiveUnitId());
 
-            $user->update(['staff_position' => $this->newUserStaffPosition ?: null]);
+            $user->update([
+                'staff_position' => $this->newUserStaffPosition ?: null,
+                'unit_id' => $targetUnitId ?? $user->effectiveUnitId(),
+            ]);
             if (! $user->hasRole($this->newUserRole)) {
                 $user->assignRole($this->newUserRole);
             }
@@ -255,6 +288,7 @@ class DataPenggunaIndex extends Component
 
     public function createRole()
     {
+        abort_unless(auth()->user()?->isSuperAdmin(), 403);
         $this->validate(['newRoleName' => 'required|min:3|unique:roles,name']);
         Role::firstOrCreate(['name' => strtolower($this->newRoleName)]);
         $this->newRoleName = '';
@@ -263,9 +297,10 @@ class DataPenggunaIndex extends Component
 
     public function deleteRole($roleId)
     {
+        abort_unless(auth()->user()?->isSuperAdmin(), 403);
         $role = Role::find($roleId);
         // Lindungi role krusial
-        $coreRoles = ['admin', 'operator', 'guru', 'siswa', 'alumni'];
+        $coreRoles = ['super_admin', 'admin', 'admin_unit', 'operator', 'guru', 'siswa', 'alumni'];
         if ($role && ! in_array(strtolower($role->name), $coreRoles, true)) {
             $role->delete();
             session()->flash('role_message', 'Role berhasil dihapus.');
@@ -276,6 +311,7 @@ class DataPenggunaIndex extends Component
 
     public function togglePermission($roleName, $permissionName)
     {
+        abort_unless(auth()->user()?->isSuperAdmin(), 403);
         $role = Role::findByName($roleName);
         $permission = Permission::firstOrCreate(['name' => $permissionName]);
 
@@ -290,7 +326,7 @@ class DataPenggunaIndex extends Component
     {
         // Hanya akun yang memiliki minimal satu role staf yang tampil di sini.
         $usersQuery = $this->staffUsersQuery()
-            ->with('roles')
+            ->with(['roles', 'unit:id,kode,nama'])
             ->where(function ($q) {
                 $q->where('name', 'like', '%'.$this->search.'%')
                     ->orWhere('email', 'like', '%'.$this->search.'%');
@@ -304,10 +340,18 @@ class DataPenggunaIndex extends Component
         $modules = ['Pengguna', 'Siswa', 'Guru', 'Keuangan', 'Website', 'Kelas'];
         $actions = ['view', 'create', 'edit', 'delete'];
 
+        $isSuperAdmin = auth()->user()?->isSuperAdmin() ?? false;
+        $staffRolesQuery = Role::whereNotIn('name', self::PROFILE_MANAGED_ROLES)->orderBy('name');
+        if (! $isSuperAdmin) {
+            $staffRolesQuery->where('name', '!=', 'super_admin');
+        }
+
         return view('livewire.admin.civitas.data-pengguna-index', [
             'users' => $usersQuery->paginate(10),
             'roles' => Role::with('permissions')->get(),
-            'staffRoles' => Role::whereNotIn('name', self::PROFILE_MANAGED_ROLES)->orderBy('name')->get(),
+            'staffRoles' => $staffRolesQuery->get(),
+            'units' => Unit::active()->get(['id', 'kode', 'nama']),
+            'isSuperAdmin' => $isSuperAdmin,
             'systemModules' => $modules,
             'systemActions' => $actions,
             'staffPositionOptions' => $this->staffPositionOptions(),
@@ -318,7 +362,12 @@ class DataPenggunaIndex extends Component
 
     private function staffUsersQuery()
     {
-        return User::whereHas('roles', fn ($query) => $query->whereNotIn('name', self::PROFILE_MANAGED_ROLES));
+        $activeUnitId = UnitContext::activeUnitId();
+        $isSuperAdmin = auth()->user()?->isSuperAdmin() ?? false;
+
+        return User::whereHas('roles', fn ($query) => $query->whereNotIn('name', self::PROFILE_MANAGED_ROLES))
+            ->when($activeUnitId !== null, fn ($q) => $q->where('unit_id', $activeUnitId))
+            ->when(! $isSuperAdmin, fn ($q) => $q->whereDoesntHave('roles', fn ($r) => $r->where('name', 'super_admin')));
     }
 
     private function sourceProfileUser(): User
@@ -352,7 +401,8 @@ class DataPenggunaIndex extends Component
 
     private function guruSources()
     {
-        return Guru::with('user:id,name,email')
+        return Guru::forCurrentUser()
+            ->with('user:id,name,email')
             ->whereHas('user', function ($query) {
                 $query->when($this->newUserProfileSearch, function ($userQuery) {
                     $search = '%'.$this->newUserProfileSearch.'%';
@@ -366,7 +416,8 @@ class DataPenggunaIndex extends Component
 
     private function siswaSources()
     {
-        return Siswa::with('user:id,name,email')
+        return Siswa::forCurrentUser()
+            ->with('user:id,name,email')
             ->whereHas('user', function ($query) {
                 $query->when($this->newUserProfileSearch, function ($userQuery) {
                     $search = '%'.$this->newUserProfileSearch.'%';

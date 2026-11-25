@@ -75,7 +75,8 @@ class JejakAlumniIndex extends Component
     public function edit($id)
     {
         $this->resetForm();
-        $item = KegiatanAlumni::findOrFail($id);
+        $item = KegiatanAlumni::with('siswa')->findOrFail($id);
+        \App\Support\UnitContext::authorizeUnit(auth()->user(), $item->siswa?->unit_id);
         $this->editId = $id;
         $this->siswa_id = $item->siswa_id;
         $this->jenis_kegiatan = $item->jenis_kegiatan;
@@ -129,19 +130,21 @@ class JejakAlumniIndex extends Component
 
     public function render()
     {
-        // 1. Stats Data
+        $scopeKegiatan = fn ($q) => $q->whereHas('siswa', fn ($sq) => $sq->forCurrentUser());
+
+        // 1. Stats Data (scoped to unit)
         $stats = [
-            'total' => KegiatanAlumni::count(),
-            'verifikasi_pending' => KegiatanAlumni::where('status_verifikasi', 'Pending')->count(),
+            'total' => $scopeKegiatan(KegiatanAlumni::query())->count(),
+            'verifikasi_pending' => $scopeKegiatan(KegiatanAlumni::where('status_verifikasi', 'Pending'))->count(),
             // Sebaran (Pie Chart Data)
-            'sebaran' => KegiatanAlumni::select('jenis_kegiatan', DB::raw('count(*) as total'))
+            'sebaran' => $scopeKegiatan(KegiatanAlumni::select('jenis_kegiatan', DB::raw('count(*) as total')))
                 ->groupBy('jenis_kegiatan')
                 ->get()
                 ->pluck('total', 'jenis_kegiatan')
                 ->toArray(),
             // Top Instansi
-            'top_instansi' => KegiatanAlumni::whereNotNull('nama_instansi')
-                ->select('nama_instansi', DB::raw('count(*) as total'))
+            'top_instansi' => $scopeKegiatan(KegiatanAlumni::whereNotNull('nama_instansi')
+                ->select('nama_instansi', DB::raw('count(*) as total')))
                 ->groupBy('nama_instansi')
                 ->orderByDesc('total')
                 ->limit(5)
@@ -149,7 +152,7 @@ class JejakAlumniIndex extends Component
         ];
 
         // 2. Query
-        $query = KegiatanAlumni::with(['siswa.user', 'siswa.kelas'])
+        $query = $scopeKegiatan(KegiatanAlumni::with(['siswa.user', 'siswa.kelas']))
             ->when($this->search, function ($q) {
                 $q->where(function ($sub) {
                     $sub->whereHas('siswa.user', fn($qu) => $qu->where('name', 'like', '%'.$this->search.'%'))
@@ -167,12 +170,14 @@ class JejakAlumniIndex extends Component
             });
 
         // 3. Selection Data for Modal
-        $alumniOptions = Siswa::with('user')
+        $alumniOptions = Siswa::forCurrentUser()
+            ->with('user')
             ->where('status', 'Lulus')
             ->orderBy('tahun_lulus', 'desc')
             ->get();
 
-        $availableYears = Siswa::whereNotNull('tahun_lulus')
+        $availableYears = Siswa::forCurrentUser()
+            ->whereNotNull('tahun_lulus')
             ->distinct()
             ->orderBy('tahun_lulus', 'desc')
             ->pluck('tahun_lulus');

@@ -94,7 +94,7 @@ Route::get('/unauthorized', function () {
 })->name('unauthorized');
 
 // ─── Admin & Guru Shared Routes (protected) ───────────────
-Route::middleware(['auth', 'role:admin|guru'])->group(function () {
+Route::middleware(['auth', 'role:super_admin|admin|admin_unit|guru'])->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard');
     Route::get('/bantuan-ai', HelpChat::class)->name('assistant.help');
 
@@ -128,16 +128,13 @@ Route::middleware(['auth', 'role:siswa', 'student.profile'])->prefix('siswa')->n
         ->name('payment-submissions.proof');
 });
 
-// ─── Admin Exclusive Routes ────────────────────────────────────
-Route::middleware(['auth', 'role:admin'])->group(function () {
-    // ─── Fasilitas Sekolah ───
-    Route::get('/fasilitas', FasilitasIndex::class)->name('admin.fasilitas');
-
+// ─── Admin & Admin Unit Routes ────────────────────────────────────
+Route::middleware(['auth', 'role:super_admin|admin|admin_unit'])->group(function () {
     Route::prefix('ppdb')->name('admin.ppdb.')->group(function () {
         Route::get('/pendaftaran-murid-baru', PendaftaranMuridBaruIndex::class)->name('pendaftaran-murid-baru');
     });
 
-    // ─── Data Master ───
+    // ─── Data Master (Unit & Yayasan) ───
     Route::prefix('data-master')->name('admin.data-master.')->group(function () {
         Route::get('/tahun-ajaran', TahunAjaranIndex::class)->name('tahun-ajaran');
         Route::get('/mata-pelajaran', MataPelajaranIndex::class)->name('mata-pelajaran');
@@ -171,8 +168,17 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::prefix('alumni')->name('admin.alumni.')->group(function () {
         Route::get('/jejak-alumni', JejakAlumniIndex::class)->name('jejak-alumni');
     });
+});
 
-    // ─── Website (Restricted) ───
+// ─── Super Admin Exclusive Routes (Portal Yayasan & Master Unit) ───
+Route::middleware(['auth', 'super.admin'])->group(function () {
+    Route::get('/data-master/unit-sekolah', \App\Livewire\Admin\DataMaster\UnitIndex::class)
+        ->name('admin.data-master.unit-sekolah');
+
+    // ─── Fasilitas Sekolah ───
+    Route::get('/fasilitas', FasilitasIndex::class)->name('admin.fasilitas');
+
+    // ─── Website Yayasan (Restricted) ───
     Route::prefix('website')->name('admin.website.')->group(function () {
         Route::get('/asset-media', MediaAssetIndex::class)->name('asset-media');
         Route::get('/galeri-slider', GaleriSliderIndex::class)->name('galeri-slider');

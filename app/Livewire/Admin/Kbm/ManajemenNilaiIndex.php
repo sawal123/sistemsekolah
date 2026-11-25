@@ -287,7 +287,7 @@ class ManajemenNilaiIndex extends Component
         $user = auth()->user();
 
         // Authorization Logic
-        if ($user->hasRole('guru') && $user->guru) {
+        if ($user->hasRole('guru') && ! $user->isAnyAdmin() && $user->guru) {
             $jadwals = Jadwal::where('guru_id', $user->guru->id)
                 ->when($this->filterTahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $this->filterTahunAjaran))
                 ->with(['kelas', 'mapel'])
@@ -296,8 +296,8 @@ class ManajemenNilaiIndex extends Component
             // Menampilkan mapel yang diajar oleh guru TSB di KELAS tsb.
             $listMapel = $jadwals->where('kelas_id', $this->filterKelas)->pluck('mapel')->unique('id');
         } else {
-            $listKelas = Kelas::orderBy('jenjang')->orderBy('nama_kelas')->get();
-            $listMapel = Mapel::orderBy('nama_mapel')->get();
+            $listKelas = Kelas::forCurrentUser()->orderBy('jenjang')->orderBy('nama_kelas')->get();
+            $listMapel = Mapel::forCurrentUser(true)->orderBy('nama_mapel')->get();
         }
 
         $listTahunAjaran = TahunAjaran::orderBy('tahun', 'desc')->orderBy('semester')->get();

@@ -41,7 +41,7 @@
     <!-- HEADER / IDENTITAS -->
     <div class="text-center mb-4">
         <div class="text-2xl">LAPORAN HASIL BELAJAR SISWA</div>
-        <div><strong>SEKOLAH MENENGAH ATAS</strong></div>
+        <div><strong>{{ strtoupper($unit?->nama ?? ('UNIT ' . ($siswa->jenjang ?? 'SEKOLAH'))) }}</strong></div>
     </div>
 
     <table class="header-table">
@@ -64,7 +64,7 @@
         <tr>
             <td>Nama Sekolah</td>
             <td>:</td>
-            <td>SMA Pintar Nusantara</td>
+            <td>{{ $unit?->nama ?? 'Sistem Informasi Sekolah' }}@if($unit?->npsn) (NPSN: {{ $unit->npsn }})@endif</td>
             <td>Tahun Ajaran</td>
             <td>:</td>
             <td>{{ $ta->tahun }}</td>
@@ -226,8 +226,8 @@
                 <div>
                     <img src="data:image/svg+xml;base64,{{ $qrCodeBase64 }}" class="qr-code">
                 </div>
-                <strong>DR. H. Ahmad Daris, M.Pd</strong><br/>
-                NIP. 19780512 201001 1 002
+                <strong>{{ $unit?->kepala_sekolah ?: 'Kepala Sekolah' }}</strong><br/>
+                NIP. {{ $unit?->nip_kepala_sekolah ?: '-' }}
             </td>
             <td width="33%">
                 Jakarta, {{ date('d F Y') }}<br/>

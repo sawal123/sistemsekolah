@@ -10,24 +10,31 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
         </button>
+        @php
+            $activeUnitHeader = \App\Support\UnitContext::activeUnit();
+            $authHeaderUser = auth()->user();
+        @endphp
         <div>
-            <p class="txt-muted" style="font-size:11px;">SMA Nusantara</p>
+            <p class="txt-muted" style="font-size:11px;">{{ $activeUnitHeader?->nama ?? 'Semua Unit Sekolah' }}</p>
             <p class="txt-primary" style="font-size:14px;font-weight:700;line-height:1.2;">
                 {{ $title ?? 'Dashboard' }}
             </p>
         </div>
     </div>
 
-    {{-- Center: Tahun Ajaran --}}
+    {{-- Center: Unit Switcher + Tahun Ajaran --}}
     @php
         $activeTaHeader = \App\Models\TahunAjaran::where('is_active', true)->first();
     @endphp
-    <div class="hidden md:flex"
-        style="align-items:center;gap:8px;background:rgba(99,102,241,0.10);border:1px solid rgba(99,102,241,0.20);border-radius:999px;padding:6px 16px;">
-        <span class="pulse-dot" style="width:7px;height:7px;border-radius:50%;background:#6366f1;flex-shrink:0;"></span>
-        <span style="font-size:12px;font-weight:600;color:#6366f1;white-space:nowrap;">
-            Tahun Ajaran: {{ $activeTaHeader ? $activeTaHeader->tahun . ' — ' . ucfirst($activeTaHeader->semester) : 'Belum Ditentukan' }}
-        </span>
+    <div class="hidden md:flex items-center gap-2.5">
+        <livewire:components.unit-switcher />
+        <div class="flex"
+            style="align-items:center;gap:8px;background:rgba(99,102,241,0.10);border:1px solid rgba(99,102,241,0.20);border-radius:999px;padding:6px 16px;">
+            <span class="pulse-dot" style="width:7px;height:7px;border-radius:50%;background:#6366f1;flex-shrink:0;"></span>
+            <span style="font-size:12px;font-weight:600;color:#6366f1;white-space:nowrap;">
+                Tahun Ajaran: {{ $activeTaHeader ? $activeTaHeader->tahun . ' — ' . ucfirst($activeTaHeader->semester) : 'Belum Ditentukan' }}
+            </span>
+        </div>
     </div>
 
     {{-- Right: Theme + Notif + Profile --}}
@@ -79,7 +86,15 @@
                         {{ auth()->user()->name ?? 'Pengguna' }}
                     </p>
                     <p class="txt-muted" style="font-size:10px;white-space:nowrap;">
-                        {{ auth()->user()->hasRole('admin') ? 'Administrator' : (auth()->user()->hasRole('guru') ? 'Guru Pengajar' : 'Pengguna') }}
+                        @if($authHeaderUser?->isSuperAdmin())
+                            Super Administrator
+                        @elseif($authHeaderUser?->isUnitAdmin())
+                            Admin Unit {{ $activeUnitHeader?->kode ?? '' }}
+                        @elseif($authHeaderUser?->hasRole('guru'))
+                            Guru Pengajar
+                        @else
+                            Pengguna
+                        @endif
                     </p>
                 </div>
                 <svg class="w-3 h-3 txt-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">

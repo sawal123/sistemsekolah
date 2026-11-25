@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToUnit;
 use Illuminate\Database\Eloquent\Model;
 
 class Guru extends Model
 {
+    use BelongsToUnit;
+
     protected $guarded = ['id'];
 
     public function user() { return $this->belongsTo(User::class); }

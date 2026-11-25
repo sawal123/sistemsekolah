@@ -22,6 +22,9 @@ class PaymentSubmissionReviewIndex extends Component
 
     public function approve(int $id, PaymentSubmissionService $service): void
     {
+        $submission = PaymentSubmission::with('siswa')->findOrFail($id);
+        \App\Support\UnitContext::authorizeUnit(auth()->user(), $submission->siswa?->unit_id);
+
         try {
             $service->approve($id, auth()->user());
             $this->dispatch('notify', ['type' => 'success', 'message' => 'Bukti disetujui dan transaksi telah dicatat.']);
@@ -32,6 +35,9 @@ class PaymentSubmissionReviewIndex extends Component
 
     public function openReject(int $id): void
     {
+        $submission = PaymentSubmission::with('siswa')->findOrFail($id);
+        \App\Support\UnitContext::authorizeUnit(auth()->user(), $submission->siswa?->unit_id);
+
         $this->rejectingId = $id;
         $this->adminNote = '';
         $this->dispatch('open-modal', 'reject-payment-submission');
@@ -40,6 +46,9 @@ class PaymentSubmissionReviewIndex extends Component
     public function reject(PaymentSubmissionService $service): void
     {
         $this->validate(['adminNote' => ['required', 'string', 'min:5', 'max:500']]);
+        $submission = PaymentSubmission::with('siswa')->findOrFail((int) $this->rejectingId);
+        \App\Support\UnitContext::authorizeUnit(auth()->user(), $submission->siswa?->unit_id);
+
         try {
             $service->reject((int) $this->rejectingId, auth()->user(), $this->adminNote);
             $this->closeReject();
@@ -59,6 +68,7 @@ class PaymentSubmissionReviewIndex extends Component
     public function render()
     {
         $submissions = PaymentSubmission::with(['siswa.user', 'tagihan', 'reviewer'])
+            ->whereHas('siswa', fn ($q) => $q->forCurrentUser())
             ->when($this->filter !== 'Semua', fn ($query) => $query->where('status', $this->filter))
             ->latest()->paginate(15);
 
