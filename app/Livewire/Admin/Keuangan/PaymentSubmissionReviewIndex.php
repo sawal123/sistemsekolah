@@ -20,6 +20,12 @@ class PaymentSubmissionReviewIndex extends Component
     public ?int $rejectingId = null;
     public string $adminNote = '';
 
+    public function setFilter(string $filter): void
+    {
+        $this->filter = $filter;
+        $this->resetPage();
+    }
+
     public function approve(int $id, PaymentSubmissionService $service): void
     {
         $submission = PaymentSubmission::with('siswa')->findOrFail($id);
@@ -67,11 +73,22 @@ class PaymentSubmissionReviewIndex extends Component
 
     public function render()
     {
-        $submissions = PaymentSubmission::with(['siswa.user', 'tagihan', 'reviewer'])
-            ->whereHas('siswa', fn ($q) => $q->forCurrentUser())
-            ->when($this->filter !== 'Semua', fn ($query) => $query->where('status', $this->filter))
-            ->latest()->paginate(15);
+        $baseQuery = PaymentSubmission::whereHas('siswa', fn ($q) => $q->forCurrentUser());
 
-        return view('livewire.admin.keuangan.payment-submission-review-index', compact('submissions'));
+        $stats = [
+            'pending_count' => (clone $baseQuery)->where('status', PaymentSubmission::PENDING)->count(),
+            'pending_nominal' => (clone $baseQuery)->where('status', PaymentSubmission::PENDING)->sum('nominal'),
+            'approved_count' => (clone $baseQuery)->where('status', PaymentSubmission::APPROVED)->count(),
+            'rejected_count' => (clone $baseQuery)->where('status', PaymentSubmission::REJECTED)->count(),
+            'all_count' => (clone $baseQuery)->count(),
+        ];
+
+        $submissions = (clone $baseQuery)
+            ->with(['siswa.user', 'siswa.kelas', 'siswa.unit', 'tagihan', 'reviewer'])
+            ->when($this->filter !== 'Semua', fn ($query) => $query->where('status', $this->filter))
+            ->latest('id')
+            ->paginate(15);
+
+        return view('livewire.admin.keuangan.payment-submission-review-index', compact('submissions', 'stats'));
     }
 }

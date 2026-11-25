@@ -419,4 +419,17 @@ class MultiUnitIsolationTest extends TestCase
             ->assertSee('Transaksi Terbaru Dicatat')
             ->assertSee('Penerimaan Hari Ini');
     }
+
+    public function test_payment_submission_review_renders_stats_and_filter_tabs(): void
+    {
+        $this->actingAs($this->superAdmin);
+
+        Livewire::test(\App\Livewire\Admin\Keuangan\PaymentSubmissionReviewIndex::class)
+            ->assertOk()
+            ->assertSee('Verifikasi Pembayaran')
+            ->assertSee('Menunggu Verifikasi')
+            ->assertSee('Telah Disetujui')
+            ->call('setFilter', 'Semua')
+            ->assertOk();
+    }
 }

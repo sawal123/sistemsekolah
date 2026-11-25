@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\{Absensi, AnggotaRombel, Fasilitas, Gallery, Guru, Jadwal, Jurusan, KalenderAkademik, Kategori, KegiatanAlumni, Kelas, Mapel, Nilai, PendaftaranMuridBaru, Pembayaran, Post, PostComment, PpdbGelombang, PpdbGelombangRiwayat, Rapor, Rombel, Ruangan, Setting, Siswa, Slider, Spp, Tag, Tagihan, TahunAjaran, Unit, User, WebsitePopup};
+use App\Models\{Absensi, AnggotaRombel, Fasilitas, Gallery, Guru, Jadwal, Jurusan, KalenderAkademik, Kategori, KegiatanAlumni, Kelas, Mapel, Nilai, PaymentSubmission, PendaftaranMuridBaru, Pembayaran, Post, PostComment, PpdbGelombang, PpdbGelombangRiwayat, Rapor, Rombel, Ruangan, Setting, Siswa, Slider, Spp, Tag, Tagihan, TahunAjaran, Unit, User, WebsitePopup};
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
@@ -572,6 +572,76 @@ class DummyDataSeeder extends Seeder
                     $invoice->bayar($idx % 4 === 0 ? $fee->nominal : $fee->nominal / 2, 'Transfer', $admin->id, 'Pembayaran melalui bank', Carbon::parse('2026-10-08'));
                 }
                 $idx++;
+            }
+        }
+
+        // Seed sample PaymentSubmissions (bukti transfer portal siswa untuk diverifikasi)
+        $unpaidInvoices = Tagihan::with('siswa.user')
+            ->where('status', '!=', 'Lunas')
+            ->whereDoesntHave('paymentSubmissions')
+            ->get();
+
+        $proofPath = 'student-payment-proofs/dummy-transfer-receipt.png';
+        if (! \Illuminate\Support\Facades\Storage::disk('local')->exists($proofPath)) {
+            \Illuminate\Support\Facades\Storage::disk('local')->put(
+                $proofPath,
+                base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==')
+            );
+        }
+
+        foreach ($unpaidInvoices->take(6) as $subIdx => $inv) {
+            $student = $inv->siswa;
+            if (! $student || ! $student->user) {
+                continue;
+            }
+
+            if ($subIdx < 3) {
+                // 3 Pengajuan Menunggu Verifikasi (dari berbagai jenjang)
+                PaymentSubmission::create([
+                    'tagihan_id' => $inv->id,
+                    'siswa_id' => $student->id,
+                    'submitted_by' => $student->user_id,
+                    'nominal' => $inv->sisa_tagihan ?: $inv->nominal,
+                    'tanggal_transfer' => now()->subDays($subIdx + 1)->toDateString(),
+                    'metode' => 'Transfer Bank BSI',
+                    'bukti_path' => $proofPath,
+                    'status' => PaymentSubmission::PENDING,
+                    'catatan_siswa' => 'Mohon diverifikasi, transfer dari rekening atas nama orang tua siswa.',
+                ]);
+            } elseif ($subIdx < 5) {
+                // 2 Pengajuan Disetujui
+                $sub = PaymentSubmission::create([
+                    'tagihan_id' => $inv->id,
+                    'siswa_id' => $student->id,
+                    'submitted_by' => $student->user_id,
+                    'nominal' => $inv->sisa_tagihan ?: $inv->nominal,
+                    'tanggal_transfer' => now()->subDays(4)->toDateString(),
+                    'metode' => 'Transfer Bank Mandiri',
+                    'bukti_path' => $proofPath,
+                    'status' => PaymentSubmission::APPROVED,
+                    'catatan_siswa' => 'Transfer SPP via Livin Mandiri',
+                    'catatan_admin' => 'Dana sudah masuk ke rekening yayasan. Terima kasih.',
+                    'reviewed_by' => $admin->id,
+                    'reviewed_at' => now()->subDays(3),
+                ]);
+                $p = $inv->bayar($sub->nominal, 'Transfer', $admin->id, 'Disetujui dari bukti transfer #' . $sub->id, $sub->tanggal_transfer);
+                $sub->update(['pembayaran_id' => $p->id]);
+            } else {
+                // 1 Pengajuan Ditolak
+                PaymentSubmission::create([
+                    'tagihan_id' => $inv->id,
+                    'siswa_id' => $student->id,
+                    'submitted_by' => $student->user_id,
+                    'nominal' => $inv->sisa_tagihan ?: $inv->nominal,
+                    'tanggal_transfer' => now()->subDays(6)->toDateString(),
+                    'metode' => 'Transfer BCA',
+                    'bukti_path' => $proofPath,
+                    'status' => PaymentSubmission::REJECTED,
+                    'catatan_siswa' => 'Transfer SPP bulan ini',
+                    'catatan_admin' => 'Foto bukti transfer terpotong dan nomor referensi bank tidak terbaca. Mohon unggah ulang bukti yang jelas.',
+                    'reviewed_by' => $admin->id,
+                    'reviewed_at' => now()->subDays(5),
+                ]);
             }
         }
     }
