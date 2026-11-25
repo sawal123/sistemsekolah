@@ -459,7 +459,7 @@ class DataSiswaIndex extends Component
     public function render()
     {
         $query = Siswa::forCurrentUser()
-            ->with(['user:id,name,email,is_active', 'kelas:id,nama_kelas,jenjang,jurusan_id', 'jurusan:id,kode,nama_jurusan', 'unit:id,kode,nama'])
+            ->with(['user:id,name,email,is_active', 'kelas:id,nama_kelas,jenjang,jurusan_id', 'jurusan:id,kode,nama', 'unit:id,kode,nama'])
             ->when($this->search, function ($q) {
                 $q->where(function ($sub) {
                     $sub->where('nis', 'like', '%' . $this->search . '%')
@@ -488,7 +488,7 @@ class DataSiswaIndex extends Component
         // Lazy load form classes only when modal is open to save database I/O
         $formClasses = $this->isModalOpen
             ? Kelas::forCurrentUser()
-                ->with('jurusan:id,kode,nama_jurusan')
+                ->with('jurusan:id,kode,nama')
                 ->select('id', 'nama_kelas', 'jenjang', 'jurusan_id')
                 ->where('jenjang', $this->jenjang)
                 ->get()

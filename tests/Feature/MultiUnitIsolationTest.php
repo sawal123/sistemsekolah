@@ -363,4 +363,49 @@ class MultiUnitIsolationTest extends TestCase
             ->call('deleteRole', $operatorRole->id)
             ->assertForbidden();
     }
+
+    public function test_data_siswa_renders_cleanly_with_jurusan_and_modal_classes(): void
+    {
+        $unitSmk = Unit::firstOrCreate(
+            ['kode' => 'SMK'],
+            ['nama' => 'Sekolah Menengah Kejuruan', 'tingkat_awal' => 10, 'tingkat_akhir' => 12, 'is_active' => true]
+        );
+
+        $jurusan = \App\Models\Jurusan::create([
+            'kode' => 'RPL',
+            'nama' => 'Rekayasa Perangkat Lunak',
+            'is_active' => true,
+        ]);
+
+        $kelasSmk = Kelas::create([
+            'unit_id' => $unitSmk->id,
+            'nama_kelas' => 'X RPL 1',
+            'tingkat' => 10,
+            'jenjang' => 'SMK',
+            'jurusan_id' => $jurusan->id,
+            'kapasitas' => 36,
+        ]);
+
+        $userSiswaSmk = User::factory()->create(['name' => 'Siswa SMK RPL', 'unit_id' => $unitSmk->id]);
+        $siswaSmk = Siswa::create([
+            'user_id' => $userSiswaSmk->id,
+            'unit_id' => $unitSmk->id,
+            'kelas_id' => $kelasSmk->id,
+            'jurusan_id' => $jurusan->id,
+            'nis' => 'SMK001',
+            'nisn' => '0013000001',
+            'jenjang' => 'SMK',
+            'status' => 'Aktif',
+        ]);
+
+        // Super Admin mengakses DataSiswaIndex (Semua Unit atau SMK)
+        $this->actingAs($this->superAdmin);
+
+        Livewire::test(DataSiswaIndex::class)
+            ->assertOk()
+            ->assertSee('Siswa SMK RPL')
+            ->call('openModal')
+            ->set('jenjang', 'SMK')
+            ->assertOk();
+    }
 }

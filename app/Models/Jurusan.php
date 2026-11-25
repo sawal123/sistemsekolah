@@ -12,6 +12,11 @@ class Jurusan extends Model
         'is_active' => 'boolean',
     ];
 
+    public function getNamaJurusanAttribute(): string
+    {
+        return (string) ($this->nama ?? '');
+    }
+
     public function kelas()
     {
         return $this->hasMany(Kelas::class);
